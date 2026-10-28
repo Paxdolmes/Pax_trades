@@ -4,7 +4,8 @@
 project_id = "relay"
 
 # These check who is calling themselves: Stripe signs its webhooks, pg_cron sends a
-# shared secret, and Stripe's onboarding return page is opened in a browser.
+# shared secret, Stripe's onboarding return page is opened in a browser, and the
+# website's contact form is open to guests.
 [functions.stripe-webhook]
 verify_jwt = false
 
@@ -12,4 +13,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.connect-onboarding]
+verify_jwt = false
+
+[functions.contact]
 verify_jwt = false

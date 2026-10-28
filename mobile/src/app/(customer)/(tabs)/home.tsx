@@ -1,19 +1,20 @@
-import { router, type Href } from 'expo-router';
-import { Bell, ChevronRight, CircleCheck, ClipboardPen, Flame, MapPin, ShieldCheck, Wrench, Zap } from 'lucide-react-native';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { Bell, ChevronRight, CircleCheck, ClipboardPen, MapPin, ShieldCheck, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand';
-import { Button, Card, IconButton, IconTile, Note, Screen, SectionLabel, T, type LucideIcon } from '@/components/ui';
+import { TRADE_ICONS } from '@/components/trade-icons';
+import { Button, Card, IconButton, IconTile, Note, Screen, SectionLabel, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { formatPence, fromPricePence, LAUNCH_OUTWARD_CODES, TRADES, type Trade } from '@/domain/catalog';
+import { isWeb } from '@/components/site/frame';
+import { formatPence, fromPricePence, JOB_TYPES, LAUNCH_OUTWARD_CODES, TRADES, URGENT_TRADES, type Trade } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
 import { needsSignIn, useAuth } from '@/lib/auth';
+import { sendEnquiry } from '@/lib/contact';
 import { DEMO_CUSTOMER } from '@/lib/demo';
 import { firstName, isLive, loadCustomerJobs, useLive } from '@/lib/live';
 
-const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Wrench, electrical: Zap, heating: Flame };
-const SHORT_LABEL: Record<Trade, string> = { plumbing: 'Plumber', electrical: 'Electrician', heating: 'Heating' };
 
 function greeting(hour = new Date().getHours()) {
   return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -25,10 +26,15 @@ export default function CustomerHome() {
   const name = isLive ? firstName(profile?.fullName) : DEMO_CUSTOMER.firstName;
   // Live: start from the postcode of their last job until they type one.
   const { data: jobs } = useLive(() => loadCustomerJobs(), []);
-  const [typed, setPostcode] = useState<string | null>(null);
+  // From the website: a postcode already checked, a job picked on Services, or "Emergency?".
+  const params = useLocalSearchParams<{ postcode?: string; trade?: Trade; job?: string; urgent?: string }>();
+  const picked = JOB_TYPES.find((j) => j.id === params.job && j.trade === params.trade);
+  const [typed, setPostcode] = useState<string | null>(params.postcode ? params.postcode.toUpperCase() : null);
   const postcode = typed ?? (isLive ? (jobs[0]?.postcode ?? '') : DEMO_CUSTOMER.postcode);
   const [email, setEmail] = useState('');
   const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const district = outwardCode(postcode);
   const covered = district !== null && isInLaunchArea(postcode, LAUNCH_OUTWARD_CODES);
@@ -38,6 +44,7 @@ export default function CustomerHome() {
 
   return (
     <Screen>
+      {isWeb ? null : (
       <View style={styles.header}>
         <View style={{ gap: 2 }}>
           <Wordmark size={26} />
@@ -51,9 +58,10 @@ export default function CustomerHome() {
           <IconButton icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
         )}
       </View>
+      )}
 
       <T variant="display" accessibilityRole="header" style={{ fontSize: 34, lineHeight: 38 }}>
-        What needs fixing?
+        {params.urgent ? 'What’s the emergency?' : 'What needs fixing?'}
       </T>
 
       <View style={[styles.postcode, Shadows.card, { backgroundColor: c.surface }]}>
@@ -88,6 +96,25 @@ export default function CustomerHome() {
         </T>
       ) : null}
 
+      {picked && (covered || district === null) ? (
+        <Card style={{ gap: Spacing.three }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
+            <IconTile icon={TRADE_ICONS[picked.trade]} size={44} />
+            <View style={{ flex: 1 }}>
+              <T variant="caption" color="inkSubtle">
+                You picked
+              </T>
+              <T variant="headline">{picked.label}</T>
+            </View>
+          </View>
+          <Button
+            label="Continue"
+            trailingIcon={ChevronRight}
+            onPress={() => open({ pathname: '/request', params: { trade: picked.trade, job: picked.id, postcode } })}
+          />
+        </Card>
+      ) : null}
+
       {covered || district === null ? (
         <>
           <View style={[styles.urgent, { backgroundColor: c.urgent }]}>
@@ -99,22 +126,22 @@ export default function CustomerHome() {
             </View>
             <View style={{ gap: 4 }}>
               <T variant="title1" color="onUrgent" accessibilityRole="header">
-                Leak, no power or no heat?
+                Leak, no power, no heat or locked out?
               </T>
               <T variant="callout" color="onUrgent" style={{ fontWeight: '500' }}>
                 A vetted pro at your door, usually within the hour.
               </T>
             </View>
             <View style={styles.urgentRow}>
-              {TRADES.map((t) => (
+              {TRADES.filter((t) => URGENT_TRADES.includes(t.id)).map((t) => (
                 <Pressable
                   key={t.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Get a ${SHORT_LABEL[t.id].toLowerCase()} now`}
+                  accessibilityLabel={`Urgent ${t.service.toLowerCase()}`}
                   onPress={() => open({ pathname: '/request', params: { trade: t.id, postcode } })}
                   style={({ pressed }) => [styles.urgentButton, { backgroundColor: c.onUrgent, opacity: pressed ? 0.85 : 1 }]}>
                   <T variant="subhead" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                    {SHORT_LABEL[t.id]}
+                    {t.short}
                   </T>
                 </Pressable>
               ))}
@@ -136,9 +163,9 @@ export default function CustomerHome() {
                     <View style={[styles.tileIcon, { backgroundColor: c.ink }]}>
                       <Icon size={22} color={c.accent} strokeWidth={2.2} />
                     </View>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <T variant="bodyStrong" numberOfLines={1} style={{ fontSize: 15, fontWeight: '700' }}>
-                        {SHORT_LABEL[t.id]}
+                        {t.short}
                       </T>
                       <T variant="footnote" color="inkMuted">
                         {`From ${formatPence(fromPricePence(t.id))}`}
@@ -190,7 +217,28 @@ export default function CustomerHome() {
                 accessibilityLabel="Email address"
                 style={[Type.callout, styles.email, { backgroundColor: c.surfaceMuted, color: c.ink }]}
               />
-              <Button label="Join the waitlist" disabled={!email.includes('@')} onPress={() => setJoined(true)} />
+              {joinError ? (
+                <T variant="footnote" color="danger">
+                  {joinError}
+                </T>
+              ) : null}
+              <Button
+                label="Join the waitlist"
+                loading={joining}
+                disabled={!email.includes('@')}
+                onPress={async () => {
+                  setJoining(true);
+                  setJoinError(null);
+                  try {
+                    await sendEnquiry({ kind: 'waitlist', email, postcode });
+                    setJoined(true);
+                  } catch (e) {
+                    setJoinError(e instanceof Error ? e.message : 'Please try again.');
+                  } finally {
+                    setJoining(false);
+                  }
+                }}
+              />
             </>
           )}
         </Card>
@@ -215,10 +263,10 @@ const styles = StyleSheet.create({
   trade: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   urgent: { borderRadius: Radii.xl, padding: Spacing.five, gap: Spacing.four },
   urgentTag: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, height: 26, paddingHorizontal: 10, borderRadius: Radii.pill },
-  urgentRow: { flexDirection: 'row', gap: Spacing.two },
-  urgentButton: { flex: 1, height: 48, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
-  tiles: { flexDirection: 'row', gap: Spacing.three },
-  tile: { flex: 1, borderRadius: Radii.lg, padding: Spacing.three, gap: Spacing.three },
+  urgentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  urgentButton: { flexGrow: 1, flexBasis: '30%', height: 48, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.two },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
+  tile: { flexGrow: 1, flexBasis: '46%', borderRadius: Radii.lg, padding: Spacing.three, gap: Spacing.three, flexDirection: 'row', alignItems: 'center' },
   tileIcon: { width: 44, height: 44, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   email: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.four },
   trust: { borderRadius: Radii.md, paddingHorizontal: Spacing.four, paddingVertical: Spacing.three },

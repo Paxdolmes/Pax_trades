@@ -1,23 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, ChevronLeft, CircleHelp, Flame, Send, ShieldCheck, Wrench, Zap } from 'lucide-react-native';
+import { Check, ChevronLeft, CircleHelp, Send, ShieldCheck } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { MediaPicker } from '@/components/media-picker';
-import { Button, Card, Footer, IconButton, Note, Radio, Screen, T, type LucideIcon } from '@/components/ui';
+import { TRADE_ICONS } from '@/components/trade-icons';
+import { Button, Card, Footer, IconButton, Note, Radio, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { PILOT, QUOTE_TIMING_LABELS, type QuoteTiming, type Trade } from '@/domain/catalog';
+import { PILOT, QUOTE_TIMING_LABELS, TRADES, type QuoteTiming, type Trade } from '@/domain/catalog';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
 import { useAccountGate } from '@/lib/auth';
 import { createQuoteRequest } from '@/lib/quotes';
 
 const MIN_DESCRIPTION = 10;
 
-const TRADE_CHOICES: { id: Trade; label: string; icon: LucideIcon }[] = [
-  { id: 'plumbing', label: 'Plumber', icon: Wrench },
-  { id: 'electrical', label: 'Electrician', icon: Zap },
-  { id: 'heating', label: 'Heating & gas', icon: Flame },
-];
+const TRADE_CHOICES = TRADES.map((t) => ({ id: t.id, label: t.short, icon: TRADE_ICONS[t.id] }));
 
 const TIMING_DETAIL: Record<QuoteTiming, string> = {
   asap: 'Pros who can come in the next day or two',
@@ -130,7 +127,7 @@ export default function QuoteRequest() {
         </View>
         <T variant="footnote" color="inkMuted">
           {trades.length === 0
-            ? `Vetted plumbers, electricians and heating engineers nearby can quote. We stop at ${PILOT.maxQuotesPerRequest} quotes so you get a short list, not a flood.`
+            ? `Vetted local pros can quote. We stop at ${PILOT.maxQuotesPerRequest} quotes so you get a short list, not a flood.`
             : `Vetted pros nearby in the trades you picked can quote. We stop at ${PILOT.maxQuotesPerRequest} quotes so you get a short list, not a flood.`}
         </T>
       </View>

@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand';
 import { PLACES, StaticMap } from '@/components/map';
+import { useTabBarPosition } from '@/components/tab-bar';
 import { Avatar, Card, Chip, IconButton, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
 import { formatPence, TRADES } from '@/domain/catalog';
@@ -75,11 +76,13 @@ export default function ProHome() {
     return () => clearTimeout(t);
   }, [online, firstUrgent]);
 
+  const topTabs = useTabBarPosition() === 'top';
   const trades = pro.trades.map((t) => TRADES.find((x) => x.id === t)?.label.split(' ')[0]).join(' · ');
 
   return (
     <Screen>
-      <Wordmark size={24} traders />
+      {/* The top tabs already show the name on a wide browser. */}
+      {topTabs ? null : <Wordmark size={24} traders />}
       <View style={styles.header}>
         <Avatar name={pro.name} size={52} />
         <View style={{ flex: 1, gap: 4 }}>

@@ -26,10 +26,11 @@ function bundleSaving(job: JobType, all: JobType[]): number | null {
 
 export default function RequestJob() {
   const c = usePalette();
-  const { trade, postcode } = useLocalSearchParams<{ trade: Trade; postcode: string }>();
+  const { trade, postcode, job } = useLocalSearchParams<{ trade: Trade; postcode: string; job?: string }>();
   const tradeInfo = TRADES.find((t) => t.id === trade);
   const jobTypes = jobTypesForTrade(trade);
-  const [jobType, setJobType] = useState<JobType>(jobTypes[0]);
+  // A job picked on the website's Services page starts selected.
+  const [jobType, setJobType] = useState<JobType>(jobTypes.find((j) => j.id === job) ?? jobTypes[0]);
   const [urgency, setUrgency] = useState<Urgency>('urgent');
   const [description, setDescription] = useState('');
   const [media, setMedia] = useState<PickedMedia[]>([]);

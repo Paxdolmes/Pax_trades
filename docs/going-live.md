@@ -105,6 +105,17 @@ On an iPhone, open the link in Safari, tap Share, then **Add to Home Screen**, a
 
 What's different on the web: there are no push notifications, and cards are saved with Stripe's web form instead of the phone sheet. While Stripe is in test mode, use the card `4242 4242 4242 4242` with any future date and any CVC.
 
+### Website pages and the contact form
+
+On a laptop or phone browser, `https://app.relay-trade.co.uk` opens on the Relay website: a home page, Services (all eight trades with every job and price), How it works, Prices, Safety (how pros are vetted), For tradespeople and Help. Booking starts from **Book a job**. The words live in `mobile/src/content/site.ts` and the prices come from `mobile/src/domain/catalog.ts`, so the pages always match booking.
+
+Messages from the Help page's contact form, and waitlist sign-ups from postcodes outside SW6, are saved in the `enquiries` table (Supabase → Table Editor). To have help messages emailed to you as well, add two secrets in Supabase → Edge Functions → Secrets:
+
+1. `RESEND_API_KEY`: in Resend, open **API Keys** (https://resend.com/api-keys), click **Create API key**, name it `Relay website`, choose **Sending access** and the relay-trade.co.uk domain, then paste the key straight into Supabase, not into chat.
+2. `SUPPORT_INBOX`: the email address that should receive help messages.
+
+Each email comes from no-reply@relay-trade.co.uk with Reply-To set to the customer, so pressing Reply answers them directly. Until both secrets are set, messages are still saved in the table.
+
 ## Still to do before real customers
 
 - **Failed charges are followed up by hand.** When a card is declined or the bank asks the customer to approve the payment, the job is marked with `payment_failed_at` in the jobs table. Contact the customer and charge them from the Stripe dashboard.

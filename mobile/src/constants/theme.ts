@@ -8,13 +8,13 @@ import { appVariant } from '@/lib/variant';
 
 export const Colors = {
   light: {
-    bg: '#F5F5F2', // app canvas, warm "plaster"
+    bg: '#FAF7F2', // app canvas, warm cream
     surface: '#FFFFFF', // cards, sheets
-    surfaceMuted: '#ECEDE8', // inputs, secondary buttons, tracks
+    surfaceMuted: '#F2EDE5', // inputs, secondary buttons, tracks
     ink: '#0D1B3E', // switchboard navy
-    inkMuted: '#5B6478',
+    inkMuted: '#525D78',
     inkSubtle: '#858DA0',
-    border: '#DADBD3',
+    border: '#EBE5DA',
 
     brand: '#0D1B3E', // main actions: navy
     brandPressed: '#15275A',
@@ -28,7 +28,7 @@ export const Colors = {
 
     urgent: '#E8622A', // Ember: urgent actions only. Navy text on it, not white.
     urgentPressed: '#C2410C',
-    urgentTint: '#FCEDE5',
+    urgentTint: '#FFEDE3', // soft peach
     onUrgent: '#0D1B3E',
 
     success: '#177A4B', // verified, online, money in
@@ -149,6 +149,12 @@ export function withFont(style: StyleProp<TextStyle>): TextStyle {
 }
 
 export type TypeVariant = keyof typeof Type;
+
+/** The website's soft shadows (CSS box-shadow, which React Native now supports too). */
+export const SoftShadows: Record<'soft' | 'lift', ViewStyle> = {
+  soft: { boxShadow: '0 12px 32px -16px rgba(13, 27, 62, 0.18), 0 2px 6px -2px rgba(13, 27, 62, 0.06)' },
+  lift: { boxShadow: '0 24px 48px -20px rgba(13, 27, 62, 0.28), 0 4px 12px -4px rgba(13, 27, 62, 0.08)' },
+};
 
 export const Shadows: Record<'card' | 'float' | 'sheet', ViewStyle> = {
   card: { shadowColor: '#0F1A2E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 14, elevation: 3 },

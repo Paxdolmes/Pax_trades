@@ -1,21 +1,18 @@
 import { router } from 'expo-router';
-import { ArrowRight, Award, BadgePoundSterling, Check, ChevronLeft, Flame, Percent, Timer, Wrench, Zap } from 'lucide-react-native';
+import { ArrowRight, Award, BadgePoundSterling, Check, ChevronLeft, Percent, Timer } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand';
+import { TRADE_ICONS } from '@/components/trade-icons';
 import { Button, Footer, IconButton, Screen, T, type LucideIcon } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
-import { FOUNDING_COMMISSION, STANDARD_COMMISSION, type Trade } from '@/domain/catalog';
+import { FOUNDING_COMMISSION, STANDARD_COMMISSION, TRADES, type Trade } from '@/domain/catalog';
 import { startProApplication, useAccountGate, useAuth } from '@/lib/auth';
 
 const STEPS = ['Details', 'Documents', 'ID check', 'Bank details'];
 
-const TRADES: { key: Trade; label: string; icon: LucideIcon }[] = [
-  { key: 'plumbing', label: 'Plumber', icon: Wrench },
-  { key: 'heating', label: 'Gas Safe engineer', icon: Flame },
-  { key: 'electrical', label: 'Electrician', icon: Zap },
-];
+const TRADE_CHOICES = TRADES.map((t) => ({ key: t.id, label: t.id === 'heating' ? 'Gas Safe engineer' : t.label, icon: TRADE_ICONS[t.id] }));
 
 const PERKS: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: BadgePoundSterling, title: 'No joining or lead fees', body: 'You only pay when you get paid' },
@@ -116,7 +113,7 @@ export default function Apply() {
         <T variant="caption" color="inkMuted" style={{ fontWeight: '500', marginBottom: 4 }}>
           {"Choose all that apply. We'll ask for the matching documents next."}
         </T>
-        {TRADES.map((t) => {
+        {TRADE_CHOICES.map((t) => {
           const on = selected.includes(t.key);
           return (
             <Pressable

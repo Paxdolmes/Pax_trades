@@ -1,8 +1,10 @@
 // Builds the web version of both apps into dist-web/ for a static host:
 // Relay at <base>/ and Relay Traders at <base>/traders/.
 //   WEB_BASE=/Pax_trades node scripts/build-web.mjs
-// Each app is a single-page app, so the host's 404.html sends unknown paths back
-// to the right app's start page. Adds the tags iPhone Safari needs for "Add to Home Screen".
+// Each app is a single-page app, so the host's 404.html sends any other path (a
+// refreshed page, a shared link) to the right app with the path in ?from=, and a
+// line in each index.html puts the path back before the app starts.
+// Adds the tags iPhone Safari needs for "Add to Home Screen".
 
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -12,7 +14,7 @@ const base = (process.env.WEB_BASE ?? '').replace(/\/$/, '');
 const out = 'dist-web';
 
 const apps = [
-  { variant: 'customer', name: 'Relay', path: `${base}/`, dir: out, icon: 'assets/images/icon.png', theme: '#F5F5F2' },
+  { variant: 'customer', name: 'Relay', path: `${base}/`, dir: out, icon: 'assets/images/icon.png', theme: '#FAF7F2' },
   { variant: 'pro', name: 'Relay Traders', path: `${base}/traders/`, dir: join(out, 'traders'), icon: 'assets/images/icon-traders.png', theme: '#070F24' },
 ];
 
@@ -56,6 +58,7 @@ for (const app of apps) {
     `<meta name="theme-color" content="${app.theme}">`,
     `<link rel="apple-touch-icon" href="${app.path}apple-touch-icon.png">`,
     `<link rel="manifest" href="${app.path}manifest.json">`,
+    `<script>(function(){var f=new URLSearchParams(location.search).get('from');if(f&&f.charAt(0)==='/')history.replaceState(null,'',f);})();</script>`,
   ].join('');
   let html = readFileSync(index, 'utf8')
     .replace(/<title>.*?<\/title>/, `<title>${app.name}</title>`)
@@ -65,12 +68,13 @@ for (const app of apps) {
   writeFileSync(index, html);
 }
 
-// Unknown paths (a refreshed deep link) go back to the app they belong to.
+// Other paths (a refreshed page or a shared link) open in the app they belong to.
 writeFileSync(
   join(out, '404.html'),
   `<!doctype html><meta charset="utf-8"><title>Relay</title><script>
 var t = ${JSON.stringify(`${base}/traders/`)};
-location.replace(location.pathname.indexOf(t) === 0 ? t : ${JSON.stringify(`${base}/`)});
+var app = location.pathname.indexOf(t) === 0 ? t : ${JSON.stringify(`${base}/`)};
+location.replace(app + '?from=' + encodeURIComponent(location.pathname + location.search + location.hash));
 </script>`,
 );
 writeFileSync(join(out, '.nojekyll'), '');

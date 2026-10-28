@@ -3,9 +3,10 @@ import { ChevronRight, ClipboardPen, Flame, Wrench, Zap } from 'lucide-react-nat
 import { StyleSheet, View } from 'react-native';
 
 import { SignInPrompt } from '@/components/sign-in-prompt';
+import { TRADE_ICONS } from '@/components/trade-icons';
 import { Avatar, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon, type Tone } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
-import { findJobType, formatPence, type Trade } from '@/domain/catalog';
+import { findJobType, formatPence } from '@/domain/catalog';
 import { needsSignIn, useAuth } from '@/lib/auth';
 import { STATUS_LABELS } from '@/lib/jobs';
 import {
@@ -33,7 +34,6 @@ type JobRow = {
   href?: { pathname: '/job/[id]' | '/quotes/[id]'; params: { id: string } };
 };
 
-const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Wrench, electrical: Zap, heating: Flame };
 
 function jobRow(j: CustomerJob): JobRow {
   const type = findJobType(j.jobTypeId);

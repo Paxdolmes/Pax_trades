@@ -1,0 +1,214 @@
+// Words for the website's information pages, from the v0 site design. Prices and
+// trades come from domain/catalog.ts so the pages never disagree with booking.
+import {
+  Banknote,
+  BadgePoundSterling,
+  CalendarCheck,
+  CalendarClock,
+  Camera,
+  CircleCheck,
+  CreditCard,
+  FileUp,
+  Flame,
+  Handshake,
+  IdCard,
+  ListChecks,
+  Lock,
+  MapPin,
+  MapPinned,
+  MessageCircleMore,
+  MessageSquareText,
+  PhoneOff,
+  PoundSterling,
+  ReceiptPoundSterling,
+  Send,
+  ShieldCheck,
+  Star,
+  Clock,
+  Umbrella,
+  UserCheck,
+  Briefcase,
+  Wrench,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react-native';
+
+import { CALLOUT_RATES, FOUNDING_COMMISSION, formatPence, PILOT, STANDARD_COMMISSION } from '@/domain/catalog';
+
+type Item = { icon: LucideIcon; title: string; text: string };
+
+const firstHour = formatPence(CALLOUT_RATES.standard.firstHourPence);
+
+export const TRUST_ITEMS: { icon: LucideIcon; label: string }[] = [
+  { icon: UserCheck, label: 'ID and qualifications checked' },
+  { icon: Umbrella, label: 'Fully insured' },
+  { icon: BadgePoundSterling, label: 'Fixed, all-in prices' },
+  { icon: ShieldCheck, label: `${PILOT.guaranteeDays}-day Relay Guarantee` },
+];
+
+export const HOME_STEPS: Item[] = [
+  { icon: Camera, title: 'Tell us what’s wrong', text: 'Pick the job and add a photo if you can. You’ll see the price straight away.' },
+  { icon: MapPinned, title: 'We send a vetted pro nearby', text: 'We match you with a checked local pro. Watch them arrive on the map.' },
+  { icon: CreditCard, title: 'Pay when it’s fixed', text: 'Your card is held, not charged. We only take payment when you confirm it’s done.' },
+];
+
+export const BENEFITS: Item[] = [
+  { icon: PhoneOff, title: 'No ringing round', text: 'Forget calling five numbers and waiting for call-backs. Book once and a pro is on the way.' },
+  { icon: ReceiptPoundSterling, title: 'No surprise bills', text: 'You see the price before you book. Any extra work needs your OK in the app first.' },
+  { icon: Handshake, title: 'Someone accountable', text: 'If something goes wrong, you talk to us, not a voicemail. The Relay Guarantee has your back.' },
+];
+
+export const JOURNEY: (Item & { tone: 'teal' | 'peach' })[] = [
+  {
+    icon: ListChecks,
+    title: 'Choose your job',
+    text: 'Pick from eight trades, from plumbing to locksmiths. You’ll see a fixed price or the callout rate before you go any further.',
+    tone: 'teal',
+  },
+  {
+    icon: Camera,
+    title: 'Add a photo or two',
+    text: 'A quick snap of the leak, lock or boiler helps your pro bring the right parts. It’s optional, but it helps.',
+    tone: 'peach',
+  },
+  {
+    icon: UserCheck,
+    title: 'Get matched with a nearby pro',
+    text: 'We find a vetted pro close to you who’s free now, or at the time you chose. You’ll see their name and rating.',
+    tone: 'teal',
+  },
+  {
+    icon: MapPinned,
+    title: 'Track them and chat in the app',
+    text: 'Watch them on the map as they come to you, and message them in the app. Your phone number stays private.',
+    tone: 'peach',
+  },
+  {
+    icon: CircleCheck,
+    title: 'Confirm, pay and review',
+    text: 'When the job is done, you confirm and we take payment. Then leave a review to help your neighbours.',
+    tone: 'teal',
+  },
+];
+
+export const PAYMENT_STEPS: Item[] = [
+  { icon: Lock, title: 'Card held at booking', text: 'We check your card and hold the amount. Nothing is taken yet.' },
+  { icon: MessageSquareText, title: 'Extra work? You decide', text: 'If your pro needs to do more, they send you the price in the app first. Nothing happens without your OK.' },
+  { icon: CreditCard, title: 'Charged when it’s done', text: 'You confirm the job is finished, then we take payment and email your receipt.' },
+];
+
+export const CHECKS: Item[] = [
+  { icon: IdCard, title: 'ID check', text: 'Every pro’s photo ID is checked before they join, whatever their trade.' },
+  { icon: Umbrella, title: 'Public liability insurance', text: 'Every pro must be insured, so you’re covered if anything is damaged.' },
+  { icon: Flame, title: 'Gas Safe registration', text: 'Required for any gas work, and checked on the official register.' },
+  { icon: Zap, title: 'NICEIC, NAPIT or ELECSA', text: 'Required for electrical work, so it can be signed off properly.' },
+  { icon: Wrench, title: 'Plumbing qualifications', text: 'Recognised plumbing certificates, plus G3 for unvented hot water cylinders.' },
+  { icon: CalendarClock, title: 'Re-checked on expiry', text: 'Pros stop getting jobs the day a document runs out, until they upload a new one.' },
+];
+
+export const GUARANTEE_CASES = ['It wasn’t fixed', 'Something was damaged', 'Your pro didn’t show', 'You were overcharged'];
+
+export const ON_THE_DAY: Item[] = [
+  {
+    icon: Clock,
+    title: 'No-show protection',
+    text: `If your pro is more than ${PILOT.lateGraceMinutes} minutes late, we send the next one and give you ${formatPence(PILOT.noShowCreditPence)} credit.`,
+  },
+  { icon: MessageCircleMore, title: 'Private chat', text: 'Chat with your pro in the app. Phone numbers and emails are hidden on both sides.' },
+  { icon: Star, title: 'Real reviews only', text: 'Only customers with a completed job can leave a review. No fake stars.' },
+];
+
+export const PERKS: Item[] = [
+  { icon: MapPin, title: 'Steady local jobs', text: 'Work in Fulham, close to home. Less driving, more doing.' },
+  { icon: CalendarCheck, title: 'You set your hours', text: 'Go online when you’re free. Go offline when you’re not.' },
+  { icon: PoundSterling, title: 'Fixed, fair prices', text: 'No haggling. Customers know the price before you arrive.' },
+  { icon: Banknote, title: 'Paid within 48 hours', text: 'Money in your bank after each confirmed job.' },
+];
+
+export const JOIN_STEPS: Item[] = [
+  { icon: Send, title: 'Apply', text: 'Tell us your trades. It takes five minutes.' },
+  { icon: FileUp, title: 'Upload your documents', text: 'ID, insurance, and your registrations or qualifications.' },
+  { icon: ShieldCheck, title: 'Get approved', text: 'We check everything and let you know as soon as you’re approved.' },
+  { icon: Briefcase, title: 'Start getting jobs', text: 'Go online in the app and jobs nearby come to you.' },
+];
+
+export const COMMISSION = {
+  founding: `${FOUNDING_COMMISSION * 100}%`,
+  standard: `${STANDARD_COMMISSION * 100}%`,
+};
+
+export type Faq = { q: string; a: string };
+
+export const FAQ_GROUPS: { id: string; title: string; items: Faq[] }[] = [
+  {
+    id: 'booking',
+    title: 'Booking',
+    items: [
+      {
+        q: 'How quickly can someone come?',
+        a: `For urgent jobs we aim to have a pro with you within ${PILOT.urgentEtaMinutes} minutes, day or night. For planned jobs, like a boiler service, you choose a time that suits you.`,
+      },
+      {
+        q: 'What can I book?',
+        a: 'Plumbing, electrical, heating and gas, drains, locksmiths, handyman jobs, carpentry and doors, and appliance repairs. If your job isn’t listed, describe it and get quotes from vetted pros.',
+      },
+      {
+        q: 'Do I need to download an app?',
+        a: 'No. You can book, track your pro and chat with them right here in your browser.',
+      },
+      { q: 'Can I cancel?', a: 'Yes. You can cancel any time before your pro arrives, from the job screen.' },
+    ],
+  },
+  {
+    id: 'payment',
+    title: 'Prices & payment',
+    items: [
+      {
+        q: 'What does "fixed, all-in price" mean?',
+        a: 'The price you see includes VAT and our fees. No hidden fees, no surprise extras.',
+      },
+      {
+        q: 'How does the callout rate work?',
+        a: `For repairs where nobody knows the fix until they see it, you pay ${firstHour} including the first hour on weekdays, then ${formatPence(CALLOUT_RATES.standard.perHourPence)} an hour. Evenings and weekends are ${formatPence(CALLOUT_RATES.outOfHours.firstHourPence)}, then ${formatPence(CALLOUT_RATES.outOfHours.perHourPence)} an hour.`,
+      },
+      { q: 'When do I pay?', a: 'We hold the amount on your card when you book. You’re only charged once you confirm the job is done.' },
+      {
+        q: 'What if the job needs more work or parts?',
+        a: 'Your pro explains what’s needed and sends you the price in the app. Nothing extra happens unless you approve it.',
+      },
+    ],
+  },
+  {
+    id: 'safety',
+    title: 'Safety & guarantee',
+    items: [
+      {
+        q: 'How do you check your pros?',
+        a: 'Every pro has their ID and insurance checked before their first job. Gas engineers must be Gas Safe registered, electricians must be with NICEIC, NAPIT or ELECSA, and plumbers need recognised qualifications.',
+      },
+      {
+        q: 'What is the Relay Guarantee?',
+        a: `If something isn’t right, report it within ${PILOT.guaranteeDays} days of the job and we’ll make it right. That covers work that didn’t fix the problem, damage, no-shows and overcharging.`,
+      },
+      {
+        q: 'What if my pro is late?',
+        a: `If your pro is more than ${PILOT.lateGraceMinutes} minutes late, we send the next available pro and add ${formatPence(PILOT.noShowCreditPence)} credit to your account.`,
+      },
+    ],
+  },
+  {
+    id: 'areas',
+    title: 'Areas we cover',
+    items: [
+      { q: 'Where does Relay work?', a: 'We’re starting in Fulham, covering every SW6 postcode, and adding more of London soon.' },
+      {
+        q: 'I’m not in SW6. Can I still use Relay?',
+        a: 'Not yet, sorry. Join the waitlist with your postcode and we’ll email you the day we launch in your area.',
+      },
+    ],
+  },
+];
+
+export const HOME_FAQS = [FAQ_GROUPS[1].items[0], FAQ_GROUPS[0].items[0], FAQ_GROUPS[2].items[0]];
+
+export const HELP_TOPICS = ['Booking', 'Prices & payment', 'A problem with a job', 'Becoming a pro', 'Something else'];
