@@ -1,8 +1,9 @@
 name: Deploy Supabase
 
-# Applies new database migrations and deploys the Edge Functions to the live
-# Supabase project whenever main changes. Needs two repository secrets (see
-# docs/going-live.md): SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD.
+# Applies new database migrations, deploys the Edge Functions and applies the
+# sign-in email template on the live Supabase project whenever main changes.
+# Needs two repository secrets (see docs/going-live.md): SUPABASE_ACCESS_TOKEN
+# and SUPABASE_DB_PASSWORD.
 
 on:
   push:
@@ -33,3 +34,14 @@ jobs:
       - run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
       - run: supabase db push --password "$SUPABASE_DB_PASSWORD"
       - run: supabase functions deploy --project-ref "$PROJECT_REF"
+      - name: Apply the branded sign-in code email
+        run: |
+          body=$(jq -n --rawfile html supabase/templates/sign-in-code.html '{
+            mailer_subjects_magic_link: "{{ .Token }} is your Relay sign-in code",
+            mailer_templates_magic_link_content: $html,
+            mailer_subjects_confirmation: "{{ .Token }} is your Relay sign-in code",
+            mailer_templates_confirmation_content: $html
+          }')
+          curl -fsS -X PATCH "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+            -d "$body" -o /dev/null
