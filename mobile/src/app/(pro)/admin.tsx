@@ -22,7 +22,7 @@ import {
 import { signOut } from '@/lib/auth';
 import { documentLink } from '@/lib/credentials';
 import { CREDENTIAL_LABELS } from '@/lib/demo';
-import { shortDate, useLive } from '@/lib/live';
+import { isLive, shortDate, useLive } from '@/lib/live';
 import { PROBLEM_KINDS } from '@/lib/trust';
 
 /** Where to check a pro's number on the scheme's public register. */
@@ -40,7 +40,7 @@ export default function Admin() {
   const [days, setDays] = useState(30);
   const pros = useLive(loadProsToReview, [] as ProToReview[]);
   const reports = useLive(loadOpenReports, [] as OpenReport[]);
-  const funnel = useLive(() => loadFunnel(days), DEMO_FUNNEL, String(days));
+  const funnel = useLive(() => loadFunnel(days), isLive ? [] : DEMO_FUNNEL, String(days));
   const current = tab === 'pros' ? pros : tab === 'reports' ? reports : funnel;
 
   return (

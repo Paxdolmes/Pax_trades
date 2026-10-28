@@ -25,6 +25,17 @@ Deno.serve(withCors(async (req) => {
   const s = stripe();
   const results: { jobId: string; status: string }[] = [];
   for (const row of rows as STRIPE.ChargeRow[]) {
+    // The saved card normally arrives through the webhook (setup_intent.succeeded). If
+    // that was missed, e.g. before the webhook secret was set, ask Stripe for it.
+    if (row.customer_id && !row.payment_method_id) {
+      const cards = await s<{ data: { id: string }[] }>('/payment_methods', { customer: row.customer_id, type: 'card', limit: 1 }, { method: 'GET' }).catch(
+        () => ({ data: [] }),
+      );
+      row.payment_method_id = cards.data[0]?.id ?? null;
+      if (row.payment_method_id) {
+        await db.from('profiles').update({ stripe_payment_method_id: row.payment_method_id }).eq('stripe_customer_id', row.customer_id);
+      }
+    }
     if (!row.customer_id || !row.payment_method_id) {
       await db.from('jobs').update({ payment_failed_at: new Date().toISOString() }).eq('id', row.job_id);
       results.push({ jobId: row.job_id, status: 'no_card' });

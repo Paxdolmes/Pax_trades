@@ -18,7 +18,7 @@ const DEMO: AppNotification[] = [
 export default function Notifications() {
   const c = usePalette();
   const guest = needsSignIn(useAuth().status);
-  const { data, error } = useLive(loadNotifications, DEMO);
+  const { data, error } = useLive(loadNotifications, isLive ? [] : DEMO);
   useEffect(() => {
     if (isLive && !guest) void markNotificationsRead();
   }, [guest]);
