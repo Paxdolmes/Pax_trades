@@ -5,16 +5,16 @@ const variant = process.env.APP_VARIANT === 'pro' ? 'pro' : 'customer';
 
 const VARIANTS = {
   customer: {
-    name: 'Pax',
-    slug: 'pax-trades',
-    scheme: 'paxtrades',
-    bundleId: 'uk.paxtrades.customer',
+    name: 'Relay',
+    slug: 'relay',
+    scheme: 'relay',
+    bundleId: 'uk.relaytrades.customer',
   },
   pro: {
-    name: 'Pax Pro',
-    slug: 'pax-trades-pro',
-    scheme: 'paxtradespro',
-    bundleId: 'uk.paxtrades.pro',
+    name: 'Relay Pro',
+    slug: 'relay-pro',
+    scheme: 'relaypro',
+    bundleId: 'uk.relaytrades.pro',
   },
 } as const;
 

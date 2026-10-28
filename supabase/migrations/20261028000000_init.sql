@@ -1,4 +1,4 @@
--- Pax Trades: initial schema.
+-- Relay: initial schema.
 -- Customers request jobs, vetted pros receive time-limited offers and accept them.
 -- A pro can only be offered a job type when every credential it requires is verified and in date.
 
