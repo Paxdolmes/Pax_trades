@@ -9,9 +9,11 @@ import { formatPence, TRADES } from '@/domain/catalog';
 import {
   approvePro,
   checkCredential,
+  loadFunnel,
   loadOpenReports,
   loadProsToReview,
   resolveReport,
+  type FunnelStep,
   type OpenReport,
   type ProblemStatus,
   type ProToReview,
@@ -34,10 +36,12 @@ const fail = (title: string) => (e: unknown) => Alert.alert(title, e instanceof 
 /** Admins only: approve new tradespeople and sort out problem reports. */
 export default function Admin() {
   const c = usePalette();
-  const [tab, setTab] = useState<'pros' | 'reports'>('pros');
+  const [tab, setTab] = useState<'pros' | 'reports' | 'funnel'>('pros');
+  const [days, setDays] = useState(30);
   const pros = useLive(loadProsToReview, [] as ProToReview[]);
   const reports = useLive(loadOpenReports, [] as OpenReport[]);
-  const current = tab === 'pros' ? pros : reports;
+  const funnel = useLive(() => loadFunnel(days), DEMO_FUNNEL, String(days));
+  const current = tab === 'pros' ? pros : tab === 'reports' ? reports : funnel;
 
   return (
     <Screen>
@@ -52,6 +56,7 @@ export default function Admin() {
           [
             ['pros', `Pros to check · ${pros.data.length}`],
             ['reports', `Problems · ${reports.data.length}`],
+            ['funnel', 'Drop-off'],
           ] as const
         ).map(([key, label]) => (
           <Pressable
@@ -73,7 +78,9 @@ export default function Admin() {
         </T>
       ) : null}
 
-      {tab === 'pros' ? (
+      {tab === 'funnel' ? (
+        <Funnel steps={funnel.data} days={days} onDays={setDays} />
+      ) : tab === 'pros' ? (
         pros.data.length ? (
           pros.data.map((p) => <ProCard key={p.id} pro={p} onChange={pros.reload} />)
         ) : (
@@ -89,6 +96,65 @@ export default function Admin() {
         </T>
       )}
     </Screen>
+  );
+}
+
+const DEMO_FUNNEL: FunnelStep[] = [
+  { step: 'Signed up', people: 120 },
+  { step: 'Asked for a job or quotes', people: 64 },
+  { step: 'Got a pro or a quote', people: 58 },
+  { step: 'Booked', people: 41 },
+  { step: 'Job completed', people: 36 },
+  { step: 'Pros applied', people: 18 },
+  { step: 'Pros approved', people: 11 },
+];
+
+/** Where customers drop off between signing up and a finished job, plus how pros are joining. */
+function Funnel({ steps, days, onDays }: { steps: FunnelStep[]; days: number; onDays: (d: number) => void }) {
+  const c = usePalette();
+  const customers = steps.filter((s) => !s.step.startsWith('Pros'));
+  const pros = steps.filter((s) => s.step.startsWith('Pros'));
+  const top = Math.max(1, ...customers.map((s) => s.people));
+  const bar = (s: FunnelStep, i: number, list: FunnelStep[], max: number) => {
+    const prev = i > 0 ? list[i - 1].people : null;
+    const kept = prev ? Math.round((s.people / Math.max(prev, 1)) * 100) : null;
+    return (
+      <View key={s.step} style={{ gap: 6 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.two }}>
+          <T variant="subhead" style={{ fontWeight: '600', flex: 1 }}>
+            {s.step}
+          </T>
+          <T variant="subhead" style={{ fontVariant: ['tabular-nums'] }}>
+            {kept === null ? String(s.people) : `${s.people} · ${kept}% of previous`}
+          </T>
+        </View>
+        <View style={[styles.track, { backgroundColor: c.surfaceMuted }]}>
+          <View style={[styles.fill, { width: `${Math.max(2, (s.people / max) * 100)}%`, backgroundColor: kept !== null && kept < 50 ? c.danger : c.brand }]} />
+        </View>
+      </View>
+    );
+  };
+  return (
+    <View style={{ gap: Spacing.four }}>
+      <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+        {[7, 30, 90].map((d) => (
+          <Pressable key={d} accessibilityRole="button" accessibilityState={{ selected: d === days }} onPress={() => onDays(d)}>
+            <Chip label={`Last ${d} days`} tone={d === days ? 'brand' : 'neutral'} solid={d === days} />
+          </Pressable>
+        ))}
+      </View>
+      <Card style={{ gap: Spacing.four }}>
+        <T variant="headline">Customers</T>
+        {customers.map((s, i) => bar(s, i, customers, top))}
+        <T variant="footnote" color="inkMuted">
+          A red bar means fewer than half made it from the step before. That is the step to look at first.
+        </T>
+      </Card>
+      <Card style={{ gap: Spacing.four }}>
+        <T variant="headline">Tradespeople</T>
+        {pros.map((s, i) => bar(s, i, pros, Math.max(1, ...pros.map((p) => p.people))))}
+      </Card>
+    </View>
   );
 }
 
@@ -235,6 +301,8 @@ function ReportCard({ report: r, onChange }: { report: OpenReport; onChange: () 
 }
 
 const styles = StyleSheet.create({
+  track: { height: 10, borderRadius: Radii.pill, overflow: 'hidden' },
+  fill: { height: 10, borderRadius: Radii.pill },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   segments: { flexDirection: 'row', borderRadius: Radii.md, padding: 4, gap: 4 },
   segment: { flex: 1, alignItems: 'center', paddingVertical: Spacing.two, borderRadius: Radii.sm },

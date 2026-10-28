@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, ChevronLeft, CircleHelp, Send, ShieldCheck } from 'lucide-react-native';
-import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Check, ChevronLeft, CircleHelp, Plus, Send, ShieldCheck } from 'lucide-react-native';
+import { useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 
 import { MediaPicker } from '@/components/media-picker';
 import { TRADE_ICONS } from '@/components/trade-icons';
@@ -16,6 +16,9 @@ const MIN_DESCRIPTION = 10;
 
 const TRADE_CHOICES = TRADES.map((t) => ({ id: t.id, label: t.short, icon: TRADE_ICONS[t.id] }));
 
+// Tapping one adds it as a line to fill in, so quotes are based on the same facts.
+const PROMPTS = ['Where in the home', 'Size or how many', 'What’s there now', 'Parts you already have', 'Access and parking'];
+
 const TIMING_DETAIL: Record<QuoteTiming, string> = {
   asap: 'Pros who can come in the next day or two',
   this_week: 'Within the next 7 days',
@@ -26,6 +29,11 @@ export default function QuoteRequest() {
   const c = usePalette();
   const { postcode } = useLocalSearchParams<{ postcode: string }>();
   const [description, setDescription] = useState('');
+  const input = useRef<TextInputInstance>(null);
+  const addPrompt = (p: string) => {
+    setDescription((d) => `${d.trimEnd()}${d.trim() ? '\n' : ''}${p}: `);
+    input.current?.focus();
+  };
   const [trades, setTrades] = useState<Trade[]>([]);
   const [timing, setTiming] = useState<QuoteTiming>('this_week');
   const [media, setMedia] = useState<PickedMedia[]>([]);
@@ -75,6 +83,7 @@ export default function QuoteRequest() {
           What do you need doing?
         </T>
         <TextInput
+          ref={input}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -84,9 +93,30 @@ export default function QuoteRequest() {
           accessibilityLabel="Describe the job"
           style={[Type.callout, styles.notes, Shadows.card, { backgroundColor: c.surface, color: c.ink }]}
         />
-        <T variant="footnote" color="inkSubtle">
-          The more detail you give, the more accurate the quotes will be. Photos help a lot.
-        </T>
+        <View style={{ gap: Spacing.two }}>
+          <T variant="footnote" color="inkMuted">
+            Pros quote more accurately with these. Tap to add any that apply:
+          </T>
+          <View style={styles.chips}>
+            {PROMPTS.map((p) => {
+              const done = description.includes(`${p}:`);
+              return (
+                <Pressable
+                  key={p}
+                  accessibilityRole="button"
+                  accessibilityLabel={done ? `${p}, added` : `Add ${p}`}
+                  disabled={done}
+                  onPress={() => addPrompt(p)}
+                  style={[styles.prompt, { borderColor: done ? c.success : c.border, backgroundColor: done ? c.successTint : c.surface }]}>
+                  {done ? <Check size={14} color={c.success} strokeWidth={3} /> : <Plus size={14} color={c.inkMuted} strokeWidth={2.5} />}
+                  <T variant="footnote" color={done ? 'success' : 'ink'} style={{ fontWeight: '600' }}>
+                    {p}
+                  </T>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
         <MediaPicker value={media} onChange={setMedia} />
       </View>
 
@@ -159,5 +189,6 @@ const styles = StyleSheet.create({
   notes: { minHeight: 120, borderRadius: Radii.md, padding: Spacing.four, textAlignVertical: 'top' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 14, borderRadius: Radii.pill, borderWidth: 1.5 },
+  prompt: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 34, paddingHorizontal: 12, borderRadius: Radii.pill, borderWidth: 1 },
   option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
 });

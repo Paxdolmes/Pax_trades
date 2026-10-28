@@ -121,3 +121,12 @@ export async function resolveReport(id: string, status: Exclude<ProblemStatus, '
   });
   if (error) throw error;
 }
+
+export type FunnelStep = { step: string; people: number };
+
+/** How many people reached each step, from signing up to a completed job, in the last `days`. */
+export async function loadFunnel(days = 30): Promise<FunnelStep[]> {
+  const { data, error } = await supabase.rpc('admin_funnel', { p_days: days });
+  if (error) throw error;
+  return ((data ?? []) as { step: string; people: number }[]).map((r) => ({ step: r.step, people: Number(r.people) }));
+}

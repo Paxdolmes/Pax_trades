@@ -110,6 +110,10 @@ Messages from the Help page's contact form, and waitlist sign-ups from postcodes
 
 Each email comes from no-reply@relay-trade.co.uk with Reply-To set to the customer, so pressing Reply answers them directly. Until both secrets are set, messages are still saved in the table.
 
+### Email updates for people without the app
+
+Customers and pros with no phone registered for push (anyone using the web version, or before they install the app) get the important updates by email instead: a new quote, a pro accepting or arriving, a job marked done, an application approved. Chat messages and job offers stay in the app. This uses the `RESEND_API_KEY` secret above and the two vault secrets from section 3 (`relay_project_url` and `relay_cron_secret`), so it starts working once those are in place.
+
 ## Still to do before real customers
 
 - **Failed charges are followed up by hand.** When a card is declined or the bank asks the customer to approve the payment, the job is marked with `payment_failed_at` in the jobs table. Contact the customer and charge them from the Stripe dashboard.

@@ -1,4 +1,4 @@
-import type { QuoteTiming, Trade } from '@/domain/catalog';
+import type { CredentialType, QuoteTiming, Trade } from '@/domain/catalog';
 import { postcodePoint } from '@/lib/geo';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
@@ -11,10 +11,14 @@ export type NewQuoteRequest = {
 
 export type Quote = {
   id: string;
+  /** Set for live quotes; their name, rating and checks come from the pro's public profile. */
+  proId?: string;
   proName: string;
   trade: Trade;
   rating: number;
   jobs: number;
+  reviews?: number;
+  checks?: CredentialType[];
   pricePence: number;
   earliest: string;
   note: string;

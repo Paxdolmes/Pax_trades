@@ -53,6 +53,12 @@ function Hero() {
               Now covering Fulham, SW6
             </T>
           </View>
+          <View style={[styles.tradeCta, { borderTopColor: c.border }]}>
+            <T variant="subhead" color="inkMuted">
+              Are you a tradesperson?
+            </T>
+            <ArrowLink label="Get local jobs with Relay Traders" href="/for-tradespeople" />
+          </View>
         </View>
         <View style={{ flex: wide ? 1 : undefined, alignItems: 'center' }}>
           <BookingMockup />
@@ -230,6 +236,7 @@ const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', gap: 48 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: Spacing.three, paddingVertical: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
+  tradeCta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: Spacing.two, rowGap: 4, borderTopWidth: 1, paddingTop: Spacing.five },
   tile: { borderRadius: 28, gap: Spacing.five, flex: 1 },
   tileIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   from: { borderRadius: 999, paddingHorizontal: Spacing.three, paddingVertical: 4 },

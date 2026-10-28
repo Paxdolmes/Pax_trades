@@ -5,7 +5,7 @@ import { Container, Grid, H2, H3, Lead, PageIntro, Pill, Section, SectionHeading
 import { CtaBand } from '@/components/site/widgets';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
-import { PAYMENT_STEPS } from '@/content/site';
+import { FEES_AND_CANCELLING, PAYMENT_STEPS } from '@/content/site';
 import { ALL_IN_NOTE, CALLOUT_RATES, formatPence, JOB_TYPES, TRADES } from '@/domain/catalog';
 
 const CALLOUTS = [
@@ -87,6 +87,20 @@ export default function Prices() {
           {PAYMENT_STEPS.map((s) => (
             <View key={s.title} style={[styles.card, SoftShadows.soft, { backgroundColor: c.surface }]}>
               <SiteIcon icon={s.icon} />
+              <H3>{s.title}</H3>
+              <T variant="body" color="inkMuted">
+                {s.text}
+              </T>
+            </View>
+          ))}
+        </Grid>
+      </Section>
+      <Section background="surface">
+        <SectionHeading eyebrow="The small print" title="Fees and cancelling" sub="Written plainly, so there are no surprises." />
+        <Grid columns={{ narrow: 1, medium: 2, wide: 4 }}>
+          {FEES_AND_CANCELLING.map((s) => (
+            <View key={s.title} style={[styles.card, { backgroundColor: c.bg }]}>
+              <SiteIcon icon={s.icon} tone="peach" />
               <H3>{s.title}</H3>
               <T variant="body" color="inkMuted">
                 {s.text}

@@ -97,6 +97,25 @@ export const PAYMENT_STEPS: Item[] = [
   { icon: CreditCard, title: 'Charged when it’s done', text: 'You confirm the job is finished, then we take payment and email your receipt.' },
 ];
 
+export const FEES_AND_CANCELLING: Item[] = [
+  { icon: ReceiptPoundSterling, title: 'No booking fees', text: 'The price you see includes VAT and Relay’s fee. Nothing extra is added at checkout.' },
+  {
+    icon: Handshake,
+    title: 'What pros pay',
+    text: `Pros pay Relay a commission out of their earnings (${FOUNDING_COMMISSION * 100}% for founding pros, then ${STANDARD_COMMISSION * 100}%). It never changes your price.`,
+  },
+  {
+    icon: CircleCheck,
+    title: 'Free to cancel',
+    text: 'Cancel from the job screen at no charge any time before your pro arrives. Quote requests can be cancelled any time before you accept a quote.',
+  },
+  {
+    icon: Clock,
+    title: 'On the day',
+    text: `Callout jobs are charged for your pro’s time, starting with the first hour. If they’re more than ${PILOT.lateGraceMinutes} minutes late, we send the next pro and add ${formatPence(PILOT.noShowCreditPence)} credit.`,
+  },
+];
+
 export const CHECKS: Item[] = [
   { icon: IdCard, title: 'ID check', text: 'Every pro’s photo ID is checked before they join, whatever their trade.' },
   { icon: Umbrella, title: 'Public liability insurance', text: 'Every pro must be insured, so you’re covered if anything is damaged.' },
