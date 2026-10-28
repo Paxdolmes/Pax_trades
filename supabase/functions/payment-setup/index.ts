@@ -1,9 +1,9 @@
 // Called by the customer app before their first request: makes sure they have a
 // Stripe customer and returns what the PaymentSheet needs to save a card. The card
 // is charged later, off-session, once the job is confirmed.
-import { admin, caller, json, stripe, STRIPE } from './deps.ts';
+import { admin, caller, json, stripe, STRIPE, withCors } from './deps.ts';
 
-Deno.serve(async (req) => {
+Deno.serve(withCors(async (req) => {
   const user = await caller(req);
   if (!user) return json({ error: 'Please sign in' }, 401);
   const db = admin();
@@ -28,4 +28,4 @@ Deno.serve(async (req) => {
     }),
   ]);
   return json({ customerId, ephemeralKey: key.secret, setupIntent: intent.client_secret });
-});
+}));

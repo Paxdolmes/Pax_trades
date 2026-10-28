@@ -3,9 +3,9 @@
 //     including ones that confirmed themselves after 48 hours.
 //   * The customer app calls it right after "Confirm and pay" with { jobId }.
 // The Stripe webhook sets paid_at once the charge succeeds.
-import { admin, caller, env, json, stripe, STRIPE } from './deps.ts';
+import { admin, caller, env, json, stripe, STRIPE, withCors } from './deps.ts';
 
-Deno.serve(async (req) => {
+Deno.serve(withCors(async (req) => {
   const db = admin();
   const fromCron = req.headers.get('x-relay-cron-secret') === env('RELAY_CRON_SECRET');
   let jobId: string | null = null;
@@ -46,4 +46,4 @@ Deno.serve(async (req) => {
     }
   }
   return json({ results });
-});
+}));

@@ -5,6 +5,13 @@
 import { presentSaveCardSheet } from '@/lib/payment-sheet';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
+/** Turns an Edge Function failure into the message the function sent back, when it sent one. */
+async function readable(error: unknown, fallback: string): Promise<Error> {
+  const reply = (error as { context?: Response }).context;
+  const detail = await reply?.json?.().catch(() => null);
+  return new Error(detail?.error ?? fallback);
+}
+
 /** Asks for a card if the customer hasn't saved one. Resolves false if they back out. Demo: always true. */
 export async function ensureSavedCard(): Promise<boolean> {
   if (!isSupabaseConfigured) return true;
@@ -20,7 +27,7 @@ export async function ensureSavedCard(): Promise<boolean> {
 export async function saveCard(): Promise<boolean> {
   if (!isSupabaseConfigured) return true;
   const { data, error } = await supabase.functions.invoke('payment-setup');
-  if (error) throw error;
+  if (error) throw await readable(error, 'Could not reach our payment service. Check your connection and try again.');
   return presentSaveCardSheet(data as { customerId: string; ephemeralKey: string; setupIntent: string });
 }
 
@@ -28,7 +35,7 @@ export async function saveCard(): Promise<boolean> {
 export async function chargeJob(jobId: string): Promise<string> {
   if (!isSupabaseConfigured || jobId.startsWith('demo-')) return 'succeeded';
   const { data, error } = await supabase.functions.invoke('charge-jobs', { body: { jobId } });
-  if (error) throw error;
+  if (error) throw await readable(error, 'Could not take payment. Check your connection and try again.');
   const result = (data as { results: { status: string }[] }).results[0];
   return result?.status ?? 'succeeded'; // nothing left to charge: already paid
 }
@@ -37,6 +44,6 @@ export async function chargeJob(jobId: string): Promise<string> {
 export async function bankSetupLink(): Promise<string | null> {
   if (!isSupabaseConfigured) return null;
   const { data, error } = await supabase.functions.invoke('connect-onboarding', { method: 'POST' });
-  if (error) throw error;
+  if (error) throw await readable(error, 'Could not reach Stripe. Check your connection and try again.');
   return (data as { url: string }).url;
 }
