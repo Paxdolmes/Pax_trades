@@ -2,35 +2,49 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   BadgeCheck,
   Check,
+  ChevronRight,
   CircleCheck,
+  Clock,
   CreditCard,
   FileText,
   Flame,
+  Gift,
   Info,
   Lock,
   MessageCircle,
-  Phone,
   ShieldCheck,
   Star,
+  TriangleAlert,
   Wrench,
   Zap,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
+import { StarInput } from '@/components/reviews';
 import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, Sheet, T, type LucideIcon } from '@/components/ui';
-import { Layout, Radii, Spacing, usePalette } from '@/constants/theme';
-import { findJobType, formatPence, TRADES, type Trade } from '@/domain/catalog';
+import { Layout, Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
+import { ALL_IN_NOTE, findJobType, formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
+import { arriveBy } from '@/domain/rules';
 import { DEMO_CUSTOMER, DEMO_EXTRA_WORK, DEMO_PRO } from '@/lib/demo';
 import type { JobStatus, Urgency } from '@/lib/jobs';
 import { upfrontPence } from '@/lib/pricing';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { chargeJob } from '@/lib/payments';
+import { confirmJob, saveReview } from '@/lib/trust';
 
 const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Wrench, electrical: Zap, heating: Flame };
 
 type Extra = 'none' | 'asked' | 'approved' | 'declined';
+
+type JobRow = { status: JobStatus; finished_at: string | null; arrive_by: string | null };
+
+/** The database keeps a finished job 'on_site' until the customer confirms; the app shows it as 'finished'. */
+const viewStatus = (r: JobRow): JobStatus => (r.status === 'on_site' && r.finished_at ? 'finished' : r.status);
+
+const clockTime = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 /** Demo mode walks through the job on a timer so the flow can be tried without a backend. */
 const DEMO_STEPS: Partial<Record<JobStatus, { next: JobStatus; afterMs: number }>> = {
@@ -39,13 +53,26 @@ const DEMO_STEPS: Partial<Record<JobStatus, { next: JobStatus; afterMs: number }
   en_route: { next: 'on_site', afterMs: 8000 },
 };
 
+const startedAt = () => Date.now();
+
 export default function JobScreen() {
-  const params = useLocalSearchParams<{ id: string; jobType?: string; urgency?: Urgency; status?: JobStatus; extra?: Extra; freeze?: string }>();
+  const params = useLocalSearchParams<{
+    id: string;
+    jobType?: string;
+    urgency?: Urgency;
+    status?: JobStatus;
+    extra?: Extra;
+    freeze?: string;
+    reassigned?: string;
+  }>();
   const demo = params.id.startsWith('demo-');
   const jobType = findJobType(params.jobType ?? 'no-heating') ?? findJobType('no-heating')!;
   const urgency: Urgency = params.urgency ?? 'urgent';
   const [status, setStatus] = useState<JobStatus>(params.status ?? 'requested');
   const [extra, setExtra] = useState<Extra>(params.extra ?? 'none');
+  const [reassigned, setReassigned] = useState(params.reassigned === '1');
+  // When the pro must arrive. Demo: counted from when the screen opened.
+  const [due, setDue] = useState(() => arriveBy(urgency === 'urgent', startedAt(), null));
 
   // Live status over Supabase realtime once a backend is connected.
   useEffect(() => {
@@ -55,7 +82,15 @@ export default function JobScreen() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${params.id}` },
-        (payload) => setStatus((payload.new as { status: JobStatus }).status),
+        (payload) => {
+          const row = payload.new as JobRow;
+          setStatus((prev) => {
+            // Back to 'requested' after a pro had it means they were late and we're finding another.
+            if (row.status === 'requested' && prev !== 'requested' && prev !== 'offered') setReassigned(true);
+            return viewStatus(row);
+          });
+          if (row.arrive_by) setDue(Date.parse(row.arrive_by));
+        },
       )
       .subscribe();
     return () => {
@@ -75,7 +110,7 @@ export default function JobScreen() {
       return () => clearTimeout(t);
     }
     if (status === 'on_site' && extra !== 'asked') {
-      const t = setTimeout(() => setStatus('completed'), 4000);
+      const t = setTimeout(() => setStatus('finished'), 4000);
       return () => clearTimeout(t);
     }
   }, [demo, params.freeze, status, extra, jobType.pricing.kind]);
@@ -83,13 +118,33 @@ export default function JobScreen() {
   const held = upfrontPence(jobType, urgency);
   const extraPence = extra === 'approved' ? DEMO_EXTRA_WORK.lines.reduce((s, l) => s + l.pence, 0) : 0;
 
-  if (status === 'completed') return <JobDone basePence={held} extraPence={extraPence} jobLabel={jobType.label} trade={jobType.trade} />;
+  if (status === 'finished' || status === 'completed') {
+    return (
+      <JobDone
+        jobId={params.id}
+        confirmed={status === 'completed'}
+        basePence={held}
+        extraPence={extraPence}
+        jobLabel={jobType.label}
+        trade={jobType.trade}
+      />
+    );
+  }
   if (status === 'requested' || status === 'offered') {
-    return <Finding jobLabel={jobType.label} trade={jobType.trade} urgency={urgency} heldPence={held} onCancel={() => router.replace('/home')} />;
+    return (
+      <Finding
+        jobLabel={jobType.label}
+        trade={jobType.trade}
+        urgency={urgency}
+        heldPence={held}
+        reassigned={reassigned}
+        onCancel={() => router.replace('/home')}
+      />
+    );
   }
   return (
     <>
-      <OnTheWay arrived={status === 'on_site'} trade={jobType.trade} />
+      <OnTheWay jobId={params.id} arrived={status === 'on_site'} trade={jobType.trade} due={due} />
       {extra === 'asked' ? (
         <ExtraWorkSheet basePence={held} onApprove={() => setExtra('approved')} onDecline={() => setExtra('declined')} />
       ) : null}
@@ -102,12 +157,14 @@ function Finding({
   trade,
   urgency,
   heldPence,
+  reassigned,
   onCancel,
 }: {
   jobLabel: string;
   trade: Trade;
   urgency: Urgency;
   heldPence: number;
+  reassigned: boolean;
   onCancel: () => void;
 }) {
   const c = usePalette();
@@ -161,6 +218,14 @@ function Finding({
           </T>
         </View>
         <ProgressBar value={progress} />
+        {reassigned ? (
+          <View style={[styles.banner, { backgroundColor: c.warningTint }]}>
+            <Gift size={20} color={c.warning} strokeWidth={2.25} />
+            <T variant="footnote" style={{ flex: 1 }}>
+              {`Your first pro couldn't make it in time, so we're sending the next nearest one. We've added ${formatPence(PILOT.noShowCreditPence)} credit to your account.`}
+            </T>
+          </View>
+        ) : null}
         <View style={[styles.summary, { backgroundColor: c.bg }]}>
           <View style={styles.row}>
             <IconTile icon={TRADE_ICONS[trade]} size={44} />
@@ -173,7 +238,7 @@ function Finding({
             <T variant="headline">{formatPence(heldPence)}</T>
           </View>
           <Divider />
-          <Note icon={Lock}>{`${formatPence(heldPence)} held on your card, not charged`}</Note>
+          <Note icon={Lock}>{`${formatPence(heldPence)} held on your card, not charged. ${ALL_IN_NOTE}`}</Note>
         </View>
         <View style={{ gap: Spacing.two, alignItems: 'center' }}>
           <Button label="Cancel request" variant="secondary" onPress={onCancel} style={{ alignSelf: 'stretch' }} />
@@ -227,20 +292,25 @@ function ProCard({ trade }: { trade: Trade }) {
   const c = usePalette();
   return (
     <View style={{ gap: Spacing.four }}>
-      <View style={styles.row}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${DEMO_PRO.name}, rated ${DEMO_PRO.rating} from ${DEMO_PRO.reviews} reviews. See profile`}
+        onPress={() => router.push({ pathname: '/pro/[id]', params: { id: DEMO_PRO.id } })}
+        style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
         <Avatar name={DEMO_PRO.name} size={56} />
         <View style={{ flex: 1, gap: 2 }}>
           <T variant="headline">{DEMO_PRO.name}</T>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Star size={14} color={c.ink} fill={c.ink} />
             <T variant="subhead">{String(DEMO_PRO.rating)}</T>
-            <T variant="footnote" color="inkMuted">{`(${DEMO_PRO.jobs} jobs)`}</T>
+            <T variant="footnote" color="inkMuted">{`· ${DEMO_PRO.jobs} jobs · ${DEMO_PRO.reviews} reviews`}</T>
           </View>
           <T variant="footnote" color="inkMuted">
             {DEMO_PRO.van}
           </T>
         </View>
-      </View>
+        <ChevronRight size={20} color={c.inkSubtle} strokeWidth={2.25} />
+      </Pressable>
       <View style={{ flexDirection: 'row', gap: Spacing.two }}>
         {trade === 'heating' ? (
           <Chip label={`Gas Safe ${DEMO_PRO.gasSafeNumber}`} tone="success" icon={ShieldCheck} />
@@ -253,7 +323,7 @@ function ProCard({ trade }: { trade: Trade }) {
   );
 }
 
-function OnTheWay({ arrived, trade }: { arrived: boolean; trade: Trade }) {
+function OnTheWay({ jobId, arrived, trade, due }: { jobId: string; arrived: boolean; trade: Trade; due: number }) {
   const c = usePalette();
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -289,12 +359,16 @@ function OnTheWay({ arrived, trade }: { arrived: boolean; trade: Trade }) {
           )}
         </View>
         <ProgressSteps current={arrived ? 2 : 1} />
+        {arrived ? null : (
+          <Note icon={Clock}>{`${DEMO_PRO.firstName} must arrive by ${clockTime(due)}. If not, we send the next nearest pro and give you ${formatPence(PILOT.noShowCreditPence)} credit.`}</Note>
+        )}
         <Divider />
         <ProCard trade={trade} />
-        <View style={{ flexDirection: 'row', gap: Spacing.three }}>
-          <Button label="Call" sublabel="Number masked" variant="secondary" icon={Phone} style={{ flex: 1 }} />
-          <Button label="Message" icon={MessageCircle} style={{ flex: 1 }} />
-        </View>
+        <Button
+          label={`Message ${DEMO_PRO.firstName}`}
+          icon={MessageCircle}
+          onPress={() => router.push({ pathname: '/chat/[id]', params: { id: jobId, name: DEMO_PRO.name } })}
+        />
       </Sheet>
     </View>
   );
@@ -362,33 +436,122 @@ function ExtraWorkSheet({ basePence, onApprove, onDecline }: { basePence: number
 
 const TIPS = [0, 300, 500, 1000];
 
-function JobDone({ basePence, extraPence, jobLabel, trade }: { basePence: number; extraPence: number; jobLabel: string; trade: Trade }) {
+/**
+ * The pro says the job is done. The customer confirms and pays, or reports a problem.
+ * If they do neither, the job confirms itself after 48 hours. Once paid, they can
+ * leave a verified review.
+ */
+function JobDone({
+  jobId,
+  confirmed,
+  basePence,
+  extraPence,
+  jobLabel,
+  trade,
+}: {
+  jobId: string;
+  confirmed: boolean;
+  basePence: number;
+  extraPence: number;
+  jobLabel: string;
+  trade: Trade;
+}) {
   const c = usePalette();
-  const [rating, setRating] = useState(5);
   const [tip, setTip] = useState(500);
-  const [paid, setPaid] = useState(false);
+  const [paid, setPaid] = useState(confirmed);
+  const [paying, setPaying] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [review, setReview] = useState('');
+  const [reviewed, setReviewed] = useState(false);
+  const [saving, setSaving] = useState(false);
   const total = basePence + extraPence + tip;
   const lines = [
     { label: jobLabel, pence: basePence },
     ...(extraPence ? [{ label: DEMO_EXTRA_WORK.title, pence: extraPence }] : []),
   ];
 
+  async function confirmAndPay() {
+    setPaying(true);
+    try {
+      await confirmJob(jobId, tip);
+      const status = await chargeJob(jobId);
+      if (status !== 'succeeded' && status !== 'processing') {
+        Alert.alert('Your card was declined', "The job is confirmed. We'll be in touch to sort out payment.");
+      }
+      setPaid(true);
+    } catch (e) {
+      Alert.alert('Could not confirm the job', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  async function postReview() {
+    setSaving(true);
+    try {
+      await saveReview({ jobId, proId: DEMO_PRO.id, rating, body: review.trim() });
+      setReviewed(true);
+    } catch (e) {
+      Alert.alert('Could not post your review', e instanceof Error ? e.message : 'Please try again in a minute.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const report = () => router.push({ pathname: '/report/[id]', params: { id: jobId, job: jobLabel } });
+
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={styles.doneBody}>
+      <ScrollView contentContainerStyle={styles.doneBody} keyboardShouldPersistTaps="handled">
         <View style={styles.row}>
           <View style={[styles.doneIcon, { backgroundColor: c.successTint }]}>
             <CircleCheck size={26} color={c.success} strokeWidth={2.2} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <T variant="title1" accessibilityRole="header">
-              {paid ? 'Paid, thank you' : 'Job done'}
+              {paid ? 'Paid, thank you' : 'Is everything working?'}
             </T>
             <T variant="footnote" color="inkMuted">
-              {`${DEMO_PRO.firstName} has finished the job`}
+              {paid ? `${jobLabel} with ${DEMO_PRO.firstName}` : `${DEMO_PRO.firstName} says the job is done`}
             </T>
           </View>
         </View>
+
+        {paid ? (
+          reviewed ? (
+            <Card style={styles.row}>
+              <IconTile icon={Star} tone="brand" size={44} />
+              <View style={{ flex: 1 }}>
+                <T variant="subhead">Review posted</T>
+                <T variant="footnote" color="inkMuted">
+                  {`Thanks for helping neighbours find good pros. ${DEMO_PRO.firstName} can reply once.`}
+                </T>
+              </View>
+            </Card>
+          ) : (
+            <Card style={{ gap: Spacing.four }}>
+              <View style={styles.row}>
+                <Avatar name={DEMO_PRO.name} size={40} />
+                <T variant="headline">{`How was ${DEMO_PRO.firstName}?`}</T>
+              </View>
+              <StarInput value={rating} onChange={setRating} />
+              <TextInput
+                value={review}
+                onChangeText={setReview}
+                multiline
+                maxLength={1000}
+                placeholder="What went well? (optional)"
+                placeholderTextColor={c.inkSubtle}
+                accessibilityLabel="Your review"
+                style={[Type.callout, styles.review, { backgroundColor: c.bg, color: c.ink }]}
+              />
+              <Button label="Post review" size="md" loading={saving} onPress={postReview} />
+              <T variant="footnote" color="inkSubtle">
+                Your review shows as a verified Relay job, with your first name only.
+              </T>
+            </Card>
+          )
+        ) : null}
 
         <Card style={{ gap: Spacing.three }}>
           <T variant="overline" color="inkSubtle">
@@ -416,49 +579,47 @@ function JobDone({ basePence, extraPence, jobLabel, trade }: { basePence: number
             <T variant="title1">{formatPence(total)}</T>
           </View>
           <T variant="footnote" color="inkSubtle">
-            Includes VAT
+            {ALL_IN_NOTE}
           </T>
         </Card>
 
-        <Card style={{ gap: Spacing.four }}>
-          <View style={styles.row}>
-            <Avatar name={DEMO_PRO.name} size={40} />
-            <T variant="headline">{`How was ${DEMO_PRO.firstName}?`}</T>
+        {paid ? null : (
+          <Card style={{ gap: Spacing.three }}>
+            <T variant="headline">{`Add a tip for ${DEMO_PRO.firstName}?`}</T>
+            <View style={{ flexDirection: 'row', gap: Spacing.two }} accessibilityRole="radiogroup" accessibilityLabel="Tip">
+              {TIPS.map((t) => {
+                const on = tip === t;
+                return (
+                  <Pressable
+                    key={t}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                    onPress={() => setTip(t)}
+                    style={[styles.tip, { borderColor: on ? c.brand : c.border, backgroundColor: on ? c.brandTint : c.surface }]}>
+                    <T variant="subhead" color={on ? 'brand' : 'ink'}>
+                      {t === 0 ? 'No tip' : formatPence(t)}
+                    </T>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <T variant="footnote" color="inkSubtle">
+              {`100% of your tip goes to ${DEMO_PRO.firstName}.`}
+            </T>
+          </Card>
+        )}
+
+        <View style={[styles.guarantee, Shadows.card, { backgroundColor: c.surface }]}>
+          <IconTile icon={ShieldCheck} tone="success" size={44} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <T variant="subhead">Covered by the Relay Guarantee</T>
+            <T variant="footnote" color="inkMuted">
+              {paid
+                ? `If something isn't right in the next ${PILOT.guaranteeDays} days, report it and we'll send ${DEMO_PRO.firstName} back or refund you.`
+                : `Not right? Report it and ${DEMO_PRO.firstName} isn't paid until it's sorted. If you do nothing, this confirms itself in ${PILOT.autoConfirmHours} hours.`}
+            </T>
           </View>
-          <View style={styles.stars} accessibilityRole="radiogroup" accessibilityLabel="Rating">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable
-                key={n}
-                accessibilityRole="radio"
-                accessibilityLabel={`${n} star${n > 1 ? 's' : ''}`}
-                accessibilityState={{ checked: rating === n }}
-                onPress={() => setRating(n)}
-                hitSlop={4}>
-                <Star size={36} color={n <= rating ? c.brand : c.border} fill={n <= rating ? c.brand : c.border} strokeWidth={1.5} />
-              </Pressable>
-            ))}
-          </View>
-          <View style={{ flexDirection: 'row', gap: Spacing.two }} accessibilityRole="radiogroup" accessibilityLabel="Tip">
-            {TIPS.map((t) => {
-              const on = tip === t;
-              return (
-                <Pressable
-                  key={t}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: on }}
-                  onPress={() => setTip(t)}
-                  style={[styles.tip, { borderColor: on ? c.brand : c.border, backgroundColor: on ? c.brandTint : c.surface }]}>
-                  <T variant="subhead" color={on ? 'brand' : 'ink'}>
-                    {t === 0 ? 'No tip' : formatPence(t)}
-                  </T>
-                </Pressable>
-              );
-            })}
-          </View>
-          <T variant="footnote" color="inkSubtle">
-            {`100% of your tip goes to ${DEMO_PRO.firstName}.`}
-          </T>
-        </Card>
+        </View>
 
         {trade === 'heating' ? (
           <Card style={styles.row}>
@@ -474,9 +635,15 @@ function JobDone({ basePence, extraPence, jobLabel, trade }: { basePence: number
       </ScrollView>
       <Footer>
         {paid ? (
-          <Button label="Back to home" variant="outline" onPress={() => router.replace('/home')} />
+          <View style={{ flexDirection: 'row', gap: Spacing.three }}>
+            <Button label="Report a problem" variant="secondary" icon={TriangleAlert} onPress={report} style={{ flex: 1 }} />
+            <Button label="Done" variant="outline" onPress={() => router.replace('/home')} style={{ flex: 1 }} />
+          </View>
         ) : (
-          <Button label={`Pay ${formatPence(total)}`} variant="ink" icon={CreditCard} onPress={() => setPaid(true)} />
+          <>
+            <Button label={`Confirm and pay ${formatPence(total)}`} variant="ink" icon={CreditCard} loading={paying} onPress={confirmAndPay} />
+            <Button label="Something's not right" variant="ghost" icon={TriangleAlert} onPress={report} />
+          </>
         )}
       </Footer>
     </SafeAreaView>
@@ -491,5 +658,8 @@ const styles = StyleSheet.create({
   doneBody: { paddingHorizontal: Layout.gutter, paddingTop: Spacing.two, paddingBottom: Spacing.six, gap: Spacing.four },
   doneIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   stars: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Spacing.two },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.md, padding: Spacing.three },
+  review: { minHeight: 80, borderRadius: Radii.md, padding: Spacing.three, textAlignVertical: 'top' },
+  guarantee: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.lg, padding: Spacing.four },
   tip: { flex: 1, height: 44, borderRadius: Radii.sm, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });

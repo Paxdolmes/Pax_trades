@@ -7,12 +7,18 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { Button, Card, Chip, IconTile, T, useBottomPadding } from '@/components/ui';
 import { Layout, Spacing, usePalette } from '@/constants/theme';
-import { FOUNDING_COMMISSION, STANDARD_COMMISSION } from '@/domain/catalog';
+import { FOUNDING_COMMISSION, PILOT, STANDARD_COMMISSION } from '@/domain/catalog';
+import { arriveBy } from '@/domain/rules';
 import { CREDENTIAL_LABELS, DEMO_TRADER } from '@/lib/demo';
 import { findOffer, offerPay } from '@/lib/offers';
 
 /** Matches job_offers.expires_at in the database. */
 const OFFER_SECONDS = 60;
+
+/** The arrive-by time if the pro accepted right now, as HH:MM. */
+function deadlineIfAccepted(): string {
+  return new Date(arriveBy(true, Date.now(), null)).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
 
 export default function JobOffer() {
   const c = usePalette();
@@ -87,6 +93,11 @@ export default function JobOffer() {
       </View>
 
       <View style={[styles.actions, { paddingBottom: bottom }]}>
+        <T variant="footnote" color="inkMuted" style={{ textAlign: 'center' }}>
+          {offer.urgent
+            ? `Arrive by ${deadlineIfAccepted()} or the job goes to the next pro`
+            : `Arrive within ${PILOT.lateGraceMinutes} minutes of the slot starting or the job goes to the next pro`}
+        </T>
         <Button
           label="Accept job"
           icon={Check}

@@ -8,6 +8,9 @@ export default function CustomerLayout() {
       <Stack.Screen name="quote" />
       <Stack.Screen name="quotes/[id]" />
       <Stack.Screen name="job/[id]" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="chat/[id]" />
+      <Stack.Screen name="report/[id]" />
+      <Stack.Screen name="pro/[id]" />
     </Stack>
   );
 }

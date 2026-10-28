@@ -1,7 +1,7 @@
 // Pure business rules shared by the app and mirrored in the database.
 // Kept free of React Native imports so they run under `node --test`.
 
-import { QUOTE_REQUIREMENTS, type CredentialType, type JobType, type Trade } from './catalog.ts';
+import { PILOT, QUOTE_REQUIREMENTS, type CredentialType, type JobType, type Trade } from './catalog.ts';
 
 export type Credential = {
   type: CredentialType;
@@ -99,4 +99,61 @@ export function quotableTrades(
       (requestTrades.length === 0 || requestTrades.includes(t)) &&
       missingCredentials({ requires: QUOTE_REQUIREMENTS[t] }, credentials, today).length === 0,
   );
+}
+
+const HOUR = 3_600_000;
+const MINUTE = 60_000;
+
+/**
+ * Hides phone numbers and emails in a chat message so bookings stay in the app.
+ * Mirrors mask_contact_details() in the database.
+ */
+export function maskContactDetails(body: string): string {
+  return body
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[email hidden]')
+    .replace(/(\+?\d[\s().-]*){10,}/g, '[number hidden] ')
+    .trimEnd();
+}
+
+/** When the pro must arrive: an hour after accepting an urgent job, or the booked slot plus grace. */
+export function arriveBy(urgent: boolean, acceptedAt: number, scheduledFor: number | null): number {
+  return urgent ? acceptedAt + PILOT.urgentEtaMinutes * MINUTE : (scheduledFor ?? acceptedAt) + PILOT.lateGraceMinutes * MINUTE;
+}
+
+/** True once the pro has missed the arrive-by time and the grace period, so the job goes to the next pro. */
+export function isLate(arriveByMs: number, now: number): boolean {
+  return now > arriveByMs + PILOT.lateGraceMinutes * MINUTE;
+}
+
+/** When a finished job confirms itself if the customer neither confirms nor reports a problem. */
+export function autoConfirmAt(finishedAt: number): number {
+  return finishedAt + PILOT.autoConfirmHours * HOUR;
+}
+
+/** The customer can report a problem until 30 days after the job was confirmed. */
+export function canReportProblem(confirmedAt: number | null, now: number): boolean {
+  return confirmedAt === null || now < confirmedAt + PILOT.guaranteeDays * 24 * HOUR;
+}
+
+/** Reviews only come from jobs that were finished, confirmed and paid. */
+export function canReview(job: { status: string; paid: boolean; reviewed: boolean }): boolean {
+  return job.status === 'completed' && job.paid && !job.reviewed;
+}
+
+export type Media = { kind: 'photo' | 'video'; seconds?: number };
+
+/** Up to 3 photos, or one video of 30 seconds or less. Returns why not, or null if fine. */
+export function mediaProblem(current: Media[], next: Media): string | null {
+  if (next.kind === 'video' && (next.seconds ?? 0) > PILOT.maxVideoSeconds) return `Videos can be up to ${PILOT.maxVideoSeconds} seconds`;
+  if (current.some((m) => m.kind === 'video')) return 'You can add one video, or up to 3 photos';
+  if (next.kind === 'video' && current.length > 0) return 'You can add one video, or up to 3 photos';
+  if (current.length >= PILOT.maxPhotos) return `You can add up to ${PILOT.maxPhotos} photos`;
+  return null;
+}
+
+/** Average rating to one decimal, or null with no reviews yet. */
+export function ratingSummary(ratings: number[]): { rating: number | null; count: number } {
+  if (ratings.length === 0) return { rating: null, count: 0 };
+  const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+  return { rating: Math.round(avg * 10) / 10, count: ratings.length };
 }

@@ -1,4 +1,5 @@
 import type { QuoteTiming, Trade } from '@/domain/catalog';
+import { postcodePoint } from '@/lib/geo';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export type NewQuoteRequest = {
@@ -24,7 +25,13 @@ export async function createQuoteRequest(req: NewQuoteRequest): Promise<{ id: st
   if (!isSupabaseConfigured) return { id: `demo-${Date.now()}` };
   const { data, error } = await supabase
     .from('quote_requests')
-    .insert({ trades: req.trades, postcode: req.postcode, description: req.description, timing: req.timing })
+    .insert({
+      trades: req.trades,
+      postcode: req.postcode,
+      location: await postcodePoint(req.postcode),
+      description: req.description,
+      timing: req.timing,
+    })
     .select('id')
     .single();
   if (error) throw error;

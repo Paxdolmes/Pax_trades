@@ -44,6 +44,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    ['@stripe/stripe-react-native', { merchantIdentifier: 'merchant.uk.relaytrades', enableGooglePay: true }],
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Relay uses your photos so you can show the pro what needs fixing.',
+        cameraPermission: 'Relay uses your camera so you can show the pro what needs fixing.',
+        microphonePermission: 'Relay uses your microphone when you record a short video of the problem.',
+      },
+    ],
     [
       'expo-splash-screen',
       {

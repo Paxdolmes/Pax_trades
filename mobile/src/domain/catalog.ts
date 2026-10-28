@@ -136,6 +136,21 @@ export const QUOTE_TIMING_LABELS: Record<QuoteTiming, string> = {
   flexible: "I'm flexible",
 };
 
+// Pilot trust rules. Mirrors relay_setting() and friends in the database.
+export const PILOT = {
+  guaranteeDays: 30, // customers can report a problem this long after the job
+  autoConfirmHours: 48, // a finished job confirms itself after this, unless disputed
+  urgentEtaMinutes: 60, // an urgent pro must arrive within this
+  lateGraceMinutes: 15, // slack before a late job goes to the next pro
+  noShowCreditPence: 1000, // credit for the customer when a pro doesn't turn up
+  maxQuotesPerRequest: 5,
+  maxPhotos: 3,
+  maxVideoSeconds: 30,
+} as const;
+
+// Shown next to every customer price: what they see is what they pay.
+export const ALL_IN_NOTE = 'Includes VAT and fees. No hidden fees.';
+
 // Outward codes served at launch. Anything else joins the waitlist.
 export const LAUNCH_OUTWARD_CODES = ['SW6'];
 

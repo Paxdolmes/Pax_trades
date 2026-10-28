@@ -1,4 +1,5 @@
 import type { Trade } from '@/domain/catalog';
+import { postcodePoint } from '@/lib/geo';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export type Urgency = 'urgent' | 'booked';
@@ -9,6 +10,7 @@ export type JobStatus =
   | 'accepted'
   | 'en_route'
   | 'on_site'
+  | 'finished' // the pro says it's done; waiting for the customer to confirm
   | 'completed'
   | 'cancelled';
 
@@ -24,6 +26,8 @@ export type NewJob = {
 export async function createJob(job: NewJob): Promise<{ id: string }> {
   if (!isSupabaseConfigured) return { id: `demo-${Date.now()}` };
 
+  const location = await postcodePoint(job.postcode);
+  if (!location) throw new Error("We couldn't find that postcode. Please check it and try again.");
   const { data, error } = await supabase
     .from('jobs')
     .insert({
@@ -32,6 +36,7 @@ export async function createJob(job: NewJob): Promise<{ id: string }> {
       urgency: job.urgency,
       postcode: job.postcode,
       description: job.description,
+      location,
     })
     .select('id')
     .single();
@@ -45,6 +50,7 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
   accepted: 'Pro accepted',
   en_route: 'On the way',
   on_site: 'Arrived',
+  finished: 'Waiting for your OK',
   completed: 'Job done',
   cancelled: 'Cancelled',
 };

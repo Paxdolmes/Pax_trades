@@ -33,7 +33,7 @@ Without Supabase settings the apps run in **demo mode** with sample jobs. To con
 1. Create a project at [supabase.com](https://supabase.com) (London region).
 2. From the repo root: `npx supabase init`, `npx supabase link --project-ref <ref>`, then `npx supabase db push`.
 
-`nearest_eligible_pros` is not callable by app users; it is meant for a server-side dispatcher (an Edge Function using the service role), which is the next piece of work.
+`nearest_eligible_pros` is not callable by app users. The dispatcher (`dispatch_job`) runs it when a job is requested and every 30 seconds after, via pg_cron. Payments go through the Stripe Edge Functions in `supabase/functions`. To set up the live accounts, see [docs/going-live.md](docs/going-live.md).
 
 ## Checks
 
@@ -55,5 +55,15 @@ The look comes from the v0 design boards for Relay and Relay Traders. In demo mo
 | Relay Traders: go online | 60-second job offer | On the job | Earnings |
 | --- | --- | --- | --- |
 | ![](docs/screenshots/traders-1-home.png) | ![](docs/screenshots/traders-2-job-offer.png) | ![](docs/screenshots/traders-3-on-the-job.png) | ![](docs/screenshots/traders-4-earnings.png) |
+
+Pilot trust features: confirm or report, Relay Guarantee, in-app chat with numbers hidden, verified reviews, and no-show reassignment.
+
+| Confirm or report | Report a problem | Chat, numbers hidden | Pro profile and reviews |
+| --- | --- | --- | --- |
+| ![](docs/screenshots/pilot-1-confirm-or-report.png) | ![](docs/screenshots/pilot-2-report-problem.png) | ![](docs/screenshots/pilot-3-chat.png) | ![](docs/screenshots/pilot-4-pro-profile.png) |
+
+| Late pro, job reassigned | Traders: arrive-by deadline | Waiting for the customer | Reply to reviews |
+| --- | --- | --- | --- |
+| ![](docs/screenshots/pilot-5-reassigned.png) | ![](docs/screenshots/pilot-6-arrive-by.png) | ![](docs/screenshots/pilot-7-awaiting-confirmation.png) | ![](docs/screenshots/pilot-8-reviews.png) |
 
 The Fulham map is a static OpenStreetMap image (© OpenStreetMap contributors) until live maps are added.

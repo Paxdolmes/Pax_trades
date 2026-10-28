@@ -60,18 +60,29 @@ end $$;
 reset role;
 
 -- Matching: the expired engineer is skipped even though closest; nearest vetted first.
+-- The dispatcher already offered the job to both when it was requested, so the
+-- next-nearest list is now empty.
 do $$
 declare ids uuid[];
 begin
-  select array_agg(pro_id order by distance_m) into ids from public.nearest_eligible_pros('00000000-0000-0000-0000-0000000000b1');
+  select array_agg(pro_id order by pro_id) into ids from public.job_offers
+   where job_id = '00000000-0000-0000-0000-0000000000b1' and status = 'pending';
   if ids is distinct from array['00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a3']::uuid[] then
-    raise exception 'FAIL: unexpected match order %', ids;
+    raise exception 'FAIL: dispatcher offered the job to %', ids;
+  end if;
+  if exists (select 1 from public.nearest_eligible_pros('00000000-0000-0000-0000-0000000000b1')) then
+    raise exception 'FAIL: pros already offered the job are offered again';
+  end if;
+  if public.dispatch_job('00000000-0000-0000-0000-0000000000b1') <> 0 then
+    raise exception 'FAIL: dispatched again while offers are live';
   end if;
 end $$;
 
-insert into public.job_offers (id, job_id, pro_id) values
-  ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000a1'),
-  ('00000000-0000-0000-0000-0000000000f3', '00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000a3');
+-- Fixed ids for the offers, so the rest of the test can name them.
+update public.job_offers set id = '00000000-0000-0000-0000-0000000000f1'
+ where job_id = '00000000-0000-0000-0000-0000000000b1' and pro_id = '00000000-0000-0000-0000-0000000000a1';
+update public.job_offers set id = '00000000-0000-0000-0000-0000000000f3'
+ where job_id = '00000000-0000-0000-0000-0000000000b1' and pro_id = '00000000-0000-0000-0000-0000000000a3';
 
 set role authenticated;
 

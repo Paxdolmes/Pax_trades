@@ -12,28 +12,38 @@ import {
   Navigation,
   Pause,
   Play,
-  Phone,
   Plus,
+  TimerReset,
   Upload,
   Wrench,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
 import { Avatar, Button, Card, Chip, Divider, Footer, IconButton, IconTile, Screen, SectionLabel, Sheet, T } from '@/components/ui';
 import { Colors, Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
-import { CALLOUT_RATES, formatPence } from '@/domain/catalog';
+import { CALLOUT_RATES, formatPence, PILOT } from '@/domain/catalog';
 import { calloutChargePence } from '@/domain/rules';
 import { findOffer, type OfferView } from '@/lib/offers';
+import { proArrived, proFinished } from '@/lib/trust';
 
 export default function Trip() {
   const { id, phase } = useLocalSearchParams<{ id: string; phase?: 'en_route' | 'on_job' }>();
   const offer = findOffer(id);
   const [current, setCurrent] = useState(phase ?? 'en_route');
   if (!offer) return null;
-  return current === 'en_route' ? <EnRoute offer={offer} onArrived={() => setCurrent('on_job')} /> : <OnJob offer={offer} />;
+  const jobId = `demo-${offer.id}`;
+  async function arrived() {
+    try {
+      await proArrived(jobId);
+      setCurrent('on_job');
+    } catch (e) {
+      Alert.alert('Could not mark you as arrived', e instanceof Error ? e.message : 'Please try again.');
+    }
+  }
+  return current === 'en_route' ? <EnRoute offer={offer} jobId={jobId} onArrived={arrived} /> : <OnJob offer={offer} jobId={jobId} />;
 }
 
 function arrivalTime(minutes: number) {
@@ -41,7 +51,7 @@ function arrivalTime(minutes: number) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-function EnRoute({ offer, onArrived }: { offer: OfferView; onArrived: () => void }) {
+function EnRoute({ offer, jobId, onArrived }: { offer: OfferView; jobId: string; onArrived: () => void }) {
   const c = usePalette();
   const maps = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${offer.street}, ${offer.postcode}`)}`;
   return (
@@ -87,8 +97,13 @@ function EnRoute({ offer, onArrived }: { offer: OfferView; onArrived: () => void
                 {offer.note}
               </T>
             </View>
-            <IconButton icon={MessageSquare} label={`Message ${offer.customer}`} tone="brand" size={48} />
-            <IconButton icon={Phone} label={`Call ${offer.customer}`} tone="brand" size={48} />
+            <IconButton
+              icon={MessageSquare}
+              label={`Message ${offer.customer}`}
+              tone="brand"
+              size={48}
+              onPress={() => router.push({ pathname: '/pro-chat/[id]', params: { id: jobId, name: offer.customer } })}
+            />
           </View>
           <View style={[styles.access, { backgroundColor: c.surfaceMuted }]}>
             <KeyRound size={16} color={c.inkMuted} strokeWidth={2.25} />
@@ -97,6 +112,12 @@ function EnRoute({ offer, onArrived }: { offer: OfferView; onArrived: () => void
             </T>
           </View>
         </Card>
+        <View style={[styles.deadline, { backgroundColor: c.warningTint }]}>
+          <TimerReset size={18} color={c.warning} strokeWidth={2.25} />
+          <T variant="footnote" style={{ flex: 1 }}>
+            {`Arrive by ${arrivalTime(offer.urgent ? PILOT.urgentEtaMinutes : offer.minutesAway + PILOT.lateGraceMinutes)}. After ${PILOT.lateGraceMinutes} minutes' grace the job goes to the next pro.`}
+          </T>
+        </View>
         <View style={{ gap: Spacing.two }}>
           <Button label="Open in Google Maps" icon={Navigation} variant="outline" onPress={() => Linking.openURL(maps)} />
           <Button label="I've arrived" icon={MapPinCheck} size="hero" onPress={onArrived} />
@@ -115,7 +136,7 @@ function formatElapsed(total: number) {
   return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function OnJob({ offer }: { offer: OfferView }) {
+function OnJob({ offer, jobId }: { offer: OfferView; jobId: string }) {
   const c = usePalette();
   const night = Colors.dark;
   const [elapsed, setElapsed] = useState(0);
@@ -123,6 +144,7 @@ function OnJob({ offer }: { offer: OfferView }) {
   const [items, setItems] = useState<LineItem[]>([]);
   const [certificate, setCertificate] = useState(false);
   const [done, setDone] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const needsCertificate = offer.jobType.trade === 'heating';
   const callout = offer.jobType.pricing.kind === 'callout';
 
@@ -145,6 +167,18 @@ function OnJob({ offer }: { offer: OfferView }) {
   const pending = items.filter((i) => i.status === 'waiting').length;
   const blockers = [pending ? `${pending} approval pending` : null, needsCertificate && !certificate ? 'certificate needed' : null].filter(Boolean);
 
+  async function finish() {
+    setFinishing(true);
+    try {
+      await proFinished(jobId, labour + extras);
+      setDone(true);
+    } catch (e) {
+      Alert.alert('Could not complete the job', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setFinishing(false);
+    }
+  }
+
   if (done) {
     return (
       <Screen fixed contentStyle={{ justifyContent: 'center', alignItems: 'center', gap: Spacing.four }}>
@@ -152,10 +186,10 @@ function OnJob({ offer }: { offer: OfferView }) {
           <CircleCheck size={36} color={c.success} strokeWidth={2.2} />
         </View>
         <T variant="title1" style={{ textAlign: 'center' }}>
-          Job complete
+          Waiting for the customer
         </T>
         <T variant="callout" color="inkMuted" style={{ textAlign: 'center' }}>
-          {`${offer.customer} pays ${formatPence(labour + extras)} in the app. Your share lands in your bank within 48 hours.`}
+          {`We've asked ${offer.customer} to confirm the job is done and pay ${formatPence(labour + extras)}. If they don't report a problem, it confirms itself after ${PILOT.autoConfirmHours} hours. Your share then lands in your bank within 48 hours.`}
         </T>
         <Button label="Back to home" onPress={() => router.navigate('/dashboard')} style={{ alignSelf: 'stretch' }} />
       </Screen>
@@ -168,11 +202,12 @@ function OnJob({ offer }: { offer: OfferView }) {
         <Footer>
           <Button
             label="Complete job"
-            sublabel={blockers.length ? blockers.join(' · ') : 'Customer pays in the app'}
+            sublabel={blockers.length ? blockers.join(' · ') : 'Customer confirms and pays in the app'}
             icon={CircleCheck}
             size="hero"
             disabled={blockers.length > 0}
-            onPress={() => setDone(true)}
+            loading={finishing}
+            onPress={finish}
           />
         </Footer>
       }>
@@ -314,6 +349,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.three },
+  deadline: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, borderRadius: Radii.md, padding: Spacing.three },
   access: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radii.sm, padding: Spacing.two },
   timer: { borderRadius: Radii.lg, padding: Spacing.four, gap: Spacing.three },
   timerFoot: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderTopWidth: 1, paddingTop: Spacing.three },

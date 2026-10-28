@@ -25,10 +25,13 @@ export const CREDENTIAL_UNLOCKS: Record<CredentialType, string> = {
 export const DEMO_CUSTOMER = { name: 'Sophie Turner', firstName: 'Sophie', postcode: 'SW6 4EH' };
 
 export const DEMO_PRO = {
+  id: 'demo-james',
   name: 'James Carter',
   firstName: 'James',
   rating: 4.9,
   jobs: 128,
+  reviews: 46,
+  since: 'March 2026',
   van: 'Grey Ford Transit · LK21 PXA',
   gasSafeNumber: '512345',
   etaMinutes: 12,
@@ -220,3 +223,86 @@ export const DEMO_QUOTE_REQUESTS: DemoQuoteRequest[] = [
     quotes: 2,
   },
 ];
+
+export type DemoReview = {
+  id: string;
+  customer: string;
+  rating: number;
+  body: string;
+  job: string;
+  when: string;
+  reply?: string;
+};
+
+/** Verified reviews for James, the demo customer's pro. Every one is from a paid, finished job. */
+export const DEMO_PRO_REVIEWS: DemoReview[] = [
+  {
+    id: 'rv1',
+    customer: 'Hannah W.',
+    rating: 5,
+    body: 'Boiler back on within 40 minutes of booking. Explained the fault and showed me the old part.',
+    job: 'No heating or hot water',
+    when: '3 days ago',
+    reply: 'Thanks Hannah, glad you were warm again before the weekend.',
+  },
+  {
+    id: 'rv2',
+    customer: 'Marcus O.',
+    rating: 5,
+    body: 'Tidy, on time, and the price was exactly what the app said.',
+    job: 'Boiler service',
+    when: '1 week ago',
+  },
+  {
+    id: 'rv3',
+    customer: 'Priya S.',
+    rating: 4,
+    body: 'Good work on the radiator valves. Arrived near the end of the slot but messaged ahead.',
+    job: 'Radiator not heating',
+    when: '2 weeks ago',
+    reply: 'Sorry for cutting it fine, Priya. The job before ran over. Thanks for the review.',
+  },
+];
+
+/** Reviews of the demo trader, Tom, as he sees them. */
+export const DEMO_TRADER_REVIEWS: DemoReview[] = [
+  {
+    id: 'tr1',
+    customer: 'Sarah C.',
+    rating: 5,
+    body: 'Fixed the F28 fault quickly and left everything clean. Would book again.',
+    job: 'Boiler repair, F28 fault',
+    when: 'Thu',
+  },
+  {
+    id: 'tr2',
+    customer: 'Daniel R.',
+    rating: 4,
+    body: 'Tap sorted. Took a little longer than expected but kept me updated.',
+    job: 'Leaking kitchen tap',
+    when: 'Thu',
+    reply: 'Thanks Daniel. The old valve was seized solid, glad it is sorted.',
+  },
+  {
+    id: 'tr3',
+    customer: 'Priya S.',
+    rating: 5,
+    body: 'Friendly and thorough. Gas safety record was in the app the same day.',
+    job: 'Boiler service',
+    when: 'Fri',
+  },
+];
+
+export type DemoChatLine = { from: 'customer' | 'pro'; body: string; at: string };
+
+/** The opening of the chat on the demo job, seen from either side. */
+export const DEMO_CHAT: DemoChatLine[] = [
+  { from: 'pro', body: "Hi, I'm on my way now. Is there somewhere I can park nearby?", at: '10:31' },
+  { from: 'customer', body: 'Hi! There are pay-and-display bays right outside. Ring the top bell.', at: '10:32' },
+];
+
+/** What the other side says back in demo mode, so the chat feels alive. */
+export const DEMO_CHAT_REPLY: Record<'customer' | 'pro', string> = {
+  customer: 'Great, thanks. See you shortly.',
+  pro: 'No problem, see you in a few minutes.',
+};

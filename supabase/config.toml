@@ -1,0 +1,15 @@
+# Supabase CLI settings for the Relay project. Deploy the functions with:
+#   supabase functions deploy --project-ref <your project ref>
+
+project_id = "relay"
+
+# These check who is calling themselves: Stripe signs its webhooks, pg_cron sends a
+# shared secret, and Stripe's onboarding return page is opened in a browser.
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.charge-jobs]
+verify_jwt = false
+
+[functions.connect-onboarding]
+verify_jwt = false
