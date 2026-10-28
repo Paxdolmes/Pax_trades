@@ -13,6 +13,15 @@ export const CREDENTIAL_LABELS: Record<CredentialType, string> = {
   public_liability: 'Public liability insurance',
 };
 
+/** Short names for quote cards, where space is tight. */
+export const CREDENTIAL_SHORT: Record<CredentialType, string> = {
+  gas_safe: 'Gas Safe',
+  competent_person_scheme: 'NICEIC/NAPIT',
+  plumbing_nvq: 'Plumbing NVQ',
+  unvented_g3: 'G3 unvented',
+  public_liability: 'Insured',
+};
+
 /** What each credential unlocks, shown while it's missing. */
 export const CREDENTIAL_UNLOCKS: Record<CredentialType, string> = {
   gas_safe: 'Unlocks boilers and gas appliances',
@@ -150,6 +159,8 @@ export const DEMO_QUOTES: (Quote & { afterMs: number })[] = [
     trade: 'heating',
     rating: 4.9,
     jobs: 128,
+    reviews: 96,
+    checks: ['gas_safe', 'public_liability'],
     pricePence: 18000,
     earliest: 'Thu 30 Oct, 9am',
     note: 'Includes draining down, moving the pipework and refilling. Towel rail supplied by you.',
@@ -161,6 +172,8 @@ export const DEMO_QUOTES: (Quote & { afterMs: number })[] = [
     trade: 'plumbing',
     rating: 4.8,
     jobs: 64,
+    reviews: 41,
+    checks: ['plumbing_nvq', 'public_liability'],
     pricePence: 15000,
     earliest: 'Mon 3 Nov, 8am',
     note: 'Half a day. I can bring a chrome towel rail for £45 extra if you need one.',
@@ -172,6 +185,8 @@ export const DEMO_QUOTES: (Quote & { afterMs: number })[] = [
     trade: 'heating',
     rating: 5,
     jobs: 31,
+    reviews: 22,
+    checks: ['gas_safe', 'public_liability'],
     pricePence: 21000,
     earliest: 'Tomorrow, 1pm',
     note: 'Can do it tomorrow afternoon. Price includes new valves.',

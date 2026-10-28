@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.contact]
 verify_jwt = false
+
+[functions.notify-email]
+verify_jwt = false

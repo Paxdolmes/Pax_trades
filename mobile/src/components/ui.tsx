@@ -372,6 +372,42 @@ export function Note({ icon: Icon, children, color = 'inkMuted' }: { icon: Lucid
   );
 }
 
+/** A row of numbered stages with the done ones ticked, like a parcel tracker. */
+export function ProgressSteps({ steps, current }: { steps: string[]; current: number }) {
+  const c = usePalette();
+  return (
+    <View style={{ flexDirection: 'row' }} accessibilityLabel={`Step ${current + 1} of ${steps.length}: ${steps[current]}`}>
+      {steps.map((label, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <View key={label} style={{ flex: 1, alignItems: 'center', gap: Spacing.two }}>
+            {i > 0 ? (
+              <View style={{ position: 'absolute', top: 11, right: '50%', width: '100%', height: 2, backgroundColor: i <= current ? c.brand : c.border }} />
+            ) : null}
+            <View
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: done ? c.brand : c.surface,
+                borderWidth: active ? 6 : done ? 0 : 2,
+                borderColor: active ? c.brand : c.border,
+              }}>
+              {done ? <Check size={14} color={c.onBrand} strokeWidth={3} /> : null}
+            </View>
+            <T variant="caption" color={done || active ? 'ink' : 'inkSubtle'}>
+              {label}
+            </T>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { paddingHorizontal: Layout.gutter, paddingTop: Spacing.two, paddingBottom: Spacing.six, gap: Spacing.five },
   footer: { paddingHorizontal: Layout.gutter, paddingTop: Spacing.four, gap: Spacing.three, borderTopWidth: StyleSheet.hairlineWidth * 2 },

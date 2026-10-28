@@ -128,6 +128,10 @@ export type ProProfile = {
   reviewCount: number;
   completedJobs: number;
   credentials: CredentialType[];
+  /** When each current document was checked, e.g. "Oct 2026". */
+  checks: { type: CredentialType; checkedOn: string }[];
+  /** When Relay approved them, e.g. "Oct 2026". */
+  approvedOn: string | null;
   reviews: DemoReview[];
 };
 
@@ -140,6 +144,12 @@ const DEMO_PROFILE: ProProfile = {
   reviewCount: DEMO_PRO.reviews,
   completedJobs: DEMO_PRO.jobs,
   credentials: ['gas_safe', 'plumbing_nvq', 'public_liability'],
+  checks: [
+    { type: 'gas_safe', checkedOn: 'Sep 2026' },
+    { type: 'plumbing_nvq', checkedOn: 'Sep 2026' },
+    { type: 'public_liability', checkedOn: 'Oct 2026' },
+  ],
+  approvedOn: 'Sep 2026',
   reviews: DEMO_PRO_REVIEWS,
 };
 
@@ -152,7 +162,11 @@ type ProfileRow = {
   review_count: number;
   completed_jobs: number;
   verified_credentials: CredentialType[];
+  checks: { type: CredentialType; checked_on: string }[];
+  approved_on: string | null;
 };
+
+const monthYear = (d: string) => new Date(d).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
 
 type ReviewRow = { id: string; rating: number; body: string; pro_reply: string | null; created_at: string };
 
@@ -183,8 +197,27 @@ export async function loadProProfile(proId: string): Promise<ProProfile> {
     reviewCount: row.review_count,
     completedJobs: row.completed_jobs,
     credentials: row.verified_credentials,
+    checks: (row.checks ?? []).map((ch) => ({ type: ch.type, checkedOn: monthYear(ch.checked_on) })),
+    approvedOn: row.approved_on ? monthYear(row.approved_on) : null,
     reviews: list,
   };
+}
+
+/** What a quote card shows about each pro who quoted. */
+export type ProCard = Pick<ProProfile, 'id' | 'name' | 'founding' | 'rating' | 'reviewCount' | 'completedJobs' | 'credentials'>;
+
+/** Public profiles for the given pros, by id. Pros not found (not approved any more) are left out. */
+export async function loadProCards(ids: string[]): Promise<Record<string, ProCard>> {
+  const wanted = ids.filter(live);
+  if (!wanted.length) return {};
+  const { data, error } = await supabase.from('pro_public_profiles').select('*').in('id', wanted);
+  if (error) throw error;
+  return Object.fromEntries(
+    ((data ?? []) as ProfileRow[]).map((r) => [
+      r.id,
+      { id: r.id, name: r.display_name, founding: r.is_founding, rating: r.rating, reviewCount: r.review_count, completedJobs: r.completed_jobs, credentials: r.verified_credentials },
+    ]),
+  );
 }
 
 /** The signed-in pro's own reviews, newest first. */

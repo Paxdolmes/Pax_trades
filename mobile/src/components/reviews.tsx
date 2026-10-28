@@ -1,8 +1,8 @@
-import { Star } from 'lucide-react-native';
+import { BadgeCheck, Star } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Card, T } from '@/components/ui';
+import { Card, Chip, T } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
 import type { DemoReview } from '@/lib/demo';
 
@@ -43,7 +43,10 @@ export function ReviewCard({ review, proName, footer }: { review: DemoReview; pr
   return (
     <Card style={{ gap: Spacing.two }}>
       <View style={styles.top}>
-        <Stars value={review.rating} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+          <Stars value={review.rating} />
+          <Chip label="Verified job" icon={BadgeCheck} tone="success" />
+        </View>
         <T variant="caption" color="inkSubtle">
           {review.when}
         </T>

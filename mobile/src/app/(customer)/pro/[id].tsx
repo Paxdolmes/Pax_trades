@@ -36,7 +36,16 @@ export default function ProProfileScreen() {
         <T variant="callout" color="inkMuted">
           {trades}
         </T>
-        {pro.founding ? <Chip label="Founding pro" icon={Sparkles} tone="brand" /> : null}
+        {pro.founding ? (
+          <View style={{ alignSelf: 'center' }}>
+            <Chip label="Founding pro" icon={Sparkles} tone="brand" />
+          </View>
+        ) : null}
+        {pro.approvedOn ? (
+          <T variant="footnote" color="inkSubtle">
+            {`On Relay since ${pro.approvedOn}`}
+          </T>
+        ) : null}
       </View>
 
       <Card style={styles.stats}>
@@ -51,10 +60,13 @@ export default function ProProfileScreen() {
         <SectionLabel>Checked by Relay</SectionLabel>
         <View style={styles.badges}>
           <Chip label="ID checked" icon={BadgeCheck} tone="success" />
-          {pro.credentials.map((cr) => (
-            <Chip key={cr} label={CREDENTIAL_LABELS[cr]} icon={BadgeCheck} tone="success" />
+          {pro.checks.map((ch) => (
+            <Chip key={ch.type} label={`${CREDENTIAL_LABELS[ch.type]} · checked ${ch.checkedOn}`} icon={BadgeCheck} tone="success" />
           ))}
         </View>
+        <T variant="footnote" color="inkMuted">
+          We check each document against the official register or insurer, and stop sending jobs the day one expires.
+        </T>
       </View>
 
       <View style={{ gap: Spacing.three }}>

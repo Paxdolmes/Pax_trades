@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   BadgeCheck,
-  Check,
   ChevronRight,
   CircleCheck,
   Clock,
@@ -22,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
 import { StarInput } from '@/components/reviews';
 import { TRADE_ICONS } from '@/components/trade-icons';
-import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, Sheet, T } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, ProgressSteps, Sheet, T } from '@/components/ui';
 import { Layout, Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { ALL_IN_NOTE, findJobType, formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
 import { arriveBy } from '@/domain/rules';
@@ -344,41 +343,6 @@ function Finding({
 
 const STEPS = ['Accepted', 'On the way', 'Arrived', 'Job done'];
 
-function ProgressSteps({ current }: { current: number }) {
-  const c = usePalette();
-  return (
-    <View style={{ flexDirection: 'row' }} accessibilityLabel={`Step ${current + 1} of 4: ${STEPS[current]}`}>
-      {STEPS.map((label, i) => {
-        const done = i < current;
-        const active = i === current;
-        return (
-          <View key={label} style={{ flex: 1, alignItems: 'center', gap: Spacing.two }}>
-            {i > 0 ? (
-              <View style={{ position: 'absolute', top: 11, right: '50%', width: '100%', height: 2, backgroundColor: i <= current ? c.brand : c.border }} />
-            ) : null}
-            <View
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 12,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: done ? c.brand : c.surface,
-                borderWidth: active ? 6 : done ? 0 : 2,
-                borderColor: active ? c.brand : c.border,
-              }}>
-              {done ? <Check size={14} color={c.onBrand} strokeWidth={3} /> : null}
-            </View>
-            <T variant="caption" color={done || active ? 'ink' : 'inkSubtle'}>
-              {label}
-            </T>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 function ProCard({ trade }: { trade: Trade }) {
   const c = usePalette();
   const pro = useJobPro();
@@ -453,7 +417,7 @@ function OnTheWay({ jobId, arrived, trade, due }: { jobId: string; arrived: bool
             </View>
           )}
         </View>
-        <ProgressSteps current={arrived ? 2 : 1} />
+        <ProgressSteps steps={STEPS} current={arrived ? 2 : 1} />
         {arrived ? null : (
           <Note icon={Clock}>{`${pro.firstName} must arrive by ${clockTime(due)}. If not, we send the next nearest pro and give you ${formatPence(PILOT.noShowCreditPence)} credit.`}</Note>
         )}

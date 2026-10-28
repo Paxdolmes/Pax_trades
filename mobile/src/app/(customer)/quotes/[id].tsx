@@ -1,21 +1,23 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CalendarCheck, CircleCheck, ClipboardPen, Clock, Lock, ShieldCheck, Star, Users } from 'lucide-react-native';
+import { BadgeCheck, CalendarCheck, CircleCheck, ClipboardPen, Clock, Lock, ShieldCheck, Star, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Avatar, Button, Card, Chip, Footer, IconTile, Note, ProgressBar, Screen, T } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Footer, IconTile, Note, ProgressBar, ProgressSteps, Screen, T } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
 import { formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
-import { DEMO_QUOTES } from '@/lib/demo';
+import { CREDENTIAL_SHORT, DEMO_QUOTES } from '@/lib/demo';
 import { ensureSavedCard } from '@/lib/payments';
 import { acceptQuote, type Quote } from '@/lib/quotes';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { loadProCards, type ProCard } from '@/lib/trust';
 
-type QuoteRow = { id: string; trade: Trade; price_pence: number; note: string; earliest_at: string | null };
+type QuoteRow = { id: string; pro_id: string; trade: Trade; price_pence: number; note: string; earliest_at: string | null };
 
 function fromRow(r: QuoteRow): Quote {
   return {
     id: r.id,
+    proId: r.pro_id,
     proName: `Vetted ${TRADES.find((t) => t.id === r.trade)?.pro ?? 'pro'}`,
     trade: r.trade,
     rating: 0,
@@ -49,7 +51,7 @@ export default function Quotes() {
     if (!isSupabaseConfigured) return;
     supabase
       .from('quotes')
-      .select('id, trade, price_pence, note, earliest_at')
+      .select('id, pro_id, trade, price_pence, note, earliest_at')
       .eq('request_id', id)
       .order('created_at')
       .then(({ data }) => data && setQuotes((all) => merge(all, (data as QuoteRow[]).map(fromRow))));
@@ -71,6 +73,19 @@ export default function Quotes() {
       supabase.removeChannel(channel);
     };
   }, [id, demo, freeze, description]);
+
+  // Each live quote's pro: real name, rating, jobs done and checked documents.
+  const [pros, setPros] = useState<Record<string, ProCard>>({});
+  const missing = quotes.map((q) => q.proId).filter((p): p is string => !!p && !pros[p]);
+  const missingKey = missing.join(',');
+  useEffect(() => {
+    if (!missingKey) return;
+    loadProCards(missingKey.split(',')).then((more) => setPros((all) => ({ ...all, ...more })), () => {});
+  }, [missingKey]);
+  const shown = quotes.map((q) => {
+    const p = q.proId ? pros[q.proId] : undefined;
+    return p ? { ...q, proName: p.name, rating: p.rating ?? 0, jobs: p.completedJobs, reviews: p.reviewCount, checks: p.credentials } : q;
+  });
 
   async function accept(q: Quote) {
     setAccepting(q.id);
@@ -110,6 +125,8 @@ export default function Quotes() {
   }
 
   const cheapest = quotes.length ? Math.min(...quotes.map((q) => q.pricePence)) : null;
+  // Posted, quotes coming in, then the shortlist is full.
+  const stage = quotes.length === 0 ? 0 : quotes.length >= PILOT.maxQuotesPerRequest ? 2 : 1;
 
   return (
     <Screen>
@@ -125,6 +142,8 @@ export default function Quotes() {
         </View>
       </View>
 
+      <ProgressSteps steps={QUOTE_STEPS} current={stage} />
+
       <View style={{ gap: Spacing.two }}>
         <T variant="title1" accessibilityRole="header">
           {quotes.length === 0 ? 'Asking local pros' : `${quotes.length} ${quotes.length === 1 ? 'quote' : 'quotes'} so far`}
@@ -139,19 +158,19 @@ export default function Quotes() {
         {quotes.length === 0 ? <ProgressBar value={0.35} /> : null}
       </View>
 
+      {shown.length > 1 ? <CompareTable quotes={shown} cheapest={cheapest} /> : null}
+
       <View style={{ gap: Spacing.three }}>
-        {quotes.map((q) => (
+        {shown.map((q) => (
           <Card key={q.id} style={{ gap: Spacing.three }}>
             <View style={styles.row}>
               <Avatar name={q.proName} size={48} />
               <View style={{ flex: 1, gap: 2 }}>
                 <T variant="headline">{q.proName}</T>
-                {q.jobs > 0 ? (
-                  <View style={styles.inline}>
-                    <Star size={13} color={c.ink} fill={c.ink} />
-                    <T variant="footnote">{`${q.rating} · ${q.jobs} jobs`}</T>
-                  </View>
-                ) : null}
+                <View style={styles.inline}>
+                  {q.rating > 0 ? <Star size={13} color={c.ink} fill={c.ink} /> : null}
+                  <T variant="footnote">{proLine(q)}</T>
+                </View>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <T variant="title2" style={{ fontWeight: '700', fontVariant: ['tabular-nums'] }}>
@@ -166,19 +185,29 @@ export default function Quotes() {
             <View style={styles.inline}>
               <Chip label={TRADES.find((t) => t.id === q.trade)?.label ?? q.trade} icon={ShieldCheck} tone="brand" />
               <Chip label={q.earliest} icon={CalendarCheck} />
+              {(q.checks ?? []).map((ch) => (
+                <Chip key={ch} label={CREDENTIAL_SHORT[ch]} icon={BadgeCheck} tone="success" />
+              ))}
             </View>
             {q.note ? (
-              <T variant="callout" color="inkMuted">
-                {`“${q.note}”`}
-              </T>
+              <View style={[styles.included, { backgroundColor: c.surfaceMuted }]}>
+                <T variant="caption" color="inkSubtle">
+                  WHAT’S INCLUDED
+                </T>
+                <T variant="callout">{q.note}</T>
+              </View>
             ) : null}
-            <Button
-              label={`Accept ${formatPence(q.pricePence)}`}
-              size="md"
-              loading={accepting === q.id}
-              disabled={accepting !== null && accepting !== q.id}
-              onPress={() => accept(q)}
-            />
+            <View style={styles.actions}>
+              <Button label="View profile" size="md" variant="secondary" onPress={() => router.push(`/pro/${q.proId ?? 'demo-pro'}`)} style={{ flex: 1 }} />
+              <Button
+                label={`Accept ${formatPence(q.pricePence)}`}
+                size="md"
+                loading={accepting === q.id}
+                disabled={accepting !== null && accepting !== q.id}
+                onPress={() => accept(q)}
+                style={{ flex: 1.4 }}
+              />
+            </View>
           </Card>
         ))}
       </View>
@@ -192,9 +221,68 @@ export default function Quotes() {
   );
 }
 
+const QUOTE_STEPS = ['Posted', 'Quotes in', 'Shortlist full'];
+
+const proLine = (q: Quote) =>
+  [q.rating > 0 ? q.rating.toFixed(1) : 'New to Relay', q.reviews ? `${q.reviews} reviews` : null, q.jobs > 0 ? `${q.jobs} jobs` : null]
+    .filter(Boolean)
+    .join(' · ');
+
+/** Every quote in one table, so price, rating and timing can be compared at a glance. */
+function CompareTable({ quotes, cheapest }: { quotes: Quote[]; cheapest: number | null }) {
+  const c = usePalette();
+  const rows: { label: string; value: (q: Quote) => string; best?: (q: Quote) => boolean }[] = [
+    { label: 'Price', value: (q) => formatPence(q.pricePence), best: (q) => q.pricePence === cheapest },
+    { label: 'Rating', value: (q) => (q.rating > 0 ? `★ ${q.rating.toFixed(1)}` : 'New') },
+    { label: 'Jobs', value: (q) => String(q.jobs) },
+    { label: 'Checks', value: (q) => String((q.checks ?? []).length + 1) + ' passed' },
+    { label: 'Can start', value: (q) => q.earliest },
+  ];
+  return (
+    <View style={[styles.table, { borderColor: c.border, backgroundColor: c.surface }]}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={{ flexGrow: 1 }}>
+          <View style={[styles.tableRow, { backgroundColor: c.surfaceMuted }]}>
+            <View style={styles.labelCell} />
+            {quotes.map((q) => (
+              <View key={q.id} style={styles.cell}>
+                <T variant="subhead" style={{ fontWeight: '700' }} numberOfLines={1}>
+                  {q.proName.split(' ')[0]}
+                </T>
+              </View>
+            ))}
+          </View>
+          {rows.map((r) => (
+            <View key={r.label} style={[styles.tableRow, { borderTopColor: c.border, borderTopWidth: 1 }]}>
+              <View style={styles.labelCell}>
+                <T variant="caption" color="inkSubtle">
+                  {r.label}
+                </T>
+              </View>
+              {quotes.map((q) => (
+                <View key={q.id} style={styles.cell}>
+                  <T variant="footnote" color={r.best?.(q) && quotes.length > 1 ? 'success' : 'ink'} style={{ fontWeight: r.best?.(q) ? '700' : '500' }}>
+                    {r.value(q)}
+                  </T>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   how: { borderRadius: Radii.md, padding: Spacing.four, gap: Spacing.three },
+  included: { borderRadius: Radii.sm, padding: Spacing.three, gap: 2 },
+  actions: { flexDirection: 'row', gap: Spacing.two },
+  table: { borderWidth: 1, borderRadius: Radii.md, overflow: 'hidden' },
+  tableRow: { flexDirection: 'row', alignItems: 'center' },
+  labelCell: { width: 72, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
+  cell: { flex: 1, minWidth: 88, paddingHorizontal: Spacing.two, paddingVertical: Spacing.two },
   doneIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
 });
