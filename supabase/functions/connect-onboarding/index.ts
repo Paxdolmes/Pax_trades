@@ -1,9 +1,9 @@
 // Pros link their bank account through Stripe's hosted onboarding.
 //   POST (signed-in pro): returns a one-time onboarding link to open in the browser.
 //   GET ?done=1: where Stripe sends them back afterwards.
-import { admin, caller, env, json, stripe } from './deps.ts';
+import { admin, caller, env, json, stripe, withCors } from './deps.ts';
 
-Deno.serve(async (req) => {
+Deno.serve(withCors(async (req) => {
   if (req.method === 'GET') {
     return new Response('All done. You can go back to the Relay Traders app.', { headers: { 'Content-Type': 'text/plain' } });
   }
@@ -35,4 +35,4 @@ Deno.serve(async (req) => {
   const back = `${env('SUPABASE_URL')}/functions/v1/connect-onboarding?done=1`;
   const link = await s<{ url: string }>('/account_links', { account, refresh_url: back, return_url: back, type: 'account_onboarding' });
   return json({ url: link.url });
-});
+}));
