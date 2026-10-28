@@ -3,7 +3,7 @@
 // are emailed to the Relay inbox through Resend, with Reply-To set to the sender.
 // Secrets: RESEND_API_KEY and SUPPORT_INBOX (the address that receives them).
 // Without them messages are still saved in the enquiries table.
-import { admin, caller, json } from './deps.ts';
+import { admin, brandedEmail, button, caller, detailRows, json, panel, para } from './deps.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,21 +18,28 @@ type Body = { kind?: string; name?: string; email?: string; postcode?: string; t
 
 const clean = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
-const escape = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
-
 async function sendToInbox(e: { name: string; email: string; topic: string; message: string; postcode: string }) {
   const key = Deno.env.get('RESEND_API_KEY');
   const inbox = Deno.env.get('SUPPORT_INBOX');
   if (!key || !inbox) return false;
-  const rows = [
-    ['From', `${e.name} <${e.email}>`],
-    ['Topic', e.topic || 'General'],
-    ['Postcode', e.postcode || 'Not given'],
-  ];
-  const html =
-    `<p>${rows.map(([k, v]) => `<b>${k}:</b> ${escape(v)}`).join('<br>')}</p>` +
-    `<p style="white-space:pre-wrap">${escape(e.message)}</p>` +
-    `<p style="color:#5B6478">Reply to this email to answer them.</p>`;
+  const first = e.name.split(' ')[0];
+  const html = brandedEmail({
+    preheader: `${e.name}: ${e.message.slice(0, 90)}`,
+    heading: 'New help message',
+    body:
+      para(`${e.name} sent a message from the Relay website.`, true) +
+      detailRows([
+        ['From', e.name],
+        ['Email', e.email],
+        ['Topic', e.topic || 'General'],
+        ['Postcode', e.postcode || 'Not given'],
+      ]) +
+      '<div style="height:16px"></div>' +
+      panel(e.message) +
+      '<div style="height:24px"></div>' +
+      button(`Reply to ${first}`, `mailto:${e.email}?subject=${encodeURIComponent(`Re: ${e.topic || 'Your message to Relay'}`)}`),
+    footer: 'Pressing Reply in your inbox answers them too.',
+  });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },

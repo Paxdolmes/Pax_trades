@@ -31,6 +31,8 @@ for (const app of apps) {
   rmSync(tmp, { recursive: true, force: true });
 
   copyFileSync(app.icon, join(app.dir, 'apple-touch-icon.png'));
+  // The logo at the top of Relay's emails (supabase/functions/_shared/email.ts) is served from the site.
+  if (app.variant === 'customer') copyFileSync('assets/images/email-logo.png', join(app.dir, 'email-logo.png'));
   writeFileSync(
     join(app.dir, 'manifest.json'),
     JSON.stringify(

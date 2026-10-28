@@ -20,13 +20,7 @@ Project: `qfpujvfopbgnslylsquf`. Its URL and publishable key are already in `mob
 
 People sign in with their email and a one-time code (6 digits: Authentication → Sign In / Providers → Email → Email OTP length; the app accepts 6 to 10). Two settings make that work:
 
-1. **Put the code in the email.** Go to Authentication → Emails → Templates → **Magic Link** (Supabase uses this one for codes) and replace the message with:
-   ```html
-   <h2>Your Relay code</h2>
-   <p>Enter this code in the app to sign in: <strong>{{ .Token }}</strong></p>
-   <p>It works for 1 hour. If you didn't ask for it, you can ignore this email.</p>
-   ```
-   Do the same for the **Confirm signup** template. Under Authentication → Sign In / Providers → Email, check the email code length is **6**.
+1. **Put the code in the email.** The branded template in `supabase/templates/sign-in-code.html` is applied to the **Magic Link** and **Confirm signup** templates (Supabase uses both for codes) by the **Deploy Supabase** workflow, so change it there rather than in the dashboard, where edits are overwritten on the next deploy. Under Authentication → Sign In / Providers → Email, check the email code length is **6**.
 2. **Send from your own email service before real users.** Supabase's built-in email only reaches members of your Supabase team and sends a few an hour, which is fine for testing. For real customers, sign up for an email service such as Resend (https://resend.com, free for 3,000 emails a month), verify your domain, and enter its SMTP details under Authentication → Emails → SMTP Settings. Its password goes there, not in chat.
 
 ## 2. Stripe (card payments and paying pros)
