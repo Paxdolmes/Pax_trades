@@ -4,7 +4,7 @@ import { CALLOUT_RATES, findJobType, formatPence, type CredentialType, type JobT
 import { missingCredentials, quotableTrades } from '@/domain/rules';
 import { useAuth } from '@/lib/auth';
 import { DEMO_OFFERS, DEMO_PRO_CREDENTIALS, DEMO_QUOTE_REQUESTS, DEMO_TRADER, type DemoOffer, type DemoQuoteRequest } from '@/lib/demo';
-import { dayAndTime, isLive, loadMyOffers, loadOpenQuoteRequests, subscribeOffers, useLive, type LiveOffer } from '@/lib/live';
+import { dayAndTime, loadMyOffers, loadOpenQuoteRequests, subscribeOffers, useLive, type LiveOffer } from '@/lib/live';
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
@@ -70,28 +70,18 @@ function fromLive(o: LiveOffer): OfferView | null {
   };
 }
 
-function useOfferList() {
-  const { session } = useAuth();
-  const { data, loading, reload } = useLive(async () => (await loadMyOffers()).flatMap((o) => fromLive(o) ?? []), isLive ? [] : listOffers());
-  const proId = session?.user.id;
-  useEffect(() => (proId ? subscribeOffers(proId, () => void reload()) : undefined), [proId, reload]);
-  return { offers: data, loading };
-}
-
 /** This pro's open offers, kept up to date as new ones arrive. Demo offers without a backend. */
 export function useOffers(): OfferView[] {
-  return useOfferList().offers;
+  const { session } = useAuth();
+  const { data, reload } = useLive(async () => (await loadMyOffers()).flatMap((o) => fromLive(o) ?? []), listOffers());
+  const proId = session?.user.id;
+  useEffect(() => (proId ? subscribeOffers(proId, () => void reload()) : undefined), [proId, reload]);
+  return data;
 }
 
-/** One offer, and whether the list is still loading (so "gone" isn't shown too early). */
-export function useOffer(id: string): { offer: OfferView | undefined; loading: boolean } {
-  const { offers, loading } = useOfferList();
-  return { offer: offers.find((o) => o.id === id), loading };
-}
-
-/** Open quote requests this pro can answer, live or demo, and whether they're still loading. */
-export function useQuoteRequestList(trades: Trade[]): { requests: QuoteRequestView[]; loading: boolean } {
-  const { data, loading } = useLive(
+/** Open quote requests this pro can answer, live or demo. */
+export function useQuoteRequests(trades: Trade[]): QuoteRequestView[] {
+  const { data } = useLive(
     async () =>
       (await loadOpenQuoteRequests()).map((r) => ({
         id: r.id,
@@ -104,12 +94,8 @@ export function useQuoteRequestList(trades: Trade[]): { requests: QuoteRequestVi
         quotes: 0,
         quotableAs: r.trades.length ? r.trades.filter((t) => trades.includes(t)) : trades,
       })),
-    isLive ? [] : listQuoteRequests(),
+    listQuoteRequests(),
     trades.join(','),
   );
-  return { requests: data.filter((r) => r.quotableAs.length > 0), loading };
-}
-
-export function useQuoteRequests(trades: Trade[]): QuoteRequestView[] {
-  return useQuoteRequestList(trades).requests;
+  return data.filter((r) => r.quotableAs.length > 0);
 }

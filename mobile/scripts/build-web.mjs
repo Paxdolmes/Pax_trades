@@ -4,13 +4,10 @@
 // Each app is a single-page app, so the host's 404.html sends any other path (a
 // refreshed page, a shared link) to the right app with the path in ?from=, and a
 // line in each index.html puts the path back before the app starts.
-// Fixed pages (/help, /traders/dashboard...) also get their own copy of
-// index.html, so the host answers 200 rather than 404 for them: search engines
-// and link previews skip pages that say "not found".
 // Adds the tags iPhone Safari needs for "Add to Home Screen".
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const base = (process.env.WEB_BASE ?? '').replace(/\/$/, '');
@@ -22,16 +19,6 @@ const apps = [
 ];
 
 rmSync(out, { recursive: true, force: true });
-
-/** Routes without [params] in src/app for one app: shared pages plus its own (customer) or (pro) group. */
-function fixedRoutes(variant) {
-  const other = variant === 'customer' ? '(pro)' : '(customer)';
-  const files = readdirSync('src/app', { recursive: true }).map(String);
-  return files
-    .filter((f) => f.endsWith('.tsx') && !f.includes('[') && !f.includes('_layout') && !f.split('/').includes(other))
-    .map((f) => f.replace(/\.tsx$/, '').split('/').filter((s) => !s.startsWith('(')).join('/'))
-    .filter((r) => r && r !== 'index');
-}
 
 for (const app of apps) {
   const tmp = `dist-web-${app.variant}`;
@@ -81,10 +68,6 @@ for (const app of apps) {
     .replace(/<meta name="viewport"[^>]*>/, '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">');
   html = html.replace('</head>', `${head}</head>`);
   writeFileSync(index, html);
-  for (const route of fixedRoutes(app.variant)) {
-    mkdirSync(join(app.dir, route), { recursive: true });
-    writeFileSync(join(app.dir, route, 'index.html'), html);
-  }
 }
 
 // Other paths (a refreshed page or a shared link) open in the app they belong to.

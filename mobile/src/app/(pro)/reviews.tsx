@@ -8,7 +8,7 @@ import { Button, Card, IconButton, Screen, T } from '@/components/ui';
 import { Radii, Spacing, Type, usePalette } from '@/constants/theme';
 import { ratingSummary } from '@/domain/rules';
 import { DEMO_TRADER_REVIEWS, type DemoReview } from '@/lib/demo';
-import { isLive, useLive } from '@/lib/live';
+import { useLive } from '@/lib/live';
 import { usePro } from '@/lib/pro';
 import { loadMyReviews, replyToReview } from '@/lib/trust';
 
@@ -16,7 +16,7 @@ import { loadMyReviews, replyToReview } from '@/lib/trust';
 export default function Reviews() {
   const c = usePalette();
   const pro = usePro();
-  const { data: loaded } = useLive(loadMyReviews, isLive ? [] : DEMO_TRADER_REVIEWS);
+  const { data: loaded } = useLive(loadMyReviews, DEMO_TRADER_REVIEWS);
   // Replies sent from this screen, shown straight away.
   const [replies, setReplies] = useState<Record<string, string>>({});
   const reviews: DemoReview[] = loaded.map((r) => (replies[r.id] ? { ...r, reply: replies[r.id] } : r));

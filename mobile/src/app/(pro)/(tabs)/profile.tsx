@@ -9,7 +9,7 @@ import { TRADES } from '@/domain/catalog';
 import { ratingSummary } from '@/domain/rules';
 import { useAuth } from '@/lib/auth';
 import { DEMO_TRADER_REVIEWS } from '@/lib/demo';
-import { isLive, useLive } from '@/lib/live';
+import { useLive } from '@/lib/live';
 import { bankSetupLink } from '@/lib/payments';
 import { usePro } from '@/lib/pro';
 import { loadMyReviews } from '@/lib/trust';
@@ -28,7 +28,7 @@ export default function Profile() {
   const c = usePalette();
   const { profile } = useAuth();
   const pro = usePro();
-  const { data: myReviews } = useLive(loadMyReviews, isLive ? [] : DEMO_TRADER_REVIEWS);
+  const { data: myReviews } = useLive(loadMyReviews, DEMO_TRADER_REVIEWS);
   const reviews = ratingSummary(myReviews.map((r) => r.rating));
   const isAdmin = profile?.role === 'admin';
   const rows: { icon: LucideIcon; label: string; detail: string; onPress?: () => void }[] = [

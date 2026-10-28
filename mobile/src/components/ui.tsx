@@ -428,35 +428,3 @@ const styles = StyleSheet.create({
   sectionLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: -Spacing.two },
   note: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.two },
 });
-
-/**
- * In place of a screen whose job, offer or request can't be found: a spinner
- * while it's still loading, then a short explanation and a way out. Stops an old
- * link or notification opening on a blank page.
- */
-export function Unavailable({ loading, title, text, actionLabel = 'Go back', onAction }: { loading?: boolean; title: string; text: string; actionLabel?: string; onAction: () => void }) {
-  const c = usePalette();
-  return (
-    <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={unavailable.body}>
-        {loading ? (
-          <ActivityIndicator color={c.inkMuted} accessibilityLabel="Loading" />
-        ) : (
-          <>
-            <T variant="title2" accessibilityRole="header" style={{ textAlign: 'center' }}>
-              {title}
-            </T>
-            <T variant="callout" color="inkMuted" style={{ textAlign: 'center' }}>
-              {text}
-            </T>
-            <Button label={actionLabel} variant="secondary" onPress={onAction} style={{ alignSelf: 'stretch', marginTop: Spacing.three }} />
-          </>
-        )}
-      </View>
-    </SafeAreaView>
-  );
-}
-
-const unavailable = StyleSheet.create({
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.three, paddingHorizontal: Layout.gutter * 2, maxWidth: 480, width: '100%', alignSelf: 'center' },
-});
