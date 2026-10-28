@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 
-import { Layout, Radii, Shadows, Spacing, Type, usePalette, type ColorToken, type TypeVariant } from '@/constants/theme';
+import { fontFamily, Layout, Radii, Shadows, Spacing, Type, usePalette, withFont, type ColorToken, type TypeVariant } from '@/constants/theme';
 
 export type { LucideIcon };
 
@@ -74,7 +74,7 @@ export function T({
 }: TextProps & { variant?: TypeVariant; color?: ColorToken; style?: StyleProp<TextStyle> }) {
   const c = usePalette();
   return (
-    <Text {...rest} style={[Type[variant], { color: c[color] }, style]}>
+    <Text {...rest} style={withFont([Type[variant], { color: c[color] }, style])}>
       {children}
     </Text>
   );
@@ -84,8 +84,8 @@ type ButtonVariant = 'primary' | 'urgent' | 'success' | 'secondary' | 'outline' 
 
 const buttonColors: Record<ButtonVariant, { bg: ColorToken | null; pressed: ColorToken | null; fg: ColorToken }> = {
   primary: { bg: 'brand', pressed: 'brandPressed', fg: 'onBrand' },
-  urgent: { bg: 'urgent', pressed: 'urgentPressed', fg: 'onBrand' },
-  success: { bg: 'success', pressed: 'successStrong', fg: 'onBrand' },
+  urgent: { bg: 'urgent', pressed: 'urgentPressed', fg: 'onUrgent' },
+  success: { bg: 'success', pressed: 'successStrong', fg: 'onSuccess' },
   secondary: { bg: 'surfaceMuted', pressed: 'border', fg: 'ink' },
   outline: { bg: 'surface', pressed: 'surfaceMuted', fg: 'ink' },
   ink: { bg: 'ink', pressed: 'inkMuted', fg: 'surface' },
@@ -161,20 +161,21 @@ export function Button({
 
 export type Tone = 'brand' | 'urgent' | 'success' | 'warning' | 'danger' | 'neutral';
 
-export const toneColors: Record<Tone, { bg: ColorToken; fg: ColorToken }> = {
-  brand: { bg: 'brandTint', fg: 'brand' },
-  urgent: { bg: 'urgentTint', fg: 'urgent' },
-  success: { bg: 'successTint', fg: 'successStrong' },
-  warning: { bg: 'warningTint', fg: 'warning' },
-  danger: { bg: 'dangerTint', fg: 'danger' },
-  neutral: { bg: 'surfaceMuted', fg: 'inkMuted' },
+/** bg/fg for a tinted chip or tile; `on` is the text colour on a solid fill of fg. */
+export const toneColors: Record<Tone, { bg: ColorToken; fg: ColorToken; on: ColorToken }> = {
+  brand: { bg: 'brandTint', fg: 'brand', on: 'onBrand' },
+  urgent: { bg: 'urgentTint', fg: 'urgent', on: 'onUrgent' },
+  success: { bg: 'successTint', fg: 'successStrong', on: 'surface' },
+  warning: { bg: 'warningTint', fg: 'warning', on: 'surface' },
+  danger: { bg: 'dangerTint', fg: 'danger', on: 'surface' },
+  neutral: { bg: 'surfaceMuted', fg: 'inkMuted', on: 'surface' },
 };
 
 export function Chip({ label, tone = 'neutral', icon: Icon, solid }: { label: string; tone?: Tone; icon?: LucideIcon; solid?: boolean }) {
   const c = usePalette();
   const t = toneColors[tone];
   const bg = solid ? (tone === 'neutral' ? 'ink' : t.fg) : t.bg;
-  const fg: ColorToken = solid ? 'onBrand' : t.fg;
+  const fg: ColorToken = solid ? t.on : t.fg;
   return (
     <View style={[styles.chip, { backgroundColor: c[bg] }]}>
       {Icon ? <Icon size={13} color={c[fg]} strokeWidth={2.5} /> : null}
@@ -198,7 +199,7 @@ export function IconTile({ icon: Icon, tone = 'brand', size = 48, solid }: { ico
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-      <Icon size={Math.round(size * 0.46)} color={solid ? c.onBrand : c[t.fg]} strokeWidth={2} />
+      <Icon size={Math.round(size * 0.46)} color={solid ? c[t.on] : c[t.fg]} strokeWidth={2} />
     </View>
   );
 }
@@ -257,7 +258,7 @@ export function Avatar({ name, size = 44, tone = 'brand', ring }: { name: string
         borderWidth: ring ? 2 : 0,
         borderColor: c.surface,
       }}>
-      <Text style={{ color: c[t.fg], fontSize: Math.round(size * 0.38), fontWeight: '700', letterSpacing: -0.3 }}>{initials}</Text>
+      <Text style={{ color: c[t.fg], fontSize: Math.round(size * 0.38), fontFamily: fontFamily('display', '700'), letterSpacing: -0.3 }}>{initials}</Text>
     </View>
   );
 }
@@ -311,7 +312,7 @@ export function Radio({ on, tone = 'brand' }: { on: boolean; tone?: 'brand' | 'u
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-      {on ? <Check size={14} color={c.onBrand} strokeWidth={3} /> : null}
+      {on ? <Check size={14} color={tone === 'urgent' ? c.onUrgent : c.onBrand} strokeWidth={3} /> : null}
     </View>
   );
 }

@@ -1,10 +1,10 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { House, Lock, Wrench, Zap } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import { Image, StyleSheet, Text, View, useColorScheme, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
 
-import { Shadows, usePalette } from '@/constants/theme';
+import { fontFamily, Shadows, usePalette, useScheme } from '@/constants/theme';
 
 // Static Fulham basemap (OpenStreetMap, zoom 15, 1024 x 1024 px). It stands in
 // for react-native-maps until live locations are wired up. Points are pixel
@@ -57,7 +57,7 @@ export function StaticMap({
   children?: (project: (p: Point) => Point) => ReactNode;
 }) {
   const c = usePalette();
-  const dark = useColorScheme() === 'dark';
+  const dark = useScheme() === 'dark';
   const [width, setWidth] = useState(0);
   const project = (p: Point) => ({ x: (p.x - center.x) * scale + width / 2, y: (p.y - center.y) * scale + height / 2 });
   const origin = project({ x: 0, y: 0 });
@@ -129,12 +129,12 @@ function MapPin({ x, y, kind, label }: Point & { kind: Pin['kind']; label?: stri
         {label ? (
           <View style={[styles.etaBubble, { backgroundColor: c.surface }, Shadows.float]}>
             <View style={[styles.etaTag, { backgroundColor: c.brand }]}>
-              <Text style={styles.etaText}>{label}</Text>
+              <Text style={[styles.etaText, { color: c.onBrand }]}>{label}</Text>
             </View>
           </View>
         ) : null}
         <View style={[styles.proPin, { backgroundColor: c.brand, borderColor: c.surface }, Shadows.float]}>
-          <Wrench size={18} color="#FFFFFF" strokeWidth={2.4} />
+          <Wrench size={18} color={c.onBrand} strokeWidth={2.4} />
         </View>
       </View>
     );
@@ -142,6 +142,7 @@ function MapPin({ x, y, kind, label }: Point & { kind: Pin['kind']; label?: stri
   const Icon = pinIcons[kind] ?? Wrench;
   const size = kind === 'home' ? 44 : 32;
   const bg = kind === 'urgent' ? c.urgent : kind === 'locked' ? c.inkSubtle : kind === 'home' ? c.ink : c.brand;
+  const fg = kind === 'urgent' ? c.onUrgent : kind === 'locked' ? '#FFFFFF' : kind === 'home' ? c.surface : c.onBrand;
   return (
     <View
       style={[
@@ -149,7 +150,7 @@ function MapPin({ x, y, kind, label }: Point & { kind: Pin['kind']; label?: stri
         { backgroundColor: bg, borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
         Shadows.float,
       ]}>
-      <Icon size={kind === 'home' ? 18 : 14} color="#FFFFFF" strokeWidth={2.6} />
+      <Icon size={kind === 'home' ? 18 : 14} color={fg} strokeWidth={2.6} />
     </View>
   );
 }
@@ -159,6 +160,6 @@ const styles = StyleSheet.create({
   dot: { position: 'absolute', width: 14, height: 14, borderRadius: 7, borderWidth: 2 },
   etaBubble: { borderRadius: 999, padding: 4 },
   etaTag: { borderRadius: 999, paddingHorizontal: 10, height: 24, justifyContent: 'center' },
-  etaText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  etaText: { fontSize: 13, fontFamily: fontFamily('body', '700') },
   proPin: { width: 40, height: 40, borderRadius: 20, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
 });

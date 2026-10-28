@@ -1,0 +1,77 @@
+// Builds the web version of both apps into dist-web/ for a static host:
+// Relay at <base>/ and Relay Traders at <base>/traders/.
+//   WEB_BASE=/Pax_trades node scripts/build-web.mjs
+// Each app is a single-page app, so the host's 404.html sends unknown paths back
+// to the right app's start page. Adds the tags iPhone Safari needs for "Add to Home Screen".
+
+import { execFileSync } from 'node:child_process';
+import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const base = (process.env.WEB_BASE ?? '').replace(/\/$/, '');
+const out = 'dist-web';
+
+const apps = [
+  { variant: 'customer', name: 'Relay', path: `${base}/`, dir: out, icon: 'assets/images/icon.png', theme: '#F5F5F2' },
+  { variant: 'pro', name: 'Relay Traders', path: `${base}/traders/`, dir: join(out, 'traders'), icon: 'assets/images/icon-traders.png', theme: '#070F24' },
+];
+
+rmSync(out, { recursive: true, force: true });
+
+for (const app of apps) {
+  const tmp = `dist-web-${app.variant}`;
+  execFileSync('npx', ['expo', 'export', '--platform', 'web', '--clear', '--output-dir', tmp], {
+    stdio: 'inherit',
+    env: { ...process.env, APP_VARIANT: app.variant, EXPO_BASE_URL: app.path.replace(/\/$/, '') },
+  });
+  mkdirSync(app.dir, { recursive: true });
+  cpSync(tmp, app.dir, { recursive: true });
+  rmSync(tmp, { recursive: true, force: true });
+
+  copyFileSync(app.icon, join(app.dir, 'apple-touch-icon.png'));
+  writeFileSync(
+    join(app.dir, 'manifest.json'),
+    JSON.stringify(
+      {
+        name: app.name,
+        short_name: app.name,
+        start_url: app.path,
+        scope: app.path,
+        display: 'standalone',
+        background_color: app.theme,
+        theme_color: app.theme,
+        icons: [{ src: `${app.path}apple-touch-icon.png`, sizes: '1024x1024', type: 'image/png' }],
+      },
+      null,
+      2,
+    ),
+  );
+
+  const index = join(app.dir, 'index.html');
+  const head = [
+    `<meta name="apple-mobile-web-app-capable" content="yes">`,
+    `<meta name="mobile-web-app-capable" content="yes">`,
+    `<meta name="apple-mobile-web-app-title" content="${app.name}">`,
+    `<meta name="apple-mobile-web-app-status-bar-style" content="default">`,
+    `<meta name="theme-color" content="${app.theme}">`,
+    `<link rel="apple-touch-icon" href="${app.path}apple-touch-icon.png">`,
+    `<link rel="manifest" href="${app.path}manifest.json">`,
+  ].join('');
+  let html = readFileSync(index, 'utf8')
+    .replace(/<title>.*?<\/title>/, `<title>${app.name}</title>`)
+    // Fill the iPhone screen edge to edge; the app handles the notch itself.
+    .replace(/<meta name="viewport"[^>]*>/, '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">');
+  html = html.replace('</head>', `${head}</head>`);
+  writeFileSync(index, html);
+}
+
+// Unknown paths (a refreshed deep link) go back to the app they belong to.
+writeFileSync(
+  join(out, '404.html'),
+  `<!doctype html><meta charset="utf-8"><title>Relay</title><script>
+var t = ${JSON.stringify(`${base}/traders/`)};
+location.replace(location.pathname.indexOf(t) === 0 ? t : ${JSON.stringify(`${base}/`)});
+</script>`,
+);
+writeFileSync(join(out, '.nojekyll'), '');
+console.log(`Built ${apps.map((a) => a.path).join(' and ')} into ${out}/`);

@@ -2,7 +2,7 @@ import { AlertCircle, ArrowRight, ChevronLeft, Mail } from 'lucide-react-native'
 import { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { Wordmark } from '@/components/brand';
+import { AppIcon, Wordmark } from '@/components/brand';
 import { Button, Footer, IconButton, Note, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { completeProfile, isEmail, sendCode, signOut, useAuth, verifyCode } from '@/lib/auth';
@@ -167,6 +167,9 @@ function Shell({
         <View style={{ width: 44 }} />
       </View>
       <View style={{ gap: Spacing.two, marginTop: Spacing.four }}>
+        <View style={{ marginBottom: Spacing.three }}>
+          <AppIcon size={64} traders={pro} />
+        </View>
         <T variant="title1" style={{ fontSize: 28, lineHeight: 34 }} accessibilityRole="header">
           {title}
         </T>

@@ -1,31 +1,40 @@
-// Relay design tokens, ported from the v0 design boards.
-// One palette for both apps: Relay Blue for actions, Ember for urgent only,
-// green for verified, online and money.
+// Relay design tokens, from the v0 brand refresh board (Conduit R).
+// Navy carries trust, teal marks the hand-off, Ember is for urgent only,
+// green for verified, online and money. Relay Traders always uses the dark palette.
 
-import { Platform, useColorScheme, type TextStyle, type ViewStyle } from 'react-native';
+import { StyleSheet, useColorScheme, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+
+import { appVariant } from '@/lib/variant';
 
 export const Colors = {
   light: {
-    bg: '#F5F5F2', // app canvas, warm grey
+    bg: '#F5F5F2', // app canvas, warm "plaster"
     surface: '#FFFFFF', // cards, sheets
-    surfaceMuted: '#EDEDE9', // inputs, secondary buttons, tracks
-    ink: '#0F1A2E',
-    inkMuted: '#5A6375',
-    inkSubtle: '#8C93A1',
-    border: '#E3E2DD',
+    surfaceMuted: '#ECEDE8', // inputs, secondary buttons, tracks
+    ink: '#0D1B3E', // switchboard navy
+    inkMuted: '#5B6478',
+    inkSubtle: '#858DA0',
+    border: '#DADBD3',
 
-    brand: '#1B44C4',
-    brandPressed: '#14359D',
-    brandTint: '#E8EDFB',
+    brand: '#0D1B3E', // main actions: navy
+    brandPressed: '#15275A',
+    brandTint: '#E3E7F1',
     onBrand: '#FFFFFF',
 
-    urgent: '#E8622A', // urgent actions only
-    urgentPressed: '#C94F1C',
-    urgentTint: '#FCEDE5',
+    accent: '#1ED6C4', // "Current" teal: the hand-off moment, fills only
+    accentStrong: '#008F80', // teal for icons and large text on light backgrounds
+    accentTint: '#DDF6F2',
+    onAccent: '#0D1B3E',
 
-    success: '#1E8A5A', // verified, online, money in
+    urgent: '#E8622A', // Ember: urgent actions only. Navy text on it, not white.
+    urgentPressed: '#C2410C',
+    urgentTint: '#FCEDE5',
+    onUrgent: '#0D1B3E',
+
+    success: '#177A4B', // verified, online, money in
     successStrong: '#156B45',
-    successTint: '#E3F2EA',
+    successTint: '#E1F2E8',
+    onSuccess: '#FFFFFF',
 
     warning: '#8A5A00', // expiring documents, pending approval
     warningTint: '#FDF3D3',
@@ -33,31 +42,38 @@ export const Colors = {
     danger: '#C62828',
     dangerTint: '#FCE4E4',
 
-    scrim: 'rgba(10, 16, 28, 0.48)',
+    scrim: 'rgba(7, 15, 36, 0.5)',
   },
   dark: {
-    bg: '#0A0F1A',
-    surface: '#131B2A',
-    surfaceMuted: '#1C2537',
-    ink: '#F1F3F7',
-    inkMuted: '#A2AABB',
-    inkSubtle: '#6E7789',
-    border: '#243049',
+    bg: '#070F24',
+    surface: '#0D1B3E',
+    surfaceMuted: '#15275A',
+    ink: '#F3F4F1',
+    inkMuted: '#9AA6C4',
+    inkSubtle: '#6F7C9E',
+    border: '#223566',
 
-    brand: '#4A73EE',
-    brandPressed: '#3B63DB',
-    brandTint: '#18264A',
-    onBrand: '#FFFFFF',
+    brand: '#1ED6C4', // main actions: teal, with navy text
+    brandPressed: '#17B5A6',
+    brandTint: '#0F3344',
+    onBrand: '#0D1B3E',
 
-    urgent: '#F47236',
-    urgentPressed: '#DC6129',
+    accent: '#1ED6C4',
+    accentStrong: '#1ED6C4',
+    accentTint: '#0F3344',
+    onAccent: '#0D1B3E',
+
+    urgent: '#FF8A5C',
+    urgentPressed: '#E8622A',
     urgentTint: '#3A2217',
+    onUrgent: '#0D1B3E',
 
-    success: '#3BBF84',
-    successStrong: '#3BBF84',
-    successTint: '#12291F',
+    success: '#4ADE80',
+    successStrong: '#4ADE80',
+    successTint: '#11301F',
+    onSuccess: '#0D1B3E',
 
-    warning: '#F2C14E',
+    warning: '#F5B82E',
     warningTint: '#3A2E10',
 
     danger: '#FF6B6B',
@@ -83,10 +99,25 @@ export const Layout = {
   touchHero: 64,
 } as const;
 
-const font = Platform.select({ ios: 'System', default: undefined });
+/** Font files loaded in the root layout. Bricolage Grotesque for headlines and numbers, Figtree for the rest. */
+export const FontFiles = {
+  display: { '600': 'BricolageGrotesque_600SemiBold', '700': 'BricolageGrotesque_700Bold', '800': 'BricolageGrotesque_800ExtraBold' },
+  body: { '400': 'Figtree_400Regular', '500': 'Figtree_500Medium', '600': 'Figtree_600SemiBold', '700': 'Figtree_700Bold' },
+} as const;
 
-const t = (fontSize: number, lineHeight: number, fontWeight: TextStyle['fontWeight'], letterSpacing = 0): TextStyle => ({
-  fontFamily: font,
+type FontRole = keyof typeof FontFiles;
+
+/** The loaded font for a role and weight. Custom fonts carry their own weight, so styles drop fontWeight. */
+export function fontFamily(role: FontRole, weight: TextStyle['fontWeight'] = '400'): string {
+  const files: Record<string, string> = FontFiles[role];
+  const w = weight === 'bold' ? 700 : weight === 'normal' ? 400 : Number(weight) || 400;
+  const available = Object.keys(files).map(Number);
+  const nearest = available.reduce((a, b) => (Math.abs(b - w) < Math.abs(a - w) ? b : a));
+  return files[String(nearest)];
+}
+
+const t = (role: FontRole, fontSize: number, lineHeight: number, fontWeight: TextStyle['fontWeight'], letterSpacing = 0): TextStyle => ({
+  fontFamily: fontFamily(role, fontWeight),
   fontSize,
   lineHeight,
   fontWeight,
@@ -94,19 +125,28 @@ const t = (fontSize: number, lineHeight: number, fontWeight: TextStyle['fontWeig
 });
 
 export const Type = {
-  money: t(44, 50, '800', -1.1),
-  display: t(30, 36, '700', -0.8),
-  title1: t(24, 30, '700', -0.5),
-  title2: t(20, 26, '600', -0.3),
-  headline: t(17, 22, '600', -0.2),
-  body: t(16, 24, '400', -0.1),
-  bodyStrong: t(16, 24, '600', -0.1),
-  callout: t(15, 22, '400', -0.1),
-  subhead: t(14, 20, '500'),
-  footnote: t(14, 20, '400'),
-  caption: t(13, 16, '600', 0.1),
-  overline: t(12, 16, '700', 0.8),
+  money: t('display', 44, 50, '800', -1.3),
+  display: t('display', 30, 34, '800', -0.9),
+  title1: t('display', 24, 29, '700', -0.5),
+  title2: t('display', 20, 25, '700', -0.2),
+  headline: t('display', 17, 22, '700', -0.1),
+  body: t('body', 16, 24, '400'),
+  bodyStrong: t('body', 16, 24, '600'),
+  callout: t('body', 15, 22, '400'),
+  subhead: t('body', 14, 20, '500'),
+  footnote: t('body', 14, 20, '400'),
+  caption: t('body', 13, 16, '600', 0.1),
+  overline: t('body', 12, 16, '700', 0.9),
 } as const;
+
+const roleOf = (family: unknown): FontRole => (typeof family === 'string' && family.startsWith('Bricolage') ? 'display' : 'body');
+
+/** Swaps a style's fontWeight for the matching font file, e.g. a caption overridden to weight 500. */
+export function withFont(style: StyleProp<TextStyle>): TextStyle {
+  const flat = StyleSheet.flatten(style) ?? {};
+  const { fontWeight, ...rest } = flat;
+  return { ...rest, fontFamily: fontFamily(roleOf(flat.fontFamily), fontWeight) };
+}
 
 export type TypeVariant = keyof typeof Type;
 
@@ -116,6 +156,12 @@ export const Shadows: Record<'card' | 'float' | 'sheet', ViewStyle> = {
   sheet: { shadowColor: '#0F1A2E', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.12, shadowRadius: 30, elevation: 12 },
 };
 
+/** Light or dark for this screen. Relay Traders is always dark: easy to read in a van or a dim loft. */
+export function useScheme(): 'light' | 'dark' {
+  const system = useColorScheme();
+  return appVariant === 'pro' || system === 'dark' ? 'dark' : 'light';
+}
+
 export function usePalette(): Palette {
-  return useColorScheme() === 'dark' ? Colors.dark : Colors.light;
+  return useScheme() === 'dark' ? Colors.dark : Colors.light;
 }
