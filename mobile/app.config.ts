@@ -11,10 +11,10 @@ const VARIANTS = {
     bundleId: 'uk.relaytrades.customer',
   },
   pro: {
-    name: 'Relay Pro',
-    slug: 'relay-pro',
-    scheme: 'relaypro',
-    bundleId: 'uk.relaytrades.pro',
+    name: 'Relay Traders',
+    slug: 'relay-traders',
+    scheme: 'relaytraders',
+    bundleId: 'uk.relaytrades.traders',
   },
 } as const;
 

@@ -8,7 +8,7 @@ Plan: [MVP plan](https://claude.ai/artifact/F4z5StZkvHjedKoJgYnkAK) · [Phase 0 
 
 | Path | What it is |
 | --- | --- |
-| `mobile/` | One Expo (React Native) codebase that builds two store apps: **Relay** for customers and **Relay Pro** for tradespeople |
+| `mobile/` | One Expo (React Native) codebase that builds two store apps: **Relay** for customers and **Relay Traders** for tradespeople |
 | `mobile/src/domain/` | Launch catalogue (trades, job types, prices, required credentials) and pure business rules, with tests |
 | `supabase/migrations/` | Postgres schema: profiles, pros, credentials, jobs, offers, row level security, matching functions |
 | `supabase/tests/` | SQL behaviour tests for vetting, matching and accepting offers |
@@ -21,7 +21,7 @@ Needs Node 22 and the Expo Go app (or a simulator).
 cd mobile
 npm install
 npm start          # customer app (Relay)
-npm run start:pro  # tradesperson app (Relay Pro)
+npm run start:pro  # tradesperson app (Relay Traders)
 ```
 
 Scan the QR code with Expo Go. When switching between the two apps, add `-- --clear` so the bundler does not reuse the other app's config.
