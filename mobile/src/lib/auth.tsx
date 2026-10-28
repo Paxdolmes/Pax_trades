@@ -1,4 +1,4 @@
-// Sign-in with an email and a 6-digit code (Supabase Auth). No passwords and no
+// Sign-in with an email and a one-time code (Supabase Auth). No passwords and no
 // text-message fees. Without Supabase the apps stay in demo mode and skip sign-in.
 
 import type { Session } from '@supabase/supabase-js';
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={{ status, session, profile, hasApplication, refresh }}>{children}</AuthContext.Provider>;
 }
 
-/** Emails a 6-digit code, creating the account the first time. */
+/** Emails a one-time code, creating the account the first time. */
 export async function sendCode(email: string): Promise<void> {
   const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { shouldCreateUser: true } });
   if (error) throw error;

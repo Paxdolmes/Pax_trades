@@ -8,14 +8,16 @@ import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { completeProfile, isEmail, sendCode, signOut, useAuth, verifyCode } from '@/lib/auth';
 import { appVariant } from '@/lib/variant';
 
-const CODE_LENGTH = 6;
+// Supabase's Email OTP Length setting (6 to 10 digits); accept any so the app keeps working if it changes.
+const CODE_MIN = 6;
+const CODE_MAX = 10;
 const RESEND_AFTER_S = 60; // Supabase allows one code per email a minute
 
 const pro = appVariant === 'pro';
 
 const message = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong. Please try again.');
 
-/** Email, then the 6-digit code we email them, then their name the first time. */
+/** Email, then the code we email them, then their name the first time. */
 export default function SignIn() {
   const { status, refresh } = useAuth();
   const [email, setEmail] = useState('');
@@ -91,7 +93,7 @@ export default function SignIn() {
     return (
       <Shell
         title="Check your email"
-        body={`We sent a ${CODE_LENGTH}-digit code to ${sentTo}. It works for 1 hour.`}
+        body={`We sent a code to ${sentTo}. It works for 1 hour.`}
         error={error}
         onBack={() => {
           setSentTo(null);
@@ -99,7 +101,7 @@ export default function SignIn() {
         }}
         action={
           <View style={{ gap: Spacing.two }}>
-            <Button label="Sign in" loading={busy} disabled={code.length !== CODE_LENGTH} onPress={verify} />
+            <Button label="Sign in" loading={busy} disabled={code.length < CODE_MIN} onPress={verify} />
             <Button
               label={wait > 0 ? `Send a new code in ${wait}s` : 'Send a new code'}
               variant="ghost"
@@ -111,14 +113,14 @@ export default function SignIn() {
         }>
         <Field
           value={code}
-          onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, CODE_LENGTH))}
-          placeholder={'0'.repeat(CODE_LENGTH)}
-          label={`${CODE_LENGTH}-digit code`}
+          onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, CODE_MAX))}
+          placeholder="Code from your email"
+          label="Code from your email"
           keyboardType="number-pad"
           autoComplete="one-time-code"
           textContentType="oneTimeCode"
           code
-          onSubmit={() => code.length === CODE_LENGTH && verify()}
+          onSubmit={() => code.length >= CODE_MIN && verify()}
         />
       </Shell>
     );

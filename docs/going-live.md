@@ -18,7 +18,7 @@ Project: `qfpujvfopbgnslylsquf`. Its URL and publishable key are already in `mob
 
 ### Sign-in emails
 
-People sign in with their email and a 6-digit code. Two settings make that work:
+People sign in with their email and a one-time code (6 digits: Authentication → Sign In / Providers → Email → Email OTP length; the app accepts 6 to 10). Two settings make that work:
 
 1. **Put the code in the email.** Go to Authentication → Emails → Templates → **Magic Link** (Supabase uses this one for codes) and replace the message with:
    ```html
