@@ -40,7 +40,10 @@ export default function QuoteRequest() {
     setSubmitting(true);
     try {
       const { id } = await createQuoteRequest({ trades, postcode, description: description.trim(), timing });
-      await uploadMedia({ quoteRequestId: id }, media);
+      // The request is in either way; don't let a failed photo upload send it twice.
+      await uploadMedia({ quoteRequestId: id }, media).catch(() =>
+        Alert.alert('Your request is sent', "Your photos didn't upload. You can show them to the pro you pick in the chat."),
+      );
       router.replace({ pathname: '/quotes/[id]', params: { id, description: description.trim() } });
     } catch (e) {
       Alert.alert('Could not send your request', e instanceof Error ? e.message : 'Please try again.');

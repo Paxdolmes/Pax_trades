@@ -20,6 +20,8 @@ export type NewJob = {
   urgency: Urgency;
   postcode: string;
   description: string;
+  /** Booked jobs: the start of the 2-hour slot. */
+  scheduledFor: string | null;
 };
 
 /** Creates a job request. Without Supabase configured, returns a local demo id. */
@@ -36,6 +38,7 @@ export async function createJob(job: NewJob): Promise<{ id: string }> {
       urgency: job.urgency,
       postcode: job.postcode,
       description: job.description,
+      scheduled_for: job.scheduledFor,
       location,
     })
     .select('id')
@@ -54,3 +57,10 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
   completed: 'Job done',
   cancelled: 'Cancelled',
 };
+
+/** The customer cancels before the pro arrives. Demo jobs just go away. */
+export async function cancelJob(jobId: string): Promise<void> {
+  if (!isSupabaseConfigured || jobId.startsWith('demo-')) return;
+  const { error } = await supabase.rpc('cancel_job', { p_job: jobId });
+  if (error) throw error;
+}

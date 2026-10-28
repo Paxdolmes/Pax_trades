@@ -158,8 +158,29 @@ export function jobTypesForTrade(trade: Trade): JobType[] {
   return JOB_TYPES.filter((j) => j.trade === trade);
 }
 
-export function findJobType(id: string): JobType | undefined {
-  return JOB_TYPES.find((j) => j.id === id);
+const QUOTED_LABELS: Record<Trade, string> = {
+  plumbing: 'Quoted plumbing job',
+  electrical: 'Quoted electrical job',
+  heating: 'Quoted heating or gas job',
+};
+
+/**
+ * A catalogue job, or a job made from an accepted quote (custom-plumbing and so on).
+ * Pass the quoted price so a quoted job shows it; it's a fixed price once accepted.
+ */
+export function findJobType(id: string, quotedPence?: number | null): JobType | undefined {
+  const listed = JOB_TYPES.find((j) => j.id === id);
+  if (listed) return listed;
+  const trade = id.startsWith('custom-') ? (id.slice('custom-'.length) as Trade) : null;
+  if (!trade || !(trade in QUOTE_REQUIREMENTS)) return undefined;
+  return {
+    id,
+    trade,
+    label: QUOTED_LABELS[trade],
+    requires: QUOTE_REQUIREMENTS[trade],
+    pricing: { kind: 'fixed', pence: quotedPence ?? 0 },
+    urgentAllowed: false,
+  };
 }
 
 export function formatPence(pence: number): string {

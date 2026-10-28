@@ -186,3 +186,25 @@ export async function loadProProfile(proId: string): Promise<ProProfile> {
     reviews: list,
   };
 }
+
+/** The signed-in pro's own reviews, newest first. */
+export async function loadMyReviews(): Promise<DemoReview[]> {
+  const me = await myId();
+  if (!me) throw new Error('Please sign in again');
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('id, rating, body, pro_reply, created_at')
+    .eq('pro_id', me)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return ((data ?? []) as ReviewRow[]).map((r) => ({
+    id: r.id,
+    customer: 'Verified customer',
+    rating: r.rating,
+    body: r.body,
+    job: '',
+    when: new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    reply: r.pro_reply ?? undefined,
+  }));
+}

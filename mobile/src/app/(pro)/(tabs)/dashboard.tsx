@@ -1,16 +1,17 @@
 import { router } from 'expo-router';
 import { Award, Bell, ChevronRight, Power, Radar } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand';
 import { PLACES, StaticMap } from '@/components/map';
 import { Avatar, Card, Chip, IconButton, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
-import { TRADES } from '@/domain/catalog';
-import { DEMO_TRADER } from '@/lib/demo';
-import { listOffers } from '@/lib/offers';
-import { setOnline, useOnline } from '@/lib/pro-state';
+import { formatPence, TRADES } from '@/domain/catalog';
+import { isLive } from '@/lib/live';
+import { useOffers } from '@/lib/offers';
+import { goOnline, usePro, useProJobs } from '@/lib/pro';
+import { useOnline } from '@/lib/pro-state';
 
 function greeting(hour = new Date().getHours()) {
   return hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
@@ -27,18 +28,46 @@ export default function ProHome() {
   const [online, since] = useOnline();
   const [now, setNow] = useState(() => Date.now());
   const offered = useRef(false);
-  const offers = listOffers();
+  const seen = useRef<Set<string> | null>(null);
+  const pro = usePro();
+  const { stats, active } = useProJobs();
+  const offers = useOffers();
   const eligible = offers.filter((o) => o.missing.length === 0);
   const firstUrgent = eligible.find((o) => o.urgent);
+  const [switching, setSwitching] = useState(false);
+
+  async function toggle() {
+    if (!online && isLive && !pro.approved) {
+      Alert.alert('Not approved yet', "We're checking your documents. You can go online once you're approved, usually within a day.");
+      return;
+    }
+    setSwitching(true);
+    try {
+      await goOnline(!online);
+    } catch (e) {
+      Alert.alert(online ? 'Could not go offline' : 'Could not go online', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setSwitching(false);
+    }
+  }
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(t);
   }, []);
 
+  // Live: open each new offer as it arrives while they're on this screen.
+  useEffect(() => {
+    if (!isLive) return;
+    const ids = new Set(offers.map((o) => o.id));
+    const fresh = seen.current ? offers.find((o) => !seen.current!.has(o.id)) : undefined;
+    seen.current = ids;
+    if (online && fresh) router.push({ pathname: '/offer/[id]', params: { id: fresh.id } });
+  }, [offers, online]);
+
   // Demo: an urgent offer arrives a few seconds after going online.
   useEffect(() => {
-    if (!online || offered.current || !firstUrgent) return;
+    if (isLive || !online || offered.current || !firstUrgent) return;
     const t = setTimeout(() => {
       offered.current = true;
       router.push({ pathname: '/offer/[id]', params: { id: firstUrgent.id } });
@@ -46,27 +75,28 @@ export default function ProHome() {
     return () => clearTimeout(t);
   }, [online, firstUrgent]);
 
-  const trades = DEMO_TRADER.trades.map((t) => TRADES.find((x) => x.id === t)?.label.split(' ')[0]).join(' · ');
+  const trades = pro.trades.map((t) => TRADES.find((x) => x.id === t)?.label.split(' ')[0]).join(' · ');
 
   return (
     <Screen>
       <Wordmark size={24} traders />
       <View style={styles.header}>
-        <Avatar name={DEMO_TRADER.name} size={52} />
+        <Avatar name={pro.name} size={52} />
         <View style={{ flex: 1, gap: 4 }}>
-          <T variant="title2">{`${greeting()}, ${DEMO_TRADER.firstName}`}</T>
+          <T variant="title2">{`${greeting()}, ${pro.firstName}`}</T>
           <View style={styles.headerMeta}>
-            {DEMO_TRADER.founding ? <Chip label="Founding Pro" icon={Award} tone="brand" /> : null}
+            {pro.founding ? <Chip label="Founding Pro" icon={Award} tone="brand" /> : null}
             <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
               {trades}
             </T>
           </View>
         </View>
-        <IconButton icon={Bell} label="Notifications" />
+        <IconButton icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
       </View>
 
       <Pressable
-        onPress={() => setOnline(!online)}
+        onPress={toggle}
+        disabled={switching}
         accessibilityRole="switch"
         accessibilityState={{ checked: online }}
         accessibilityLabel={online ? 'You are online. Tap to go offline' : 'You are offline. Tap to go online'}
@@ -95,12 +125,28 @@ export default function ProHome() {
         </View>
       </Pressable>
 
+      {active ? (
+        <Card
+          accessibilityLabel="Open your current job"
+          onPress={() => router.push({ pathname: '/trip/[id]', params: { id: active.jobId, ...(active.status === 'on_site' ? { phase: 'on_job' } : {}) } })}
+          style={[styles.nearby, { paddingHorizontal: Spacing.four }]}>
+          <Radar size={22} color={c.urgent} strokeWidth={2.25} />
+          <View style={{ flex: 1 }}>
+            <T variant="headline">{active.status === 'on_site' ? 'You are on a job' : 'You have a job to get to'}</T>
+            <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
+              {`${active.customerName} · ${active.postcode}`}
+            </T>
+          </View>
+          <ChevronRight size={22} color={c.inkSubtle} />
+        </Card>
+      ) : null}
+
       <Card style={styles.stats}>
-        <Stat label="Today" value="£412" big />
+        <Stat label="Today" value={formatPence(stats.todayPence)} big />
         <View style={[styles.statDivider, { backgroundColor: c.border }]} />
-        <Stat label="Jobs done" value="4" />
+        <Stat label="Jobs done" value={String(stats.todayJobs)} />
         <View style={[styles.statDivider, { backgroundColor: c.border }]} />
-        <Stat label="Acceptance" value="94%" />
+        <Stat label="This week" value={formatPence(stats.weekPence)} />
       </Card>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -119,9 +165,9 @@ export default function ProHome() {
         <Pressable accessibilityRole="button" onPress={() => router.navigate('/jobs')} style={styles.nearby}>
           <Radar size={22} color={c.brand} strokeWidth={2.25} />
           <View style={{ flex: 1 }}>
-            <T variant="headline">{`${eligible.length} jobs near you in SW6`}</T>
+            <T variant="headline">{eligible.length === 1 ? '1 job for you now' : `${eligible.length} jobs for you now`}</T>
             <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
-              Busiest around Parsons Green right now
+              {isLive ? (online ? 'New offers open here as they arrive' : 'Go online to get offers') : 'Busiest around Parsons Green right now'}
             </T>
           </View>
           <ChevronRight size={22} color={c.inkSubtle} />

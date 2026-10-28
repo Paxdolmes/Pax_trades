@@ -1,14 +1,16 @@
 import { router } from 'expo-router';
 import { CalendarClock, ChevronRight, CircleCheck, ClipboardPen, Droplets, Flame, Lock, MapPin, Plus, Zap } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
 import { formatPence, PILOT, QUOTE_TIMING_LABELS, type Trade } from '@/domain/catalog';
 import { CREDENTIAL_LABELS } from '@/lib/demo';
-import { listOffers, listQuoteRequests, offerPay, type OfferView, type QuoteRequestView } from '@/lib/offers';
-import { setOnline, useOnline, useSentQuote } from '@/lib/pro-state';
+import { isLive } from '@/lib/live';
+import { offerPay, useOffers, useQuoteRequests, type OfferView, type QuoteRequestView } from '@/lib/offers';
+import { goOnline, usePro } from '@/lib/pro';
+import { useOnline, useSentQuote } from '@/lib/pro-state';
 
 const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Droplets, electrical: Zap, heating: Flame };
 const FILTERS: { key: Trade | 'all'; label: string }[] = [
@@ -22,8 +24,12 @@ export default function ProJobs() {
   const c = usePalette();
   const [online] = useOnline();
   const [filter, setFilter] = useState<Trade | 'all'>('all');
-  const offers = listOffers().filter((o) => filter === 'all' || o.jobType.trade === filter);
-  const requests = listQuoteRequests().filter((r) => filter === 'all' || r.quotableAs.includes(filter));
+  const pro = usePro();
+  const allOffers = useOffers();
+  const offers = allOffers.filter((o) => filter === 'all' || o.jobType.trade === filter);
+  const requests = useQuoteRequests(pro.trades).filter((r) => filter === 'all' || r.quotableAs.includes(filter));
+  const goLive = () =>
+    goOnline(true).catch((e: unknown) => Alert.alert('Could not go online', e instanceof Error ? e.message : 'Please try again.'));
 
   return (
     <Screen>
@@ -32,14 +38,14 @@ export default function ProJobs() {
           Jobs nearby
         </T>
         <T variant="callout" color="inkMuted">
-          {online ? 'Online · within 5 km of Fulham Broadway' : 'Offline · go online to accept jobs'}
+          {online ? (isLive ? 'Online · offers within 8 km of you' : 'Online · within 5 km of Fulham Broadway') : 'Offline · go online to accept jobs'}
         </T>
       </View>
 
       <View style={styles.filters}>
         {FILTERS.map((f) => {
           const on = filter === f.key;
-          const count = f.key === 'all' ? listOffers().length : null;
+          const count = f.key === 'all' ? allOffers.length : null;
           return (
             <Pressable
               key={f.key}
@@ -55,13 +61,13 @@ export default function ProJobs() {
         })}
       </View>
 
-      {!online ? <Button label="Go online" variant="success" onPress={() => setOnline(true)} /> : null}
+      {!online ? <Button label="Go online" variant="success" onPress={goLive} /> : null}
 
       <View style={{ gap: Spacing.three }}>
         {offers.map((o) => (o.missing.length ? <LockedOffer key={o.id} offer={o} /> : <OfferCard key={o.id} offer={o} canOpen={online} />))}
         {offers.length === 0 ? (
           <T variant="callout" color="inkMuted">
-            No jobs of this type nearby right now.
+            {isLive ? 'No offers right now. Stay online and new jobs open here.' : 'No jobs of this type nearby right now.'}
           </T>
         ) : null}
       </View>

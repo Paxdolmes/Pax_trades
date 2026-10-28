@@ -8,7 +8,9 @@ import { Button, Card, IconButton, IconTile, Note, Screen, T, type LucideIcon } 
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { formatPence, fromPricePence, LAUNCH_OUTWARD_CODES, TRADES, type Trade } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
+import { useAuth } from '@/lib/auth';
 import { DEMO_CUSTOMER } from '@/lib/demo';
+import { firstName, isLive, loadCustomerJobs, useLive } from '@/lib/live';
 
 const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Wrench, electrical: Zap, heating: Flame };
 
@@ -18,7 +20,12 @@ function greeting(hour = new Date().getHours()) {
 
 export default function CustomerHome() {
   const c = usePalette();
-  const [postcode, setPostcode] = useState(DEMO_CUSTOMER.postcode);
+  const { profile } = useAuth();
+  const name = isLive ? firstName(profile?.fullName) : DEMO_CUSTOMER.firstName;
+  // Live: start from the postcode of their last job until they type one.
+  const { data: jobs } = useLive(() => loadCustomerJobs(), []);
+  const [typed, setPostcode] = useState<string | null>(null);
+  const postcode = typed ?? (isLive ? (jobs[0]?.postcode ?? '') : DEMO_CUSTOMER.postcode);
   const [email, setEmail] = useState('');
   const [joined, setJoined] = useState(false);
 
@@ -31,10 +38,10 @@ export default function CustomerHome() {
         <View style={{ gap: 2 }}>
           <Wordmark size={26} />
           <T variant="footnote" color="inkMuted" style={{ marginTop: Spacing.two }}>
-            {`${greeting()}, ${DEMO_CUSTOMER.firstName}`}
+            {name ? `${greeting()}, ${name}` : greeting()}
           </T>
         </View>
-        <IconButton icon={Bell} label="Notifications" />
+        <IconButton icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
       </View>
 
       <View style={[styles.postcode, Shadows.card, { backgroundColor: c.surface }]}>

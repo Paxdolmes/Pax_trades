@@ -157,3 +157,14 @@ export function ratingSummary(ratings: number[]): { rating: number | null; count
   const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
   return { rating: Math.round(avg * 10) / 10, count: ratings.length };
 }
+
+/** "31/01/2027" to "2027-01-31", or null unless it's a real date after today. */
+export function parseUkDate(text: string, today = new Date()): string | null {
+  const m = text.trim().match(/^(\d{1,2})[/.\-\s](\d{1,2})[/.\-\s](\d{4})$/);
+  if (!m) return null;
+  const [day, month, year] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const d = new Date(Date.UTC(year, month - 1, day));
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) return null;
+  const iso = d.toISOString().slice(0, 10);
+  return iso > today.toISOString().slice(0, 10) ? iso : null;
+}

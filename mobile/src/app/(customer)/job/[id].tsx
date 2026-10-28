@@ -18,7 +18,7 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,7 +29,8 @@ import { Layout, Radii, Shadows, Spacing, Type, usePalette } from '@/constants/t
 import { ALL_IN_NOTE, findJobType, formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
 import { arriveBy } from '@/domain/rules';
 import { DEMO_CUSTOMER, DEMO_EXTRA_WORK, DEMO_PRO } from '@/lib/demo';
-import type { JobStatus, Urgency } from '@/lib/jobs';
+import { firstName, loadCustomerJobs, useLive, type CustomerJob } from '@/lib/live';
+import { cancelJob, type JobStatus, type Urgency } from '@/lib/jobs';
 import { upfrontPence } from '@/lib/pricing';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { chargeJob } from '@/lib/payments';
@@ -43,6 +44,41 @@ type JobRow = { status: JobStatus; finished_at: string | null; arrive_by: string
 
 /** The database keeps a finished job 'on_site' until the customer confirms; the app shows it as 'finished'. */
 const viewStatus = (r: JobRow): JobStatus => (r.status === 'on_site' && r.finished_at ? 'finished' : r.status);
+
+/** The customer's pro, as the job screens show them. */
+type JobPro = {
+  id: string;
+  name: string;
+  firstName: string;
+  rating: number | null;
+  jobs: number;
+  reviews: number;
+  van: string | null;
+  gasSafeNumber: string | null;
+  gasSafe: boolean;
+  etaMinutes: number;
+};
+
+const DEMO_JOB_PRO: JobPro = { ...DEMO_PRO, gasSafe: true };
+
+function proFrom(j: CustomerJob): JobPro {
+  const eta = j.arriveBy ? Math.max(1, Math.round((Date.parse(j.arriveBy) - Date.now()) / 60000)) : 15;
+  return {
+    id: j.pro?.id ?? '',
+    name: j.pro?.name ?? 'Your pro',
+    firstName: firstName(j.pro?.name) || 'Your pro',
+    rating: j.pro?.rating ?? null,
+    jobs: j.pro?.jobs ?? 0,
+    reviews: j.pro?.reviews ?? 0,
+    van: null,
+    gasSafeNumber: null,
+    gasSafe: j.pro?.credentials.includes('gas_safe') ?? false,
+    etaMinutes: eta,
+  };
+}
+
+const ProContext = createContext<JobPro>(DEMO_JOB_PRO);
+const useJobPro = () => useContext(ProContext);
 
 const clockTime = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
@@ -66,15 +102,32 @@ export default function JobScreen() {
     reassigned?: string;
   }>();
   const demo = params.id.startsWith('demo-');
-  const jobType = findJobType(params.jobType ?? 'no-heating') ?? findJobType('no-heating')!;
-  const urgency: Urgency = params.urgency ?? 'urgent';
-  const [status, setStatus] = useState<JobStatus>(params.status ?? 'requested');
+  const live = isSupabaseConfigured && !demo;
+  const { data: rows, reload } = useLive(
+    () => (live ? loadCustomerJobs(params.id) : Promise.resolve([] as CustomerJob[])),
+    [] as CustomerJob[],
+    params.id,
+  );
+  const row = rows[0] ?? null;
+  const jobType = findJobType(row?.jobTypeId ?? params.jobType ?? 'no-heating', row?.finalPricePence) ?? findJobType('no-heating')!;
+  const urgency: Urgency = row?.urgency ?? params.urgency ?? 'urgent';
+  const pro = row ? proFrom(row) : DEMO_JOB_PRO;
+  // Demo steps and realtime updates set this; until then it's what the database says.
+  const [shown, setStatus] = useState<JobStatus | null>(params.status ?? null);
+  const status: JobStatus = shown ?? (row ? viewStatus({ status: row.status, finished_at: row.finishedAt, arrive_by: row.arriveBy }) : 'requested');
   const [extra, setExtra] = useState<Extra>(params.extra ?? 'none');
   const [reassigned, setReassigned] = useState(params.reassigned === '1');
   // When the pro must arrive. Demo: counted from when the screen opened.
-  const [due, setDue] = useState(() => arriveBy(urgency === 'urgent', startedAt(), null));
+  const [localDue, setDue] = useState(() => arriveBy(urgency === 'urgent', startedAt(), null));
+  const due = row?.arriveBy ? Date.parse(row.arriveBy) : localDue;
 
-  // Live status over Supabase realtime once a backend is connected.
+  // What the database said when the screen loaded, for spotting a reassignment.
+  const lastStatus = useRef<JobStatus>('requested');
+  useEffect(() => {
+    if (row) lastStatus.current = row.status;
+  }, [row]);
+
+  // Live: follow the job's status over Supabase realtime.
   useEffect(() => {
     if (!isSupabaseConfigured || demo) return;
     const channel = supabase
@@ -83,20 +136,23 @@ export default function JobScreen() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${params.id}` },
         (payload) => {
-          const row = payload.new as JobRow;
+          const next = payload.new as JobRow;
           setStatus((prev) => {
             // Back to 'requested' after a pro had it means they were late and we're finding another.
-            if (row.status === 'requested' && prev !== 'requested' && prev !== 'offered') setReassigned(true);
-            return viewStatus(row);
+            const before = prev ?? lastStatus.current;
+            if (next.status === 'requested' && before !== 'requested' && before !== 'offered') setReassigned(true);
+            return viewStatus(next);
           });
-          if (row.arrive_by) setDue(Date.parse(row.arrive_by));
+          if (next.arrive_by) setDue(Date.parse(next.arrive_by));
+          // A pro was assigned or the price set: fetch their details and the totals.
+          void reload();
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [params.id, demo]);
+  }, [params.id, demo, reload]);
 
   useEffect(() => {
     if (!demo || params.freeze) return;
@@ -116,43 +172,80 @@ export default function JobScreen() {
   }, [demo, params.freeze, status, extra, jobType.pricing.kind]);
 
   const held = upfrontPence(jobType, urgency);
+  // Live: once the pro has finished, the final price replaces the estimate.
+  const finalPence = row?.finalPricePence ?? null;
   const extraPence = extra === 'approved' ? DEMO_EXTRA_WORK.lines.reduce((s, l) => s + l.pence, 0) : 0;
 
   if (status === 'finished' || status === 'completed') {
     return (
+      <ProContext.Provider value={pro}>
       <JobDone
         jobId={params.id}
         confirmed={status === 'completed'}
-        basePence={held}
-        extraPence={extraPence}
+        basePence={finalPence ?? held}
+        extraPence={finalPence === null ? extraPence : 0}
         jobLabel={jobType.label}
         trade={jobType.trade}
       />
+      </ProContext.Provider>
     );
   }
   if (status === 'requested' || status === 'offered') {
     return (
       <Finding
+        postcode={row?.postcode ?? DEMO_CUSTOMER.postcode}
         jobLabel={jobType.label}
         trade={jobType.trade}
         urgency={urgency}
         heldPence={held}
         reassigned={reassigned}
-        onCancel={() => router.replace('/home')}
+        onCancel={() => askToCancel(params.id)}
       />
     );
   }
+  if (status === 'cancelled') return <Cancelled jobLabel={jobType.label} />;
   return (
-    <>
+    <ProContext.Provider value={pro}>
       <OnTheWay jobId={params.id} arrived={status === 'on_site'} trade={jobType.trade} due={due} />
       {extra === 'asked' ? (
         <ExtraWorkSheet basePence={held} onApprove={() => setExtra('approved')} onDecline={() => setExtra('declined')} />
       ) : null}
-    </>
+    </ProContext.Provider>
+  );
+}
+
+function askToCancel(jobId: string) {
+  Alert.alert('Cancel this request?', "There's no charge, and we'll stop looking for a pro.", [
+    { text: 'Keep looking', style: 'cancel' },
+    {
+      text: 'Cancel request',
+      style: 'destructive',
+      onPress: () =>
+        void cancelJob(jobId).then(
+          () => router.replace('/home'),
+          (e: unknown) => Alert.alert('Could not cancel', e instanceof Error ? e.message : 'Please try again.'),
+        ),
+    },
+  ]);
+}
+
+function Cancelled({ jobLabel }: { jobLabel: string }) {
+  const c = usePalette();
+  return (
+    <SafeAreaView style={[styles.cancelled, { backgroundColor: c.bg }]}>
+      <T variant="title1" style={{ textAlign: 'center' }}>
+        Cancelled
+      </T>
+      <T variant="callout" color="inkMuted" style={{ textAlign: 'center' }}>
+        {`${jobLabel}. You haven't been charged.`}
+      </T>
+      <Button label="Back to home" onPress={() => router.replace('/home')} style={{ alignSelf: 'stretch' }} />
+    </SafeAreaView>
   );
 }
 
 function Finding({
+  postcode,
   jobLabel,
   trade,
   urgency,
@@ -160,6 +253,7 @@ function Finding({
   reassigned,
   onCancel,
 }: {
+  postcode: string;
   jobLabel: string;
   trade: Trade;
   urgency: Urgency;
@@ -232,7 +326,7 @@ function Finding({
             <View style={{ flex: 1 }}>
               <T variant="headline">{jobLabel}</T>
               <T variant="footnote" color="inkMuted">
-                {`${urgency === 'urgent' ? 'ASAP' : 'Booking'} · ${DEMO_CUSTOMER.postcode}`}
+                {`${urgency === 'urgent' ? 'ASAP' : 'Booking'} · ${postcode}`}
               </T>
             </View>
             <T variant="headline">{formatPence(heldPence)}</T>
@@ -290,30 +384,33 @@ function ProgressSteps({ current }: { current: number }) {
 
 function ProCard({ trade }: { trade: Trade }) {
   const c = usePalette();
+  const pro = useJobPro();
   return (
     <View style={{ gap: Spacing.four }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${DEMO_PRO.name}, rated ${DEMO_PRO.rating} from ${DEMO_PRO.reviews} reviews. See profile`}
-        onPress={() => router.push({ pathname: '/pro/[id]', params: { id: DEMO_PRO.id } })}
+        accessibilityLabel={`${pro.name}, ${pro.rating ? `rated ${pro.rating} from ${pro.reviews} reviews` : 'new to Relay'}. See profile`}
+        onPress={() => router.push({ pathname: '/pro/[id]', params: { id: pro.id } })}
         style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
-        <Avatar name={DEMO_PRO.name} size={56} />
+        <Avatar name={pro.name} size={56} />
         <View style={{ flex: 1, gap: 2 }}>
-          <T variant="headline">{DEMO_PRO.name}</T>
+          <T variant="headline">{pro.name}</T>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Star size={14} color={c.ink} fill={c.ink} />
-            <T variant="subhead">{String(DEMO_PRO.rating)}</T>
-            <T variant="footnote" color="inkMuted">{`· ${DEMO_PRO.jobs} jobs · ${DEMO_PRO.reviews} reviews`}</T>
+            <T variant="subhead">{pro.rating ? String(pro.rating) : 'New'}</T>
+            <T variant="footnote" color="inkMuted">{`· ${pro.jobs} jobs · ${pro.reviews} reviews`}</T>
           </View>
-          <T variant="footnote" color="inkMuted">
-            {DEMO_PRO.van}
-          </T>
+          {pro.van ? (
+            <T variant="footnote" color="inkMuted">
+              {pro.van}
+            </T>
+          ) : null}
         </View>
         <ChevronRight size={20} color={c.inkSubtle} strokeWidth={2.25} />
       </Pressable>
       <View style={{ flexDirection: 'row', gap: Spacing.two }}>
         {trade === 'heating' ? (
-          <Chip label={`Gas Safe ${DEMO_PRO.gasSafeNumber}`} tone="success" icon={ShieldCheck} />
+          <Chip label={pro.gasSafeNumber ? `Gas Safe ${pro.gasSafeNumber}` : 'Gas Safe registered'} tone="success" icon={ShieldCheck} />
         ) : (
           <Chip label="ID and qualifications checked" tone="success" icon={ShieldCheck} />
         )}
@@ -325,6 +422,7 @@ function ProCard({ trade }: { trade: Trade }) {
 
 function OnTheWay({ jobId, arrived, trade, due }: { jobId: string; arrived: boolean; trade: Trade; due: number }) {
   const c = usePalette();
+  const pro = useJobPro();
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <StaticMap
@@ -334,23 +432,23 @@ function OnTheWay({ jobId, arrived, trade, due }: { jobId: string; arrived: bool
         route={arrived ? undefined : DEMO_ROUTE}
         pins={[
           { ...PLACES.letticeSt, kind: 'home' },
-          ...(arrived ? [] : [{ ...PLACES.fulhamBroadway, kind: 'pro' as const, label: `${DEMO_PRO.etaMinutes} min` }]),
+          ...(arrived ? [] : [{ ...PLACES.fulhamBroadway, kind: 'pro' as const, label: `${pro.etaMinutes} min` }]),
         ]}
       />
       <Sheet>
         <View style={styles.titleRow}>
           <View style={{ flex: 1, gap: 2 }}>
             <T variant="footnote" color="inkMuted">
-              {arrived ? 'Arrived and working' : `Arriving in about ${DEMO_PRO.etaMinutes} minutes`}
+              {arrived ? 'Arrived and working' : `Arriving in about ${pro.etaMinutes} minutes`}
             </T>
             <T variant="title1" accessibilityRole="header">
-              {arrived ? `${DEMO_PRO.firstName} is working on it` : `${DEMO_PRO.firstName} is on the way`}
+              {arrived ? `${pro.firstName} is working on it` : `${pro.firstName} is on the way`}
             </T>
           </View>
           {arrived ? null : (
             <View style={{ alignItems: 'flex-end' }}>
               <T variant="display" color="brand">
-                {String(DEMO_PRO.etaMinutes)}
+                {String(pro.etaMinutes)}
               </T>
               <T variant="caption" color="brand">
                 min
@@ -360,14 +458,14 @@ function OnTheWay({ jobId, arrived, trade, due }: { jobId: string; arrived: bool
         </View>
         <ProgressSteps current={arrived ? 2 : 1} />
         {arrived ? null : (
-          <Note icon={Clock}>{`${DEMO_PRO.firstName} must arrive by ${clockTime(due)}. If not, we send the next nearest pro and give you ${formatPence(PILOT.noShowCreditPence)} credit.`}</Note>
+          <Note icon={Clock}>{`${pro.firstName} must arrive by ${clockTime(due)}. If not, we send the next nearest pro and give you ${formatPence(PILOT.noShowCreditPence)} credit.`}</Note>
         )}
         <Divider />
         <ProCard trade={trade} />
         <Button
-          label={`Message ${DEMO_PRO.firstName}`}
+          label={`Message ${pro.firstName}`}
           icon={MessageCircle}
-          onPress={() => router.push({ pathname: '/chat/[id]', params: { id: jobId, name: DEMO_PRO.name } })}
+          onPress={() => router.push({ pathname: '/chat/[id]', params: { id: jobId, name: pro.name } })}
         />
       </Sheet>
     </View>
@@ -376,6 +474,7 @@ function OnTheWay({ jobId, arrived, trade, due }: { jobId: string; arrived: bool
 
 function ExtraWorkSheet({ basePence, onApprove, onDecline }: { basePence: number; onApprove: () => void; onDecline: () => void }) {
   const c = usePalette();
+  const pro = useJobPro();
   const extra = DEMO_EXTRA_WORK.lines.reduce((s, l) => s + l.pence, 0);
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -383,12 +482,12 @@ function ExtraWorkSheet({ basePence, onApprove, onDecline }: { basePence: number
       <Sheet>
         <View style={styles.titleRow}>
           <View style={[styles.row, { flex: 1 }]}>
-            <Avatar name={DEMO_PRO.name} size={44} />
+            <Avatar name={pro.name} size={44} />
             <View style={{ flex: 1 }}>
               <T variant="footnote" color="inkMuted">
                 Needs your OK
               </T>
-              <T variant="headline">{`${DEMO_PRO.firstName} has added:`}</T>
+              <T variant="headline">{`${pro.firstName} has added:`}</T>
             </View>
           </View>
           <Chip label="Extra work" tone="urgent" />
@@ -427,7 +526,7 @@ function ExtraWorkSheet({ basePence, onApprove, onDecline }: { basePence: number
           <Button label={`Approve ${formatPence(extra)}`} variant="urgent" onPress={onApprove} style={{ flex: 1.6 }} />
         </View>
         <Note icon={Info} color="inkSubtle">
-          {`If you decline, ${DEMO_PRO.firstName} finishes the original job only. You won't be charged for this.`}
+          {`If you decline, ${pro.firstName} finishes the original job only. You won't be charged for this.`}
         </Note>
       </Sheet>
     </View>
@@ -457,6 +556,7 @@ function JobDone({
   trade: Trade;
 }) {
   const c = usePalette();
+  const pro = useJobPro();
   const [tip, setTip] = useState(500);
   const [paid, setPaid] = useState(confirmed);
   const [paying, setPaying] = useState(false);
@@ -489,7 +589,7 @@ function JobDone({
   async function postReview() {
     setSaving(true);
     try {
-      await saveReview({ jobId, proId: DEMO_PRO.id, rating, body: review.trim() });
+      await saveReview({ jobId, proId: pro.id, rating, body: review.trim() });
       setReviewed(true);
     } catch (e) {
       Alert.alert('Could not post your review', e instanceof Error ? e.message : 'Please try again in a minute.');
@@ -512,7 +612,7 @@ function JobDone({
               {paid ? 'Paid, thank you' : 'Is everything working?'}
             </T>
             <T variant="footnote" color="inkMuted">
-              {paid ? `${jobLabel} with ${DEMO_PRO.firstName}` : `${DEMO_PRO.firstName} says the job is done`}
+              {paid ? `${jobLabel} with ${pro.firstName}` : `${pro.firstName} says the job is done`}
             </T>
           </View>
         </View>
@@ -524,15 +624,15 @@ function JobDone({
               <View style={{ flex: 1 }}>
                 <T variant="subhead">Review posted</T>
                 <T variant="footnote" color="inkMuted">
-                  {`Thanks for helping neighbours find good pros. ${DEMO_PRO.firstName} can reply once.`}
+                  {`Thanks for helping neighbours find good pros. ${pro.firstName} can reply once.`}
                 </T>
               </View>
             </Card>
           ) : (
             <Card style={{ gap: Spacing.four }}>
               <View style={styles.row}>
-                <Avatar name={DEMO_PRO.name} size={40} />
-                <T variant="headline">{`How was ${DEMO_PRO.firstName}?`}</T>
+                <Avatar name={pro.name} size={40} />
+                <T variant="headline">{`How was ${pro.firstName}?`}</T>
               </View>
               <StarInput value={rating} onChange={setRating} />
               <TextInput
@@ -567,7 +667,7 @@ function JobDone({
           ))}
           {tip > 0 ? (
             <View style={styles.line}>
-              <T variant="callout" color="inkMuted">{`Tip for ${DEMO_PRO.firstName}`}</T>
+              <T variant="callout" color="inkMuted">{`Tip for ${pro.firstName}`}</T>
               <T variant="callout" color="inkMuted">
                 {formatPence(tip)}
               </T>
@@ -585,7 +685,7 @@ function JobDone({
 
         {paid ? null : (
           <Card style={{ gap: Spacing.three }}>
-            <T variant="headline">{`Add a tip for ${DEMO_PRO.firstName}?`}</T>
+            <T variant="headline">{`Add a tip for ${pro.firstName}?`}</T>
             <View style={{ flexDirection: 'row', gap: Spacing.two }} accessibilityRole="radiogroup" accessibilityLabel="Tip">
               {TIPS.map((t) => {
                 const on = tip === t;
@@ -604,7 +704,7 @@ function JobDone({
               })}
             </View>
             <T variant="footnote" color="inkSubtle">
-              {`100% of your tip goes to ${DEMO_PRO.firstName}.`}
+              {`100% of your tip goes to ${pro.firstName}.`}
             </T>
           </Card>
         )}
@@ -615,8 +715,8 @@ function JobDone({
             <T variant="subhead">Covered by the Relay Guarantee</T>
             <T variant="footnote" color="inkMuted">
               {paid
-                ? `If something isn't right in the next ${PILOT.guaranteeDays} days, report it and we'll send ${DEMO_PRO.firstName} back or refund you.`
-                : `Not right? Report it and ${DEMO_PRO.firstName} isn't paid until it's sorted. If you do nothing, this confirms itself in ${PILOT.autoConfirmHours} hours.`}
+                ? `If something isn't right in the next ${PILOT.guaranteeDays} days, report it and we'll send ${pro.firstName} back or refund you.`
+                : `Not right? Report it and ${pro.firstName} isn't paid until it's sorted. If you do nothing, this confirms itself in ${PILOT.autoConfirmHours} hours.`}
             </T>
           </View>
         </View>
@@ -627,7 +727,7 @@ function JobDone({
             <View style={{ flex: 1 }}>
               <T variant="subhead">Your gas safety record is saved in the app</T>
               <T variant="footnote" color="inkMuted">
-                {`Gas Safe ${DEMO_PRO.gasSafeNumber}`}
+                {pro.gasSafeNumber ? `Gas Safe ${pro.gasSafeNumber}` : 'Gas Safe registered engineer'}
               </T>
             </View>
           </Card>
@@ -651,6 +751,7 @@ function JobDone({
 }
 
 const styles = StyleSheet.create({
+  cancelled: { flex: 1, justifyContent: 'center', gap: Spacing.four, padding: Layout.gutter },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   titleRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: Spacing.three },
   summary: { borderRadius: Radii.lg, padding: Spacing.four, gap: Spacing.three },

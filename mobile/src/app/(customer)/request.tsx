@@ -1,12 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowRight, CalendarDays, ChevronLeft, Lock, Zap } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { MediaPicker } from '@/components/media-picker';
 import { Button, Card, Chip, Footer, IconButton, IconTile, Note, Radio, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { formatPence, jobTypesForTrade, TRADES, type JobType, type Trade } from '@/domain/catalog';
+import { bookingDays } from '@/domain/slots';
 import { createJob, type Urgency } from '@/lib/jobs';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
 import { ensureSavedCard } from '@/lib/payments';
@@ -32,16 +33,31 @@ export default function RequestJob() {
   const [description, setDescription] = useState('');
   const [media, setMedia] = useState<PickedMedia[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [days] = useState(() => bookingDays(new Date()));
+  const [dayKey, setDayKey] = useState(days[0]?.key);
+  const [slot, setSlot] = useState<string | null>(null);
 
   const effectiveUrgency: Urgency = jobType.urgentAllowed ? urgency : 'booked';
   const urgent = effectiveUrgency === 'urgent';
+  const day = days.find((d) => d.key === dayKey) ?? days[0];
+  const ready = urgent || slot !== null;
 
   async function submit() {
     setSubmitting(true);
     try {
       if (!(await ensureSavedCard())) return;
-      const { id } = await createJob({ trade, jobTypeId: jobType.id, urgency: effectiveUrgency, postcode, description });
-      await uploadMedia({ jobId: id }, media);
+      const { id } = await createJob({
+        trade,
+        jobTypeId: jobType.id,
+        urgency: effectiveUrgency,
+        postcode,
+        description,
+        scheduledFor: urgent ? null : slot,
+      });
+      // The request is in either way; don't let a failed photo upload send it twice.
+      await uploadMedia({ jobId: id }, media).catch(() =>
+        Alert.alert('Your request is sent', "Your photos didn't upload. You can show them to your pro in the chat."),
+      );
       router.replace({ pathname: '/job/[id]', params: { id, jobType: jobType.id, urgency: effectiveUrgency } });
     } catch (e) {
       Alert.alert('Could not send your request', e instanceof Error ? e.message : 'Please try again.');
@@ -58,7 +74,7 @@ export default function RequestJob() {
           {urgent ? (
             <Button label="Find a pro now" variant="urgent" icon={Zap} loading={submitting} onPress={submit} />
           ) : (
-            <Button label="Request a booking" trailingIcon={ArrowRight} loading={submitting} onPress={submit} />
+            <Button label="Request a booking" trailingIcon={ArrowRight} loading={submitting} disabled={!ready} onPress={submit} />
           )}
         </Footer>
       }>
@@ -130,6 +146,24 @@ export default function RequestJob() {
         </View>
       ) : null}
 
+      {urgent ? null : (
+        <View style={{ gap: Spacing.three }}>
+          <T variant="title2" accessibilityRole="header">
+            Pick a 2-hour slot
+          </T>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pills}>
+            {days.map((d) => (
+              <Pill key={d.key} label={d.label} on={d.key === day?.key} onPress={() => (setDayKey(d.key), setSlot(null))} />
+            ))}
+          </ScrollView>
+          <View style={[styles.pills, { flexWrap: 'wrap' }]}>
+            {day?.slots.map((s) => (
+              <Pill key={s.start} label={s.label} on={slot === s.start} onPress={() => setSlot(s.start)} />
+            ))}
+          </View>
+        </View>
+      )}
+
       <View style={{ gap: Spacing.three }}>
         <T variant="title2" accessibilityRole="header">
           Anything we should know?
@@ -149,7 +183,24 @@ export default function RequestJob() {
   );
 }
 
+function Pill({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const c = usePalette();
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: on }}
+      onPress={onPress}
+      style={[styles.pill, { borderColor: on ? c.brand : c.border, backgroundColor: on ? c.brandTint : c.surface }]}>
+      <T variant="subhead" color={on ? 'brand' : 'ink'} style={{ fontWeight: '600' }}>
+        {label}
+      </T>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  pills: { flexDirection: 'row', gap: Spacing.two },
+  pill: { borderWidth: 2, borderRadius: Radii.pill, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two },
   header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   notes: { minHeight: 96, borderRadius: Radii.md, padding: Spacing.four, textAlignVertical: 'top' },

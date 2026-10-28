@@ -1,0 +1,44 @@
+name: Build apps
+
+# Run by hand from the Actions tab: makes test builds of Relay and Relay Traders
+# on Expo's build servers. Needs the EXPO_TOKEN repository secret. The install
+# links appear on expo.dev under each project's Builds.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Phones to build for
+        type: choice
+        options: [android, ios, all]
+        default: android
+      apps:
+        description: Which apps
+        type: choice
+        options: [both, relay, relay-traders]
+        default: both
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Relay
+        if: inputs.apps != 'relay-traders'
+        run: eas build --platform ${{ inputs.platform }} --profile preview --non-interactive --no-wait
+      - name: Relay Traders
+        if: inputs.apps != 'relay'
+        run: eas build --platform ${{ inputs.platform }} --profile preview-traders --non-interactive --no-wait

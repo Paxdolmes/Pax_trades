@@ -1,12 +1,14 @@
 import { BadgeCheck, ChevronRight, Clock3, Flame, GraduationCap, Info, Plus, ShieldCheck, TriangleAlert, Upload, Zap, Droplets } from 'lucide-react-native';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Chip, Divider, Footer, IconTile, Screen, T, type LucideIcon, type Tone } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
 import type { CredentialType } from '@/domain/catalog';
 import { credentialStatus, type CredentialStatus } from '@/domain/rules';
-import { CREDENTIAL_LABELS, CREDENTIAL_UNLOCKS, DEMO_PRO_CREDENTIALS } from '@/lib/demo';
+import { CREDENTIAL_LABELS, CREDENTIAL_UNLOCKS } from '@/lib/demo';
 import { today } from '@/lib/offers';
+import { usePro } from '@/lib/pro';
 
 const ICONS: Record<CredentialType, LucideIcon> = {
   gas_safe: Flame,
@@ -31,20 +33,21 @@ function formatDate(iso: string) {
 export default function Documents() {
   const c = usePalette();
   const date = today();
+  const { credentials } = usePro();
   const docs = (Object.keys(CREDENTIAL_LABELS) as CredentialType[])
     .map((type) => {
-      const held = DEMO_PRO_CREDENTIALS.find((x) => x.type === type);
+      const held = credentials.find((x) => x.type === type);
       return { type, held, status: credentialStatus(held, date) };
     })
     .sort((a, b) => Number(a.status === 'missing') - Number(b.status === 'missing'));
   const verified = docs.filter((d) => d.status === 'verified' || d.status === 'expiring').length;
-  const upload = () => Alert.alert('Upload a document', 'Take a photo or choose a PDF. The Relay team checks it, usually within a day.');
+  const upload = (type?: CredentialType) => router.push({ pathname: '/add-document', params: type ? { type } : {} });
 
   return (
     <Screen
       footer={
         <Footer>
-          <Button label="Upload a document" icon={Upload} onPress={upload} />
+          <Button label="Upload a document" icon={Upload} onPress={() => upload()} />
         </Footer>
       }>
       <View style={{ gap: 2 }}>
@@ -78,7 +81,7 @@ export default function Documents() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${CREDENTIAL_LABELS[d.type]}, ${s.label}. ${detail}`}
-                onPress={missing ? upload : undefined}
+                onPress={missing || d.status === 'expired' || d.status === 'expiring' ? () => upload(d.type) : undefined}
                 style={styles.row}>
                 <IconTile icon={ICONS[d.type]} tone={missing ? 'neutral' : s.tone} size={44} />
                 <View style={{ flex: 1, gap: 3 }}>
