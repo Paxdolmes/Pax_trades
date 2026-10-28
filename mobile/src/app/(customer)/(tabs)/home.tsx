@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Bell, ChevronRight, CircleCheck, ClipboardPen, Flame, MapPin, ShieldCheck, Wrench, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -8,7 +8,7 @@ import { Button, Card, IconButton, IconTile, Note, Screen, SectionLabel, T, type
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { formatPence, fromPricePence, LAUNCH_OUTWARD_CODES, TRADES, type Trade } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
-import { useAuth } from '@/lib/auth';
+import { needsSignIn, useAuth } from '@/lib/auth';
 import { DEMO_CUSTOMER } from '@/lib/demo';
 import { firstName, isLive, loadCustomerJobs, useLive } from '@/lib/live';
 
@@ -21,7 +21,7 @@ function greeting(hour = new Date().getHours()) {
 
 export default function CustomerHome() {
   const c = usePalette();
-  const { profile } = useAuth();
+  const { profile, status } = useAuth();
   const name = isLive ? firstName(profile?.fullName) : DEMO_CUSTOMER.firstName;
   // Live: start from the postcode of their last job until they type one.
   const { data: jobs } = useLive(() => loadCustomerJobs(), []);
@@ -32,6 +32,9 @@ export default function CustomerHome() {
 
   const district = outwardCode(postcode);
   const covered = district !== null && isInLaunchArea(postcode, LAUNCH_OUTWARD_CODES);
+  // Tapping a job before typing a postcode: say why nothing happened.
+  const [askPostcode, setAskPostcode] = useState(false);
+  const open = (href: Href) => (covered ? router.push(href) : setAskPostcode(true));
 
   return (
     <Screen>
@@ -42,7 +45,11 @@ export default function CustomerHome() {
             {name ? `${greeting()}, ${name}` : greeting()}
           </T>
         </View>
-        <IconButton icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
+        {needsSignIn(status) ? (
+          <Button label="Sign in" variant="outline" size="md" onPress={() => router.push('/sign-in')} style={{ height: 44, paddingHorizontal: Spacing.four }} />
+        ) : (
+          <IconButton icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
+        )}
       </View>
 
       <T variant="display" accessibilityRole="header" style={{ fontSize: 34, lineHeight: 38 }}>
@@ -75,6 +82,11 @@ export default function CustomerHome() {
           </View>
         ) : null}
       </View>
+      {askPostcode && district === null ? (
+        <T variant="footnote" color="danger" style={{ marginTop: -Spacing.three }}>
+          Enter your postcode first, so we can check we cover you.
+        </T>
+      ) : null}
 
       {covered || district === null ? (
         <>
@@ -99,7 +111,7 @@ export default function CustomerHome() {
                   key={t.id}
                   accessibilityRole="button"
                   accessibilityLabel={`Get a ${SHORT_LABEL[t.id].toLowerCase()} now`}
-                  onPress={() => covered && router.push({ pathname: '/request', params: { trade: t.id, postcode } })}
+                  onPress={() => open({ pathname: '/request', params: { trade: t.id, postcode } })}
                   style={({ pressed }) => [styles.urgentButton, { backgroundColor: c.onUrgent, opacity: pressed ? 0.85 : 1 }]}>
                   <T variant="subhead" style={{ color: '#FFFFFF', fontWeight: '700' }}>
                     {SHORT_LABEL[t.id]}
@@ -119,7 +131,7 @@ export default function CustomerHome() {
                     key={t.id}
                     accessibilityRole="button"
                     accessibilityLabel={`${t.label}. ${t.detail}. From ${formatPence(fromPricePence(t.id))}, including VAT and fees`}
-                    onPress={() => covered && router.push({ pathname: '/request', params: { trade: t.id, postcode } })}
+                    onPress={() => open({ pathname: '/request', params: { trade: t.id, postcode } })}
                     style={({ pressed }) => [styles.tile, Shadows.card, { backgroundColor: c.surface, opacity: pressed ? 0.85 : 1 }]}>
                     <View style={[styles.tileIcon, { backgroundColor: c.ink }]}>
                       <Icon size={22} color={c.accent} strokeWidth={2.2} />
@@ -138,7 +150,7 @@ export default function CustomerHome() {
             </View>
             <Card
               accessibilityLabel="Something else? Describe any job and get quotes from local pros"
-              onPress={() => covered && router.push({ pathname: '/quote', params: { postcode } })}
+              onPress={() => open({ pathname: '/quote', params: { postcode } })}
               style={styles.trade}>
               <IconTile icon={ClipboardPen} tone="neutral" size={44} />
               <View style={{ flex: 1 }}>

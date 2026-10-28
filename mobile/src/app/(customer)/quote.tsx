@@ -8,6 +8,7 @@ import { Button, Card, Footer, IconButton, Note, Radio, Screen, T, type LucideIc
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { PILOT, QUOTE_TIMING_LABELS, type QuoteTiming, type Trade } from '@/domain/catalog';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
+import { useAccountGate } from '@/lib/auth';
 import { createQuoteRequest } from '@/lib/quotes';
 
 const MIN_DESCRIPTION = 10;
@@ -32,11 +33,13 @@ export default function QuoteRequest() {
   const [timing, setTiming] = useState<QuoteTiming>('this_week');
   const [media, setMedia] = useState<PickedMedia[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const signedIn = useAccountGate();
   const ready = description.trim().length >= MIN_DESCRIPTION;
 
   const toggle = (t: Trade) => setTrades((all) => (all.includes(t) ? all.filter((x) => x !== t) : [...all, t]));
 
   async function submit() {
+    if (!signedIn()) return;
     setSubmitting(true);
     try {
       const { id } = await createQuoteRequest({ trades, postcode, description: description.trim(), timing });

@@ -1,8 +1,10 @@
+import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
 import { Briefcase, FileCheck, House, PoundSterling, UserRound } from 'lucide-react-native';
 
 import { makeTabBar } from '@/components/tab-bar';
 import { credentialStatus } from '@/domain/rules';
+import { needsSignIn, useAuth } from '@/lib/auth';
 import { useOnlineHeartbeat, usePro } from '@/lib/pro';
 
 const tabs = (documentsBadge: boolean) => [
@@ -21,6 +23,8 @@ export default function ProTabs() {
   const { credentials } = usePro();
   useOnlineHeartbeat();
   const TabBar = credentials.some((c) => credentialStatus(c, today) !== 'verified') ? WithBadge : WithoutBadge;
+  // Guests see what Relay Traders offers on the application page; the work screens need an account.
+  if (needsSignIn(useAuth().status)) return <Redirect href="/apply" />;
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="dashboard" />

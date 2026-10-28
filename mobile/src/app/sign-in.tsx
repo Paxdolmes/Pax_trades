@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { AlertCircle, ArrowRight, ChevronLeft, Mail } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
@@ -27,6 +28,13 @@ export default function SignIn() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wait, setWait] = useState(0);
+
+  // Signed in (or demo mode): go back to what they were doing, e.g. the request they were sending.
+  useEffect(() => {
+    if (status !== 'ready' && status !== 'demo') return;
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }, [status]);
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -131,6 +139,7 @@ export default function SignIn() {
       title={pro ? 'Sign in to Relay Traders' : 'Sign in to Relay'}
       body={"Enter your email and we'll send you a code. New here? This creates your account."}
       error={error}
+      onBack={router.canGoBack() ? () => router.back() : undefined}
       action={<Button label="Email me a code" icon={Mail} loading={busy} disabled={!isEmail(email)} onPress={send} />}>
       <Field
         value={email}
