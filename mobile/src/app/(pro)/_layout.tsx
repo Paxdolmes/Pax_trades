@@ -2,9 +2,11 @@ import { Stack } from 'expo-router';
 
 export default function ProLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="jobs" options={{ title: 'Relay Traders' }} />
-      <Stack.Screen name="credentials" options={{ title: 'Your documents' }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="offer/[id]" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+      <Stack.Screen name="trip/[id]" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="apply" />
     </Stack>
   );
 }
