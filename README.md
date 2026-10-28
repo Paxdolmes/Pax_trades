@@ -46,6 +46,14 @@ CI runs both on every pull request.
 
 ## Screenshots (demo mode)
 
-| Customer: choose trade | Customer: describe job | Customer: job status | Pro: nearby jobs |
+The look comes from the v0 design boards for Relay and Relay Traders. In demo mode (no Supabase keys) each flow plays through on a timer, so you can tap from request to payment on a phone.
+
+| Relay: home | Choose the job | Pro on the way | Job done and pay |
 | --- | --- | --- | --- |
-| ![](docs/screenshots/1-customer-home.png) | ![](docs/screenshots/2-customer-request.png) | ![](docs/screenshots/3-customer-status.png) | ![](docs/screenshots/4-pro-jobs.png) |
+| ![](docs/screenshots/customer-1-home.png) | ![](docs/screenshots/customer-2-choose-job.png) | ![](docs/screenshots/customer-3-on-the-way.png) | ![](docs/screenshots/customer-4-job-done.png) |
+
+| Relay Traders: go online | 60-second job offer | On the job | Earnings |
+| --- | --- | --- | --- |
+| ![](docs/screenshots/traders-1-home.png) | ![](docs/screenshots/traders-2-job-offer.png) | ![](docs/screenshots/traders-3-on-the-job.png) | ![](docs/screenshots/traders-4-earnings.png) |
+
+The Fulham map is a static OpenStreetMap image (© OpenStreetMap contributors) until live maps are added.

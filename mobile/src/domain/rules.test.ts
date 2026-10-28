@@ -6,6 +6,8 @@ import { describe, it } from 'node:test';
 import {
   calloutChargePence,
   canTakeJob,
+  credentialStatus,
+  isCredentialValid,
   isInLaunchArea,
   isOutOfHours,
   missingCredentials,
@@ -78,5 +80,21 @@ describe('pricing', () => {
     assert.deepEqual(splitPayment(11900, 0.15), { platformPence: 1785, proPence: 10115 });
     const { platformPence, proPence } = splitPayment(9999, 0.1);
     assert.equal(platformPence + proPence, 9999);
+  });
+});
+
+describe('credential status', () => {
+  it('flags documents in the renewal window but still counts them as valid', () => {
+    const insurance: Credential = { type: 'public_liability', verified: true, expiresOn: '2026-11-20' };
+    assert.equal(credentialStatus(insurance, today), 'expiring');
+    assert.equal(isCredentialValid(insurance, today), true);
+  });
+
+  it('separates missing, pending, expired and verified', () => {
+    assert.equal(credentialStatus(undefined, today), 'missing');
+    assert.equal(credentialStatus({ type: 'gas_safe', verified: false, expiresOn: '2027-06-30' }, today), 'pending');
+    assert.equal(credentialStatus({ type: 'gas_safe', verified: true, expiresOn: '2026-10-27' }, today), 'expired');
+    assert.equal(credentialStatus({ type: 'gas_safe', verified: true, expiresOn: '2027-06-30' }, today), 'verified');
+    assert.equal(credentialStatus({ type: 'plumbing_nvq', verified: true, expiresOn: null }, today), 'verified');
   });
 });

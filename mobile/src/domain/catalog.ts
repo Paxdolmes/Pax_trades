@@ -23,10 +23,10 @@ export type JobType = {
   urgentAllowed: boolean;
 };
 
-export const TRADES: { id: Trade; label: string }[] = [
-  { id: 'plumbing', label: 'Plumber' },
-  { id: 'electrical', label: 'Electrician' },
-  { id: 'heating', label: 'Heating & gas engineer' },
+export const TRADES: { id: Trade; label: string; detail: string; pro: string }[] = [
+  { id: 'plumbing', label: 'Plumber', detail: 'Leaks, blockages, taps and toilets', pro: 'plumber' },
+  { id: 'electrical', label: 'Electrician', detail: 'Faults, sockets, lighting and fuse boxes', pro: 'electrician' },
+  { id: 'heating', label: 'Heating & gas engineer', detail: 'No heat, boilers, servicing and CP12', pro: 'Gas Safe engineer' },
 ];
 
 export const CALLOUT_RATES = {
@@ -133,5 +133,15 @@ export function findJobType(id: string): JobType | undefined {
 
 export function formatPence(pence: number): string {
   const pounds = pence / 100;
-  return Number.isInteger(pounds) ? `£${pounds}` : `£${pounds.toFixed(2)}`;
+  const digits = Number.isInteger(pounds) ? 0 : 2;
+  return `£${pounds.toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+}
+
+/** Cheapest way in for a trade: the lowest fixed price or the standard first-hour callout. */
+export function fromPricePence(trade: Trade): number {
+  return Math.min(
+    ...jobTypesForTrade(trade).map((j) =>
+      j.pricing.kind === 'fixed' ? j.pricing.pence : CALLOUT_RATES.standard.firstHourPence,
+    ),
+  );
 }

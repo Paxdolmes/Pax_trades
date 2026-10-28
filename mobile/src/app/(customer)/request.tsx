@@ -1,56 +1,42 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { ArrowRight, CalendarDays, ChevronLeft, Lock, Zap } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, StyleSheet, TextInput } from 'react-native';
+import { Alert, StyleSheet, TextInput, View } from 'react-native';
 
-import { Body, Button, Card, Screen, Title } from '@/components/ui';
-import { usePalette } from '@/constants/theme';
-import {
-  CALLOUT_RATES,
-  formatPence,
-  jobTypesForTrade,
-  type JobType,
-  type Trade,
-} from '@/domain/catalog';
-import { isOutOfHours } from '@/domain/rules';
+import { Button, Card, Chip, Footer, IconButton, IconTile, Note, Radio, Screen, T } from '@/components/ui';
+import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
+import { formatPence, jobTypesForTrade, TRADES, type JobType, type Trade } from '@/domain/catalog';
 import { createJob, type Urgency } from '@/lib/jobs';
+import { priceLine } from '@/lib/pricing';
 
-function priceLine(job: JobType, urgency: Urgency): string {
-  if (job.pricing.kind === 'fixed') {
-    const extra = job.pricing.extraUnitPence
-      ? `, plus ${formatPence(job.pricing.extraUnitPence)} ${job.pricing.extraUnitLabel}`
-      : '';
-    return `${formatPence(job.pricing.pence)} fixed price${extra}`;
-  }
-  const now = new Date();
-  const rate = urgency === 'urgent' && isOutOfHours(now.getDay(), now.getHours())
-    ? CALLOUT_RATES.outOfHours
-    : CALLOUT_RATES.standard;
-  return `${formatPence(rate.firstHourPence)} including the first hour, then ${formatPence(rate.perHourPence)} per hour`;
+/** Saving against booking the two jobs separately, e.g. service plus CP12. */
+function bundleSaving(job: JobType, all: JobType[]): number | null {
+  if (job.pricing.kind !== 'fixed' || !job.id.includes('-cp12')) return null;
+  const parts = job.id.split('-cp12')[0];
+  const a = all.find((j) => j.id === parts);
+  const b = all.find((j) => j.id === 'cp12');
+  if (a?.pricing.kind !== 'fixed' || b?.pricing.kind !== 'fixed') return null;
+  return a.pricing.pence + b.pricing.pence - job.pricing.pence;
 }
 
 export default function RequestJob() {
   const c = usePalette();
   const { trade, postcode } = useLocalSearchParams<{ trade: Trade; postcode: string }>();
+  const tradeInfo = TRADES.find((t) => t.id === trade);
   const jobTypes = jobTypesForTrade(trade);
-  const [jobType, setJobType] = useState<JobType | null>(null);
+  const [jobType, setJobType] = useState<JobType>(jobTypes[0]);
   const [urgency, setUrgency] = useState<Urgency>('urgent');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const effectiveUrgency: Urgency = jobType && !jobType.urgentAllowed ? 'booked' : urgency;
+  const effectiveUrgency: Urgency = jobType.urgentAllowed ? urgency : 'booked';
+  const urgent = effectiveUrgency === 'urgent';
 
   async function submit() {
-    if (!jobType) return;
     setSubmitting(true);
     try {
-      const { id } = await createJob({
-        trade,
-        jobTypeId: jobType.id,
-        urgency: effectiveUrgency,
-        postcode,
-        description,
-      });
-      router.replace({ pathname: '/job/[id]', params: { id } });
+      const { id } = await createJob({ trade, jobTypeId: jobType.id, urgency: effectiveUrgency, postcode, description });
+      router.replace({ pathname: '/job/[id]', params: { id, jobType: jobType.id, urgency: effectiveUrgency } });
     } catch (e) {
       Alert.alert('Could not send your request', e instanceof Error ? e.message : 'Please try again.');
     } finally {
@@ -59,53 +45,105 @@ export default function RequestJob() {
   }
 
   return (
-    <Screen>
-      <Title>What&apos;s the problem?</Title>
-      {jobTypes.map((j) => (
-        <Card key={j.id} selected={jobType?.id === j.id} onPress={() => setJobType(j)}>
-          <Body style={styles.bold}>{j.label}</Body>
-          <Body secondary>{priceLine(j, effectiveUrgency)}</Body>
-        </Card>
-      ))}
+    <Screen
+      footer={
+        <Footer>
+          <Note icon={Lock}>Your card is held, not charged, until the job is done. Any extra work needs your OK in the app first.</Note>
+          {urgent ? (
+            <Button label="Find a pro now" variant="urgent" icon={Zap} loading={submitting} onPress={submit} />
+          ) : (
+            <Button label="Request a booking" trailingIcon={ArrowRight} loading={submitting} onPress={submit} />
+          )}
+        </Footer>
+      }>
+      <View style={styles.header}>
+        <IconButton icon={ChevronLeft} label="Back" onPress={() => router.back()} />
+        <View>
+          <T variant="caption" color="inkSubtle">
+            {postcode}
+          </T>
+          <T variant="headline">{tradeInfo?.label}</T>
+        </View>
+      </View>
 
-      {jobType?.urgentAllowed && (
-        <>
-          <Body>When do you need someone?</Body>
-          <Card selected={urgency === 'urgent'} onPress={() => setUrgency('urgent')}>
-            <Body style={styles.bold}>As soon as possible</Body>
-            <Body secondary>We send the nearest available pro.</Body>
-          </Card>
-          <Card selected={urgency === 'booked'} onPress={() => setUrgency('booked')}>
-            <Body style={styles.bold}>Book a time</Body>
-            <Body secondary>Pick a slot that suits you.</Body>
-          </Card>
-        </>
-      )}
+      <View style={{ gap: Spacing.three }}>
+        <T variant="title1" accessibilityRole="header">
+          What do you need?
+        </T>
+        <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
+          {jobTypes.map((j) => {
+            const on = jobType.id === j.id;
+            const saving = bundleSaving(j, jobTypes);
+            return (
+              <Card key={j.id} selected={on} onPress={() => setJobType(j)} accessibilityLabel={`${j.label}. ${priceLine(j, effectiveUrgency)}`} style={styles.option}>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <T variant="headline">{j.label}</T>
+                  {saving ? <Chip label={`Save ${formatPence(saving)}`} tone="success" /> : null}
+                  <T variant="footnote" color="inkMuted">
+                    {priceLine(j, effectiveUrgency)}
+                  </T>
+                </View>
+                <Radio on={on} />
+              </Card>
+            );
+          })}
+        </View>
+      </View>
 
-      <Body>Anything the pro should know?</Body>
-      <TextInput
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        placeholder="e.g. Water dripping from the ceiling under the bathroom"
-        placeholderTextColor={c.textSecondary}
-        style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.surface }]}
-      />
+      {jobType.urgentAllowed ? (
+        <View style={{ gap: Spacing.three }}>
+          <T variant="title2" accessibilityRole="header">
+            When do you need someone?
+          </T>
+          <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
+            <Card
+              selected={urgency === 'urgent'}
+              selectedTone="urgent"
+              onPress={() => setUrgency('urgent')}
+              style={[styles.option, urgency === 'urgent' && { backgroundColor: c.urgentTint }]}>
+              <IconTile icon={Zap} tone="urgent" size={44} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T variant="headline">As soon as possible</T>
+                <T variant="footnote" color="inkMuted">
+                  We send the nearest available {tradeInfo?.pro}
+                </T>
+              </View>
+              <Radio on={urgency === 'urgent'} tone="urgent" />
+            </Card>
+            <Card selected={urgency === 'booked'} onPress={() => setUrgency('booked')} style={styles.option}>
+              <IconTile icon={CalendarDays} size={44} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T variant="headline">Book a time</T>
+                <T variant="footnote" color="inkMuted">
+                  Pick a 2-hour slot that suits you
+                </T>
+              </View>
+              <Radio on={urgency === 'booked'} />
+            </Card>
+          </View>
+        </View>
+      ) : null}
 
-      <Body secondary>
-        Your card is held, not charged, until the job is done. Any extra work needs your OK in the app first.
-      </Body>
-      <Button
-        label={effectiveUrgency === 'urgent' ? 'Find a pro now' : 'Request booking'}
-        tone={effectiveUrgency === 'urgent' ? 'urgent' : 'accent'}
-        disabled={!jobType || submitting}
-        onPress={submit}
-      />
+      <View style={{ gap: Spacing.three }}>
+        <T variant="title2" accessibilityRole="header">
+          Anything we should know?
+        </T>
+        <TextInput
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          placeholder="e.g. Worcester Bosch combi showing error F28. Boiler is in the kitchen cupboard."
+          placeholderTextColor={c.inkSubtle}
+          accessibilityLabel="Notes for your tradesperson"
+          style={[Type.callout, styles.notes, Shadows.card, { backgroundColor: c.surface, color: c.ink }]}
+        />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  bold: { fontWeight: '600' },
-  input: { borderWidth: 1.5, borderRadius: 12, padding: 14, fontSize: 16, minHeight: 96, textAlignVertical: 'top' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  notes: { minHeight: 96, borderRadius: Radii.md, padding: Spacing.four, textAlignVertical: 'top' },
 });

@@ -16,6 +16,21 @@ export function isCredentialValid(c: Credential, today: string): boolean {
   return c.expiresOn >= today;
 }
 
+export type CredentialStatus = 'missing' | 'pending' | 'expired' | 'expiring' | 'verified';
+
+/** Days before expiry when a pro is asked to upload a renewal. */
+export const RENEWAL_WARNING_DAYS = 30;
+
+/** Where a pro stands on one credential type, for the documents screen. */
+export function credentialStatus(c: Credential | undefined, today: string): CredentialStatus {
+  if (!c) return 'missing';
+  if (!c.verified) return 'pending';
+  if (c.expiresOn === null) return 'verified';
+  if (c.expiresOn < today) return 'expired';
+  const daysLeft = (Date.parse(c.expiresOn) - Date.parse(today)) / 86_400_000;
+  return daysLeft <= RENEWAL_WARNING_DAYS ? 'expiring' : 'verified';
+}
+
 /** Credentials a pro is missing (or holds only expired/unverified) for a job type. */
 export function missingCredentials(
   job: Pick<JobType, 'requires'>,
