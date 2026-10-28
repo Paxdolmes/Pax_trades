@@ -1,12 +1,14 @@
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { Bell, ChevronRight, CircleCheck, ClipboardPen, MapPin, ShieldCheck, Zap } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand';
+import { ProCard, ReviewCard } from '@/components/examples';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { Button, Card, IconButton, IconTile, Note, Screen, SectionLabel, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
+import { EXAMPLE_PROS, EXAMPLE_REVIEWS, EXAMPLES_NOTE } from '@/content/examples';
 import { isWeb } from '@/components/site/frame';
 import { formatPence, fromPricePence, JOB_TYPES, LAUNCH_OUTWARD_CODES, TRADES, URGENT_TRADES, type Trade } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
@@ -244,6 +246,19 @@ export default function CustomerHome() {
         </Card>
       )}
 
+      <View style={{ gap: Spacing.three }}>
+        <SectionLabel>Top-rated near you</SectionLabel>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.prosScroll} contentContainerStyle={styles.pros}>
+          {EXAMPLE_PROS.map((p) => (
+            <ProCard key={p.name} pro={p} style={styles.pro} />
+          ))}
+        </ScrollView>
+        <ReviewCard review={EXAMPLE_REVIEWS[0]} />
+        <T variant="caption" color="inkSubtle" style={{ textAlign: 'center' }}>
+          {EXAMPLES_NOTE}
+        </T>
+      </View>
+
       <View style={[styles.trust, { backgroundColor: c.surfaceMuted }]}>
         <Note icon={ShieldCheck} color="accentStrong">
           <T variant="footnote" color="inkMuted">
@@ -269,5 +284,8 @@ const styles = StyleSheet.create({
   tile: { flexGrow: 1, flexBasis: '46%', borderRadius: Radii.lg, padding: Spacing.three, gap: Spacing.three, flexDirection: 'row', alignItems: 'center' },
   tileIcon: { width: 44, height: 44, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   email: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.four },
+  prosScroll: { marginHorizontal: -Spacing.five },
+  pros: { gap: Spacing.three, paddingHorizontal: Spacing.five },
+  pro: { width: 172 },
   trust: { borderRadius: Radii.md, paddingHorizontal: Spacing.four, paddingVertical: Spacing.three },
 });

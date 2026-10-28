@@ -3,9 +3,11 @@
 import { ArrowRight, BadgeCheck, Siren } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ProCard, ReviewCard } from '@/components/examples';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
+import { EXAMPLE_PROS, EXAMPLE_REVIEWS, EXAMPLES_NOTE } from '@/content/examples';
 import { BENEFITS, HOME_FAQS, HOME_STEPS } from '@/content/site';
 import { CALLOUT_RATES, formatPence, fromPricePence, TRADES } from '@/domain/catalog';
 
@@ -19,6 +21,7 @@ export function HomePage() {
       <TrustStrip />
       <WhatWeFix />
       <HowItWorks />
+      <LocalPros />
       <Emergency />
       <WhyRelay />
       <FaqTeaser />
@@ -151,6 +154,27 @@ function HowItWorks() {
           </View>
         ))}
       </Grid>
+    </Section>
+  );
+}
+
+function LocalPros() {
+  return (
+    <Section>
+      <SectionHeading eyebrow="Local pros" title="Rated by your neighbours" sub="Every pro shows their experience, checks and reviews from paid Relay jobs." />
+      <Grid columns={{ narrow: 2, medium: 4, wide: 4 }} gap={Spacing.four}>
+        {EXAMPLE_PROS.map((p) => (
+          <ProCard key={p.name} pro={p} style={{ flex: 1 }} />
+        ))}
+      </Grid>
+      <Grid columns={{ narrow: 1, medium: 3, wide: 3 }} gap={Spacing.four}>
+        {EXAMPLE_REVIEWS.map((r) => (
+          <ReviewCard key={r.name} review={r} style={{ flex: 1 }} />
+        ))}
+      </Grid>
+      <T variant="caption" color="inkSubtle">
+        {EXAMPLES_NOTE}
+      </T>
     </Section>
   );
 }
