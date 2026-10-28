@@ -20,7 +20,7 @@ Project: `qfpujvfopbgnslylsquf`. Its URL and publishable key are already in `mob
 
 1. Sign up at https://dashboard.stripe.com/register. Stay in **test mode**, where no real money moves.
 2. Turn on Connect: go to https://dashboard.stripe.com/connect and choose **Marketplace**. This lets pros add their bank account through Stripe.
-3. Send Claude the **publishable key** (`pk_test_…`) from Developers → API keys. It's public and goes in the app's settings.
+3. Done: the test publishable key is in `mobile/eas.json` and `mobile/.env.example`.
 4. Add the **secret key** (`sk_test_…`) to Supabase, not to chat: go to Supabase → Edge Functions → Secrets → Add new secret, with the name `STRIPE_SECRET_KEY`.
 5. Add the webhook. In Stripe, go to Developers → Webhooks → Add destination and set:
    - URL: `https://qfpujvfopbgnslylsquf.supabase.co/functions/v1/stripe-webhook`
