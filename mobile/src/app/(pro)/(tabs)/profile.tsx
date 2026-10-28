@@ -1,12 +1,23 @@
 import { router } from 'expo-router';
 import { Award, ChevronRight, ClipboardCheck, HelpCircle, Landmark, MapPin, Star } from 'lucide-react-native';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, Card, Chip, Divider, IconTile, Screen, T, type LucideIcon } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
 import { TRADES } from '@/domain/catalog';
 import { ratingSummary } from '@/domain/rules';
 import { DEMO_TRADER, DEMO_TRADER_REVIEWS } from '@/lib/demo';
+import { bankSetupLink } from '@/lib/payments';
+
+async function openBankSetup() {
+  try {
+    const url = await bankSetupLink();
+    if (url) await Linking.openURL(url);
+    else Alert.alert('Bank details', 'In the live app this opens Stripe, where you add the account your earnings are paid into.');
+  } catch (e) {
+    Alert.alert('Could not open bank setup', e instanceof Error ? e.message : 'Please try again.');
+  }
+}
 
 export default function Profile() {
   const c = usePalette();
@@ -19,7 +30,7 @@ export default function Profile() {
       onPress: () => router.push('/reviews'),
     },
     { icon: MapPin, label: 'Work area', detail: 'Fulham, SW6 · up to 5 km' },
-    { icon: Landmark, label: 'Bank details', detail: 'Payouts within 48 hours' },
+    { icon: Landmark, label: 'Bank details', detail: 'Payouts within 48 hours, through Stripe', onPress: openBankSetup },
     { icon: ClipboardCheck, label: 'Application', detail: 'See the sign-up steps', onPress: () => router.push('/apply') },
     { icon: HelpCircle, label: 'Help', detail: 'Chat with the Relay team' },
   ];

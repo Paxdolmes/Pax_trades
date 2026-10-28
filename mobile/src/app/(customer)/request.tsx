@@ -9,6 +9,7 @@ import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { formatPence, jobTypesForTrade, TRADES, type JobType, type Trade } from '@/domain/catalog';
 import { createJob, type Urgency } from '@/lib/jobs';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
+import { ensureSavedCard } from '@/lib/payments';
 import { priceLine } from '@/lib/pricing';
 
 /** Saving against booking the two jobs separately, e.g. service plus CP12. */
@@ -38,6 +39,7 @@ export default function RequestJob() {
   async function submit() {
     setSubmitting(true);
     try {
+      if (!(await ensureSavedCard())) return;
       const { id } = await createJob({ trade, jobTypeId: jobType.id, urgency: effectiveUrgency, postcode, description });
       await uploadMedia({ jobId: id }, media);
       router.replace({ pathname: '/job/[id]', params: { id, jobType: jobType.id, urgency: effectiveUrgency } });

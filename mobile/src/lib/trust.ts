@@ -63,9 +63,9 @@ export const previewMessage = maskContactDetails;
 
 // Job lifecycle -------------------------------------------------------------
 
-export async function confirmJob(jobId: string): Promise<void> {
+export async function confirmJob(jobId: string, tipPence: number): Promise<void> {
   if (!live(jobId)) return;
-  const { error } = await supabase.rpc('confirm_job', { p_job: jobId });
+  const { error } = await supabase.rpc('confirm_job', { p_job: jobId, p_tip_pence: tipPence });
   if (error) throw error;
 }
 
@@ -75,9 +75,10 @@ export async function proArrived(jobId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function proFinished(jobId: string): Promise<void> {
+/** The pro's final price: labour, parts and approved extras, before any tip. */
+export async function proFinished(jobId: string, finalPricePence: number): Promise<void> {
   if (!live(jobId)) return;
-  const { error } = await supabase.rpc('pro_finished', { p_job: jobId });
+  const { error } = await supabase.rpc('pro_finished', { p_job: jobId, p_final_price_pence: finalPricePence });
   if (error) throw error;
 }
 

@@ -96,7 +96,13 @@ exception when raise_exception then
 end $$;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000f1';
 select public.pro_arrived('00000000-0000-0000-0000-0000000001a1') \gset ignored_
-select public.pro_finished('00000000-0000-0000-0000-0000000001a1') \gset ignored_
+do $$ begin
+  perform public.pro_finished('00000000-0000-0000-0000-0000000001a1', 0);
+  raise exception 'FAIL: finished with a zero price';
+exception when raise_exception then
+  if sqlerrm like 'FAIL%' then raise; end if;
+end $$;
+select public.pro_finished('00000000-0000-0000-0000-0000000001a1', 20300) \gset ignored_
 do $$ begin
   perform public.confirm_job('00000000-0000-0000-0000-0000000001a1');
   raise exception 'FAIL: pro confirmed their own job';
@@ -104,7 +110,13 @@ exception when raise_exception then
   if sqlerrm like 'FAIL%' then raise; end if;
 end $$;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000f0';
-select public.confirm_job('00000000-0000-0000-0000-0000000001a1') \gset ignored_
+select public.confirm_job('00000000-0000-0000-0000-0000000001a1', 500) \gset ignored_
+do $$ begin
+  if not exists (select 1 from public.jobs where id = '00000000-0000-0000-0000-0000000001a1'
+                  and status = 'completed' and final_price_pence = 20300 and tip_pence = 500) then
+    raise exception 'FAIL: confirmed job missing price or tip';
+  end if;
+end $$;
 
 -- Reviews: only once the job is paid, only by its customer, once; the pro replies once.
 do $$ begin

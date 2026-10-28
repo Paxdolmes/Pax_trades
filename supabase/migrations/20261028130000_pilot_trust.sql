@@ -30,7 +30,8 @@ alter table public.jobs
   add column arrived_at timestamptz,
   add column finished_at timestamptz, -- the pro says the work is done
   add column confirmed_at timestamptz, -- the customer agreed, or 48 hours passed with no complaint
-  add column paid_at timestamptz; -- set by the payment webhook
+  add column paid_at timestamptz, -- set by the Stripe webhook once the charge succeeds
+  add column tip_pence integer not null default 0 check (tip_pence between 0 and 5000);
 
 -- Accepting now also starts the arrival clock.
 create or replace function public.accept_offer(p_offer uuid) returns public.jobs
@@ -102,12 +103,16 @@ begin
 end;
 $$;
 
--- Called by the assigned pro when the work is done. The customer then confirms.
-create function public.pro_finished(p_job uuid) returns public.jobs
+-- Called by the assigned pro when the work is done, with the final price (labour,
+-- parts and approved extras, before any tip). The customer then confirms.
+create function public.pro_finished(p_job uuid, p_final_price_pence integer) returns public.jobs
 language plpgsql security definer set search_path = '' as $$
 declare j public.jobs;
 begin
-  update public.jobs set finished_at = now()
+  if p_final_price_pence is null or p_final_price_pence not between 100 and 500000 then
+    raise exception 'final price must be between £1 and £5,000';
+  end if;
+  update public.jobs set finished_at = now(), final_price_pence = p_final_price_pence
    where id = p_job and pro_id = auth.uid() and status = 'on_site' and finished_at is null
   returning * into j;
   if not found then
@@ -118,11 +123,15 @@ end;
 $$;
 
 -- Called by the customer: the work is done and they're happy for the pro to be paid.
-create function public.confirm_job(p_job uuid) returns public.jobs
+-- The tip goes to the pro in full.
+create function public.confirm_job(p_job uuid, p_tip_pence integer default 0) returns public.jobs
 language plpgsql security definer set search_path = '' as $$
 declare j public.jobs;
 begin
-  update public.jobs set status = 'completed', confirmed_at = now()
+  if p_tip_pence is null or p_tip_pence not between 0 and 5000 then
+    raise exception 'tip must be between £0 and £50';
+  end if;
+  update public.jobs set status = 'completed', confirmed_at = now(), tip_pence = p_tip_pence
    where id = p_job and customer_id = auth.uid() and finished_at is not null and status = 'on_site'
   returning * into j;
   if not found then
@@ -448,8 +457,8 @@ grant select on public.pro_public_profiles to authenticated;
 revoke execute on function public.reassign_late_jobs() from public, anon, authenticated;
 revoke execute on function public.auto_confirm_jobs() from public, anon, authenticated;
 revoke execute on function public.pro_arrived(uuid) from public, anon;
-revoke execute on function public.pro_finished(uuid) from public, anon;
-revoke execute on function public.confirm_job(uuid) from public, anon;
+revoke execute on function public.pro_finished(uuid, integer) from public, anon;
+revoke execute on function public.confirm_job(uuid, integer) from public, anon;
 revoke execute on function public.reply_to_review(uuid, text) from public, anon;
 revoke execute on function public.can_report_problem(uuid) from public, anon;
 revoke execute on function public.is_job_party(uuid) from public, anon;

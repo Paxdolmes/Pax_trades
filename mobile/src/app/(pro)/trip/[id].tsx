@@ -170,7 +170,7 @@ function OnJob({ offer, jobId }: { offer: OfferView; jobId: string }) {
   async function finish() {
     setFinishing(true);
     try {
-      await proFinished(jobId);
+      await proFinished(jobId, labour + extras);
       setDone(true);
     } catch (e) {
       Alert.alert('Could not complete the job', e instanceof Error ? e.message : 'Please try again.');

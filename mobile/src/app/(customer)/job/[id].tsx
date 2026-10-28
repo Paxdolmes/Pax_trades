@@ -32,6 +32,7 @@ import { DEMO_CUSTOMER, DEMO_EXTRA_WORK, DEMO_PRO } from '@/lib/demo';
 import type { JobStatus, Urgency } from '@/lib/jobs';
 import { upfrontPence } from '@/lib/pricing';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { chargeJob } from '@/lib/payments';
 import { confirmJob, saveReview } from '@/lib/trust';
 
 const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Wrench, electrical: Zap, heating: Flame };
@@ -472,7 +473,11 @@ function JobDone({
   async function confirmAndPay() {
     setPaying(true);
     try {
-      await confirmJob(jobId);
+      await confirmJob(jobId, tip);
+      const status = await chargeJob(jobId);
+      if (status !== 'succeeded' && status !== 'processing') {
+        Alert.alert('Your card was declined', "The job is confirmed. We'll be in touch to sort out payment.");
+      }
       setPaid(true);
     } catch (e) {
       Alert.alert('Could not confirm the job', e instanceof Error ? e.message : 'Please try again.');

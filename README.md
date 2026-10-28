@@ -33,7 +33,7 @@ Without Supabase settings the apps run in **demo mode** with sample jobs. To con
 1. Create a project at [supabase.com](https://supabase.com) (London region).
 2. From the repo root: `npx supabase init`, `npx supabase link --project-ref <ref>`, then `npx supabase db push`.
 
-`nearest_eligible_pros` is not callable by app users; it is meant for a server-side dispatcher (an Edge Function using the service role), which is the next piece of work.
+`nearest_eligible_pros` is not callable by app users. The dispatcher (`dispatch_job`) runs it when a job is requested and every 30 seconds after, via pg_cron. Payments go through the Stripe Edge Functions in `supabase/functions`. To set up the live accounts, see [docs/going-live.md](docs/going-live.md).
 
 ## Checks
 

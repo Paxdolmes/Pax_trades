@@ -44,6 +44,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    ['@stripe/stripe-react-native', { merchantIdentifier: 'merchant.uk.relaytrades', enableGooglePay: true }],
     [
       'expo-image-picker',
       {
