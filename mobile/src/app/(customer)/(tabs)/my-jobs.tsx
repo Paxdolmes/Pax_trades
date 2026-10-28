@@ -4,9 +4,21 @@ import { StyleSheet, View } from 'react-native';
 
 import { Avatar, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon, type Tone } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
-import { formatPence } from '@/domain/catalog';
+import { findJobType, formatPence, type Trade } from '@/domain/catalog';
+import { STATUS_LABELS } from '@/lib/jobs';
+import {
+  dayAndTime,
+  isLive,
+  loadCustomerJobs,
+  loadCustomerQuoteRequests,
+  shortDate,
+  useLive,
+  type CustomerJob,
+  type CustomerQuoteRequest,
+} from '@/lib/live';
 
 type JobRow = {
+  key?: string;
   title: string;
   meta: string;
   icon: LucideIcon;
@@ -15,7 +27,53 @@ type JobRow = {
   pence?: number;
   open?: { jobType: string; status: string; extra?: string };
   quotes?: { count: number; description: string };
+  /** Live rows open the real job or request. */
+  href?: { pathname: '/job/[id]' | '/quotes/[id]'; params: { id: string } };
 };
+
+const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Wrench, electrical: Zap, heating: Flame };
+
+function jobRow(j: CustomerJob): JobRow {
+  const type = findJobType(j.jobTypeId);
+  const waiting = j.status === 'on_site' && j.finishedAt && !j.confirmedAt;
+  const chip: JobRow['chip'] = waiting
+    ? { label: 'Needs your OK', tone: 'urgent' }
+    : j.status === 'completed'
+      ? { label: j.paidAt ? 'Paid' : 'Done', tone: 'success' }
+      : j.status === 'cancelled'
+        ? { label: 'Cancelled', tone: 'neutral' }
+        : { label: STATUS_LABELS[j.status], tone: 'brand' };
+  const when = j.confirmedAt ? shortDate(j.confirmedAt) : j.scheduledFor ? dayAndTime(j.scheduledFor) : dayAndTime(j.createdAt);
+  return {
+    key: j.jobId,
+    title: type?.label ?? 'Job',
+    meta: j.pro ? `${when} · ${j.pro.name}` : when,
+    icon: type ? TRADE_ICONS[type.trade] : Wrench,
+    chip,
+    pro: j.pro?.name,
+    pence: j.finalPricePence !== null ? j.finalPricePence + j.tipPence : undefined,
+    href: { pathname: '/job/[id]', params: { id: j.jobId } },
+  };
+}
+
+function requestRow(r: CustomerQuoteRequest): JobRow {
+  return {
+    key: r.id,
+    title: r.description.length > 48 ? `${r.description.slice(0, 47)}…` : r.description,
+    meta: `Asked ${dayAndTime(r.createdAt)}`,
+    icon: ClipboardPen,
+    chip: { label: r.quotes === 1 ? '1 quote' : `${r.quotes} quotes`, tone: 'brand' },
+    href: { pathname: '/quotes/[id]', params: { id: r.id } },
+  };
+}
+
+function liveSections(jobs: CustomerJob[], requests: CustomerQuoteRequest[]): { title: string; jobs: JobRow[] }[] {
+  const done = (j: CustomerJob) => j.status === 'completed' || j.status === 'cancelled';
+  return [
+    { title: 'Upcoming', jobs: [...requests.filter((r) => r.status === 'open').map(requestRow), ...jobs.filter((j) => !done(j)).map(jobRow)] },
+    { title: 'Past', jobs: jobs.filter(done).map(jobRow) },
+  ];
+}
 
 // Demo history until jobs are read from Supabase.
 const SECTIONS: { title: string; jobs: JobRow[] }[] = [
@@ -61,20 +119,31 @@ const SECTIONS: { title: string; jobs: JobRow[] }[] = [
 
 export default function MyJobs() {
   const c = usePalette();
+  const { data: jobs } = useLive(() => loadCustomerJobs(), [] as CustomerJob[]);
+  const { data: requests } = useLive(loadCustomerQuoteRequests, [] as CustomerQuoteRequest[]);
+  const sections = isLive ? liveSections(jobs, requests) : SECTIONS;
+  const empty = sections.every((s) => s.jobs.length === 0);
   return (
     <Screen>
       <T variant="display" accessibilityRole="header">
         My jobs
       </T>
-      {SECTIONS.map((s) => (
+      {empty ? (
+        <T variant="callout" color="inkMuted">
+          Your jobs will show here once you book one.
+        </T>
+      ) : null}
+      {sections.map((s) => (s.jobs.length === 0 ? null :
         <View key={s.title} style={{ gap: Spacing.three }}>
           <SectionLabel>{s.title}</SectionLabel>
           {s.jobs.map((j) => (
             <Card
-              key={j.title}
+              key={j.key ?? j.title}
               accessibilityLabel={`${j.title}, ${j.chip.label}, ${j.meta}`}
               onPress={
-                j.open
+                j.href
+                  ? () => router.push(j.href!)
+                  : j.open
                   ? () => router.push({ pathname: '/job/[id]', params: { id: 'demo-history', ...j.open } })
                   : j.quotes
                     ? () =>

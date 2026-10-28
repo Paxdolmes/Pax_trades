@@ -4,20 +4,58 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, Card, Chip, Divider, Screen, SectionLabel, T } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
-import { FOUNDING_COMMISSION, formatPence, STANDARD_COMMISSION } from '@/domain/catalog';
+import { findJobType, FOUNDING_COMMISSION, formatPence, STANDARD_COMMISSION } from '@/domain/catalog';
 import { splitPayment } from '@/domain/rules';
-import { DEMO_COMPLETED, DEMO_TRADER, DEMO_WEEK } from '@/lib/demo';
+import { DEMO_COMPLETED, DEMO_WEEK } from '@/lib/demo';
+import { isLive, shortDate, type ProJob } from '@/lib/live';
+import { usePro, useProJobs } from '@/lib/pro';
+
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+type Day = { day: string; pence: number; jobs: number };
+type Done = { title: string; customer: string; place: string; grossPence: number; proPence?: number };
+
+/** This week, Monday to Sunday, from the jobs confirmed in it. */
+function weekOf(jobs: ProJob[], now = new Date()): Day[] {
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)).getTime();
+  const week = DAYS.map((day) => ({ day, pence: 0, jobs: 0 }));
+  for (const j of jobs) {
+    if (!j.confirmedAt || j.payoutPence === null) continue;
+    const i = Math.floor((Date.parse(j.confirmedAt) - monday) / 86_400_000);
+    if (i < 0 || i > 6) continue;
+    week[i].pence += j.payoutPence;
+    week[i].jobs += 1;
+  }
+  return week;
+}
+
+function completedOf(jobs: ProJob[]): Done[] {
+  return jobs
+    .filter((j) => j.confirmedAt && j.finalPricePence !== null)
+    .slice(0, 20)
+    .map((j) => ({
+      title: findJobType(j.jobTypeId)?.label ?? 'Job',
+      customer: j.customerName,
+      place: `${j.postcode.split(' ')[0]} · ${shortDate(j.confirmedAt!)}${j.paidAt ? '' : ' · paying soon'}`,
+      grossPence: j.finalPricePence!,
+      proPence: j.payoutPence ?? undefined,
+    }));
+}
 
 const CHART_HEIGHT = 132;
 
 export default function Earnings() {
   const c = usePalette();
-  const [selected, setSelected] = useState(3);
-  const rate = DEMO_TRADER.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION;
-  const max = Math.max(...DEMO_WEEK.map((d) => d.pence));
-  const weekTotal = DEMO_WEEK.reduce((s, d) => s + d.pence, 0);
-  const weekJobs = DEMO_WEEK.reduce((s, d) => s + d.jobs, 0);
-  const day = DEMO_WEEK[selected];
+  const pro = usePro();
+  const { jobs } = useProJobs();
+  const week: Day[] = isLive ? weekOf(jobs) : DEMO_WEEK;
+  const completed: Done[] = isLive ? completedOf(jobs) : DEMO_COMPLETED;
+  const [selected, setSelected] = useState(isLive ? (new Date().getDay() + 6) % 7 : 3);
+  const rate = pro.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION;
+  const max = Math.max(1, ...week.map((d) => d.pence));
+  const weekTotal = week.reduce((s, d) => s + d.pence, 0);
+  const weekJobs = week.reduce((s, d) => s + d.jobs, 0);
+  const day = week[selected];
 
   return (
     <Screen>
@@ -53,10 +91,10 @@ export default function Earnings() {
               {formatPence(day.pence)}
             </T>
           </View>
-          {DEMO_TRADER.founding ? <Chip label="Founding rate" icon={Award} tone="brand" /> : null}
+          {pro.founding ? <Chip label="Founding rate" icon={Award} tone="brand" /> : null}
         </View>
         <View accessibilityLabel="Earnings by day this week" style={styles.chart}>
-          {DEMO_WEEK.map((d, i) => {
+          {week.map((d, i) => {
             const on = i === selected;
             return (
               <Pressable
@@ -86,10 +124,18 @@ export default function Earnings() {
       <View style={{ gap: Spacing.three }}>
         <SectionLabel>Completed jobs</SectionLabel>
         <Card style={{ padding: 0 }}>
-          {DEMO_COMPLETED.map((j, i) => {
-            const { platformPence, proPence } = splitPayment(j.grossPence, rate);
+          {completed.length === 0 ? (
+            <T variant="callout" color="inkMuted" style={{ padding: Spacing.four }}>
+              Jobs show here once the customer confirms them.
+            </T>
+          ) : null}
+          {completed.map((j, i) => {
+            const split = splitPayment(j.grossPence, rate);
+            // Live payouts include tips, so the fee is what's left of the price.
+            const proPence = j.proPence ?? split.proPence;
+            const platformPence = j.proPence === undefined ? split.platformPence : Math.max(0, j.grossPence - j.proPence);
             return (
-              <View key={j.title}>
+              <View key={`${j.title}-${i}`}>
                 {i > 0 ? <Divider inset={72} /> : null}
                 <View style={styles.jobRow}>
                   <Avatar name={j.customer} size={44} tone="neutral" />

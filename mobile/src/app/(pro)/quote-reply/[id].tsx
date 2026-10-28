@@ -7,8 +7,8 @@ import { Button, Card, Chip, Footer, IconButton, IconTile, Screen, T } from '@/c
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { FOUNDING_COMMISSION, formatPence, QUOTE_TIMING_LABELS, STANDARD_COMMISSION, TRADES, type Trade } from '@/domain/catalog';
 import { splitPayment } from '@/domain/rules';
-import { DEMO_TRADER } from '@/lib/demo';
-import { findQuoteRequest } from '@/lib/offers';
+import { useQuoteRequests } from '@/lib/offers';
+import { usePro } from '@/lib/pro';
 import { recordQuote, useSentQuote } from '@/lib/pro-state';
 import { sendQuote } from '@/lib/quotes';
 
@@ -36,9 +36,11 @@ function startAt(days: number): string {
 export default function QuoteReply() {
   const c = usePalette();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const request = findQuoteRequest(id);
+  const pro = usePro();
+  const request = useQuoteRequests(pro.trades).find((r) => r.id === id);
   const sent = useSentQuote(id);
-  const [trade, setTrade] = useState<Trade | undefined>(request?.quotableAs[0]);
+  const [picked, setTrade] = useState<Trade | undefined>();
+  const trade = picked ?? request?.quotableAs[0];
   const [price, setPrice] = useState('');
   const [start, setStart] = useState<(typeof STARTS)[number]['key']>('week');
   const [note, setNote] = useState('');
@@ -46,7 +48,7 @@ export default function QuoteReply() {
 
   if (!request || !trade) return null;
   const pence = parsePrice(price);
-  const rate = DEMO_TRADER.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION;
+  const rate = pro.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION;
 
   async function submit() {
     if (!pence || !request || !trade) return;

@@ -10,6 +10,8 @@ export default function ProLayout() {
       <Stack.Screen name="apply" />
       <Stack.Screen name="pro-chat/[id]" />
       <Stack.Screen name="reviews" />
+      <Stack.Screen name="add-document" />
+      <Stack.Screen name="admin" />
     </Stack>
   );
 }

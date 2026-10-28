@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Award, ChevronRight, ClipboardCheck, HelpCircle, Landmark, MapPin, Star } from 'lucide-react-native';
+import { Award, ChevronRight, ClipboardCheck, HelpCircle, Landmark, MapPin, ShieldCheck, Star } from 'lucide-react-native';
 import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { SignOutButton } from '@/components/sign-out';
@@ -8,8 +8,11 @@ import { Spacing, usePalette } from '@/constants/theme';
 import { TRADES } from '@/domain/catalog';
 import { ratingSummary } from '@/domain/rules';
 import { useAuth } from '@/lib/auth';
-import { DEMO_TRADER, DEMO_TRADER_REVIEWS } from '@/lib/demo';
+import { DEMO_TRADER_REVIEWS } from '@/lib/demo';
+import { useLive } from '@/lib/live';
 import { bankSetupLink } from '@/lib/payments';
+import { usePro } from '@/lib/pro';
+import { loadMyReviews } from '@/lib/trust';
 
 async function openBankSetup() {
   try {
@@ -24,8 +27,10 @@ async function openBankSetup() {
 export default function Profile() {
   const c = usePalette();
   const { profile } = useAuth();
-  const name = profile?.fullName ?? DEMO_TRADER.name;
-  const reviews = ratingSummary(DEMO_TRADER_REVIEWS.map((r) => r.rating));
+  const pro = usePro();
+  const { data: myReviews } = useLive(loadMyReviews, DEMO_TRADER_REVIEWS);
+  const reviews = ratingSummary(myReviews.map((r) => r.rating));
+  const isAdmin = profile?.role === 'admin';
   const rows: { icon: LucideIcon; label: string; detail: string; onPress?: () => void }[] = [
     {
       icon: Star,
@@ -37,19 +42,20 @@ export default function Profile() {
     { icon: Landmark, label: 'Bank details', detail: 'Payouts within 48 hours, through Stripe', onPress: openBankSetup },
     { icon: ClipboardCheck, label: 'Application', detail: 'See the sign-up steps', onPress: () => router.push('/apply') },
     { icon: HelpCircle, label: 'Help', detail: 'Chat with the Relay team' },
+    ...(isAdmin ? [{ icon: ShieldCheck, label: 'Admin', detail: 'Approve pros and handle problem reports', onPress: () => router.push('/admin') }] : []),
   ];
   return (
     <Screen>
       <View style={styles.header}>
-        <Avatar name={name} size={56} />
+        <Avatar name={pro.name} size={56} />
         <View style={{ flex: 1, gap: 4 }}>
           <T variant="title1" accessibilityRole="header">
-            {name}
+            {pro.name}
           </T>
           <T variant="footnote" color="inkMuted">
-            {DEMO_TRADER.trades.map((t) => TRADES.find((x) => x.id === t)?.label).join(', ')}
+            {pro.trades.map((t) => TRADES.find((x) => x.id === t)?.label).join(', ') || 'No trades chosen yet'}
           </T>
-          {DEMO_TRADER.founding ? <Chip label="Founding Pro · 10% commission" icon={Award} tone="brand" /> : null}
+          {pro.founding ? <Chip label="Founding Pro · 10% commission" icon={Award} tone="brand" /> : null}
         </View>
       </View>
       <Card style={{ padding: 0 }}>

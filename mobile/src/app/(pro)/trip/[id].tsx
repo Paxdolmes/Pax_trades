@@ -24,17 +24,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
 import { Avatar, Button, Card, Chip, Divider, Footer, IconButton, IconTile, Screen, SectionLabel, Sheet, T } from '@/components/ui';
 import { Colors, Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
-import { CALLOUT_RATES, formatPence, PILOT } from '@/domain/catalog';
+import { CALLOUT_RATES, findJobType, formatPence, PILOT } from '@/domain/catalog';
 import { calloutChargePence } from '@/domain/rules';
+import { isLive, loadProJobs, useLive, type ProJob } from '@/lib/live';
 import { findOffer, type OfferView } from '@/lib/offers';
 import { proArrived, proFinished } from '@/lib/trust';
 
 export default function Trip() {
   const { id, phase } = useLocalSearchParams<{ id: string; phase?: 'en_route' | 'on_job' }>();
-  const offer = findOffer(id);
-  const [current, setCurrent] = useState(phase ?? 'en_route');
+  const { data: jobs } = useLive(() => loadProJobs(id), [] as ProJob[], id);
+  const offer = isLive ? (jobs[0] ? tripView(jobs[0]) : undefined) : findOffer(id);
+  const [picked, setCurrent] = useState(phase);
+  const current = picked ?? (jobs[0]?.status === 'on_site' ? 'on_job' : 'en_route');
   if (!offer) return null;
-  const jobId = `demo-${offer.id}`;
+  const jobId = isLive ? id : `demo-${offer.id}`;
   async function arrived() {
     try {
       await proArrived(jobId);
@@ -44,6 +47,28 @@ export default function Trip() {
     }
   }
   return current === 'en_route' ? <EnRoute offer={offer} jobId={jobId} onArrived={arrived} /> : <OnJob offer={offer} jobId={jobId} />;
+}
+
+/** A live job in the shape the trip screens use. The full postcode shows now they've accepted. */
+function tripView(j: ProJob): OfferView | undefined {
+  const jobType = findJobType(j.jobTypeId);
+  if (!jobType) return undefined;
+  const minutesAway = j.arriveBy ? Math.max(1, Math.round((Date.parse(j.arriveBy) - Date.now()) / 60000)) : 15;
+  return {
+    id: j.jobId,
+    jobId: j.jobId,
+    jobTypeId: j.jobTypeId,
+    jobType,
+    postcode: j.postcode,
+    street: j.postcode,
+    customer: j.customerName,
+    distanceKm: 0,
+    minutesAway,
+    urgent: j.urgency === 'urgent',
+    when: j.urgency === 'urgent' ? 'Now' : 'Booked',
+    note: j.description || 'No details given',
+    missing: [],
+  };
 }
 
 function arrivalTime(minutes: number) {
@@ -85,7 +110,7 @@ function EnRoute({ offer, jobId, onArrived }: { offer: OfferView; jobId: string;
             {offer.street}
           </T>
           <T variant="callout" color="inkMuted">
-            {`Fulham, ${offer.postcode} · ${offer.distanceKm} km · ${offer.minutesAway} min`}
+            {offer.distanceKm ? `Fulham, ${offer.postcode} · ${offer.distanceKm} km · ${offer.minutesAway} min` : offer.jobType.label}
           </T>
         </View>
         <Card style={{ gap: Spacing.three, padding: Spacing.three }}>
@@ -105,12 +130,14 @@ function EnRoute({ offer, jobId, onArrived }: { offer: OfferView; jobId: string;
               onPress={() => router.push({ pathname: '/pro-chat/[id]', params: { id: jobId, name: offer.customer } })}
             />
           </View>
-          <View style={[styles.access, { backgroundColor: c.surfaceMuted }]}>
-            <KeyRound size={16} color={c.inkMuted} strokeWidth={2.25} />
-            <T variant="caption" style={{ flex: 1, fontWeight: '500' }}>
-              Ring flat B, 1st floor
-            </T>
-          </View>
+          {isLive ? null : (
+            <View style={[styles.access, { backgroundColor: c.surfaceMuted }]}>
+              <KeyRound size={16} color={c.inkMuted} strokeWidth={2.25} />
+              <T variant="caption" style={{ flex: 1, fontWeight: '500' }}>
+                Ring flat B, 1st floor
+              </T>
+            </View>
+          )}
         </Card>
         <View style={[styles.deadline, { backgroundColor: c.warningTint }]}>
           <TimerReset size={18} color={c.warning} strokeWidth={2.25} />

@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Check, MapPin, MessageSquareText, ShieldCheck, X, Zap } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -9,8 +9,10 @@ import { Button, Card, Chip, IconTile, T, useBottomPadding } from '@/components/
 import { Layout, Spacing, usePalette } from '@/constants/theme';
 import { FOUNDING_COMMISSION, PILOT, STANDARD_COMMISSION } from '@/domain/catalog';
 import { arriveBy } from '@/domain/rules';
-import { CREDENTIAL_LABELS, DEMO_TRADER } from '@/lib/demo';
-import { findOffer, offerPay } from '@/lib/offers';
+import { CREDENTIAL_LABELS } from '@/lib/demo';
+import { acceptOffer, isLive } from '@/lib/live';
+import { offerPay, useOffers } from '@/lib/offers';
+import { usePro } from '@/lib/pro';
 
 /** Matches job_offers.expires_at in the database. */
 const OFFER_SECONDS = 60;
@@ -24,11 +26,20 @@ export default function JobOffer() {
   const c = usePalette();
   const bottom = useBottomPadding();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const offer = findOffer(id);
-  const [secondsLeft, setSecondsLeft] = useState(OFFER_SECONDS);
+  const offer = useOffers().find((o) => o.id === id);
+  const pro = usePro();
+  const expiresAt = offer?.expiresAt;
+  const [openedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(openedAt);
+  const [accepting, setAccepting] = useState(false);
+  // Live offers count down to their expiry in the database; demo ones from opening.
+  const secondsLeft = Math.max(
+    0,
+    Math.round(expiresAt ? (Date.parse(expiresAt) - now) / 1000 : OFFER_SECONDS - (now - openedAt) / 1000),
+  );
 
   useEffect(() => {
-    const t = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -36,9 +47,27 @@ export default function JobOffer() {
     if (secondsLeft === 0) router.back();
   }, [secondsLeft]);
 
+  async function accept() {
+    if (!offer) return;
+    if (!isLive) {
+      router.replace({ pathname: '/trip/[id]', params: { id: offer.id } });
+      return;
+    }
+    setAccepting(true);
+    try {
+      const { jobId } = await acceptOffer(offer.id);
+      router.replace({ pathname: '/trip/[id]', params: { id: jobId } });
+    } catch (e) {
+      Alert.alert('Could not accept', e instanceof Error ? e.message : 'Please try again.');
+      router.back();
+    } finally {
+      setAccepting(false);
+    }
+  }
+
   if (!offer) return null;
   const pay = offerPay(offer.jobType);
-  const keep = Math.round((1 - (DEMO_TRADER.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION)) * 100);
+  const keep = Math.round((1 - (pro.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION)) * 100);
   const requirement = offer.jobType.requires.find((r) => r !== 'public_liability');
 
   return (
@@ -102,7 +131,8 @@ export default function JobOffer() {
           label="Accept job"
           icon={Check}
           size="hero"
-          onPress={() => router.replace({ pathname: '/trip/[id]', params: { id: offer.id } })}
+          loading={accepting}
+          onPress={accept}
         />
         <Button label="Decline" icon={X} variant="ghost" onPress={() => router.back()} />
       </View>

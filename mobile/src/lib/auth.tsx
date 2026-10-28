@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import type { Trade } from '@/domain/catalog';
+import { unregisterForPush } from '@/lib/push';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { appVariant } from '@/lib/variant';
 
@@ -131,6 +132,7 @@ export async function startProApplication(trades: Trade[]): Promise<void> {
 
 export async function signOut(): Promise<void> {
   if (!isSupabaseConfigured) return;
+  await unregisterForPush().catch(() => {});
   await supabase.auth.signOut();
 }
 

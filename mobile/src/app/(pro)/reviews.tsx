@@ -7,13 +7,19 @@ import { ReviewCard } from '@/components/reviews';
 import { Button, Card, IconButton, Screen, T } from '@/components/ui';
 import { Radii, Spacing, Type, usePalette } from '@/constants/theme';
 import { ratingSummary } from '@/domain/rules';
-import { DEMO_TRADER, DEMO_TRADER_REVIEWS, type DemoReview } from '@/lib/demo';
-import { replyToReview } from '@/lib/trust';
+import { DEMO_TRADER_REVIEWS, type DemoReview } from '@/lib/demo';
+import { useLive } from '@/lib/live';
+import { usePro } from '@/lib/pro';
+import { loadMyReviews, replyToReview } from '@/lib/trust';
 
 /** The pro's verified reviews. They can reply to each one, once. */
 export default function Reviews() {
   const c = usePalette();
-  const [reviews, setReviews] = useState<DemoReview[]>(DEMO_TRADER_REVIEWS);
+  const pro = usePro();
+  const { data: loaded } = useLive(loadMyReviews, DEMO_TRADER_REVIEWS);
+  // Replies sent from this screen, shown straight away.
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const reviews: DemoReview[] = loaded.map((r) => (replies[r.id] ? { ...r, reply: replies[r.id] } : r));
   const summary = ratingSummary(reviews.map((r) => r.rating));
 
   return (
@@ -41,8 +47,8 @@ export default function Reviews() {
         <ReviewCard
           key={r.id}
           review={r}
-          proName={DEMO_TRADER.firstName}
-          footer={r.reply ? null : <ReplyBox reviewId={r.id} customer={r.customer} onSent={(reply) => setReviews((all) => all.map((x) => (x.id === r.id ? { ...x, reply } : x)))} />}
+          proName={pro.firstName}
+          footer={r.reply ? null : <ReplyBox reviewId={r.id} customer={r.customer} onSent={(reply) => setReplies((all) => ({ ...all, [r.id]: reply }))} />}
         />
       ))}
     </Screen>
