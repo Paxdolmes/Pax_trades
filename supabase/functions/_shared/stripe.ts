@@ -99,6 +99,8 @@ export type ChargeRow = {
   job_id: string;
   amount_pence: number;
   fee_pence: number;
+  /** Customer credit already taken off amount_pence and fee_pence. */
+  credit_pence: number;
   customer_id: string | null;
   payment_method_id: string | null;
   destination: string | null;
@@ -118,7 +120,7 @@ export function paymentIntentParams(row: ChargeRow): Params {
     off_session: true,
     confirm: true,
     description: 'Relay job',
-    metadata: { job_id: row.job_id },
+    metadata: { job_id: row.job_id, credit_pence: String(row.credit_pence) },
     ...(row.destination
       ? { application_fee_amount: row.fee_pence, transfer_data: { destination: row.destination } }
       : {}),

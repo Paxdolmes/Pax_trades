@@ -58,7 +58,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     [
       'expo-location',
-      { locationWhenInUsePermission: 'Relay Traders uses your location while you are online, to send you jobs nearby.' },
+      {
+        // Only Relay Traders asks; the customer app links the module but never uses it.
+        locationWhenInUsePermission:
+          variant === 'pro'
+            ? 'Relay Traders uses your location while you are online, to send you jobs nearby.'
+            : 'Relay uses your location to find tradespeople near you.',
+      },
     ],
     ['expo-notifications', { color: '#1B44C4' }],
     [

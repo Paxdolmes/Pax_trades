@@ -76,6 +76,7 @@ do $$ begin
 end $$;
 
 -- What gets charged: work plus tip, commission on the work only, paid out to the pro.
+-- The £10 no-show credit from earlier comes off, out of Relay's commission.
 insert into public.jobs (id, customer_id, trade, job_type_id, urgency, postcode, status, pro_id,
                          finished_at, confirmed_at, final_price_pence, tip_pence) values
   ('00000000-0000-0000-0000-0000000002b2', '00000000-0000-0000-0000-0000000002c0', 'heating', 'no-heating', 'booked', 'SW6 4EH',
@@ -84,9 +85,14 @@ do $$
 declare r record;
 begin
   select * into r from public.jobs_to_charge('00000000-0000-0000-0000-0000000002b2');
-  if r.amount_pence <> 20500 or r.fee_pence <> 2000 or r.customer_id <> 'cus_test'
+  if r.amount_pence <> 19500 or r.fee_pence <> 1000 or r.credit_pence <> 1000 or r.customer_id <> 'cus_test'
      or r.payment_method_id <> 'pm_test' or r.destination <> 'acct_h1' then
     raise exception 'FAIL: charge details wrong: %', row_to_json(r);
+  end if;
+  -- Listing it again charges the same, and the credit is used up.
+  select * into r from public.jobs_to_charge('00000000-0000-0000-0000-0000000002b2');
+  if r.amount_pence <> 19500 or public.available_credit_pence('00000000-0000-0000-0000-0000000002c0') <> 0 then
+    raise exception 'FAIL: credit applied twice: %', row_to_json(r);
   end if;
   update public.jobs set payment_intent_id = 'pi_test' where id = '00000000-0000-0000-0000-0000000002b2';
   if exists (select 1 from public.jobs_to_charge('00000000-0000-0000-0000-0000000002b2')) then

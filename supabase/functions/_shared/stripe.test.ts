@@ -24,7 +24,7 @@ describe('webhook signatures', () => {
 });
 
 describe('charging a job', () => {
-  const row = { job_id: 'j1', amount_pence: 20500, fee_pence: 2000, customer_id: 'cus_1', payment_method_id: 'pm_1', destination: 'acct_1' };
+  const row = { job_id: 'j1', amount_pence: 20500, fee_pence: 2000, credit_pence: 0, customer_id: 'cus_1', payment_method_id: 'pm_1', destination: 'acct_1' };
 
   it('pays the pro through Stripe, keeping the commission', () => {
     const encoded = new URLSearchParams(formEncode(paymentIntentParams(row)));

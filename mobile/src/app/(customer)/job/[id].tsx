@@ -30,7 +30,7 @@ import { ALL_IN_NOTE, findJobType, formatPence, PILOT, TRADES, type Trade } from
 import { arriveBy } from '@/domain/rules';
 import { DEMO_CUSTOMER, DEMO_EXTRA_WORK, DEMO_PRO } from '@/lib/demo';
 import { firstName, loadCustomerJobs, useLive, type CustomerJob } from '@/lib/live';
-import type { JobStatus, Urgency } from '@/lib/jobs';
+import { cancelJob, type JobStatus, type Urgency } from '@/lib/jobs';
 import { upfrontPence } from '@/lib/pricing';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { chargeJob } from '@/lib/payments';
@@ -109,7 +109,7 @@ export default function JobScreen() {
     params.id,
   );
   const row = rows[0] ?? null;
-  const jobType = findJobType(row?.jobTypeId ?? params.jobType ?? 'no-heating') ?? findJobType('no-heating')!;
+  const jobType = findJobType(row?.jobTypeId ?? params.jobType ?? 'no-heating', row?.finalPricePence) ?? findJobType('no-heating')!;
   const urgency: Urgency = row?.urgency ?? params.urgency ?? 'urgent';
   const pro = row ? proFrom(row) : DEMO_JOB_PRO;
   // Demo steps and realtime updates set this; until then it's what the database says.
@@ -199,10 +199,11 @@ export default function JobScreen() {
         urgency={urgency}
         heldPence={held}
         reassigned={reassigned}
-        onCancel={() => router.replace('/home')}
+        onCancel={() => askToCancel(params.id)}
       />
     );
   }
+  if (status === 'cancelled') return <Cancelled jobLabel={jobType.label} />;
   return (
     <ProContext.Provider value={pro}>
       <OnTheWay jobId={params.id} arrived={status === 'on_site'} trade={jobType.trade} due={due} />
@@ -210,6 +211,36 @@ export default function JobScreen() {
         <ExtraWorkSheet basePence={held} onApprove={() => setExtra('approved')} onDecline={() => setExtra('declined')} />
       ) : null}
     </ProContext.Provider>
+  );
+}
+
+function askToCancel(jobId: string) {
+  Alert.alert('Cancel this request?', "There's no charge, and we'll stop looking for a pro.", [
+    { text: 'Keep looking', style: 'cancel' },
+    {
+      text: 'Cancel request',
+      style: 'destructive',
+      onPress: () =>
+        void cancelJob(jobId).then(
+          () => router.replace('/home'),
+          (e: unknown) => Alert.alert('Could not cancel', e instanceof Error ? e.message : 'Please try again.'),
+        ),
+    },
+  ]);
+}
+
+function Cancelled({ jobLabel }: { jobLabel: string }) {
+  const c = usePalette();
+  return (
+    <SafeAreaView style={[styles.cancelled, { backgroundColor: c.bg }]}>
+      <T variant="title1" style={{ textAlign: 'center' }}>
+        Cancelled
+      </T>
+      <T variant="callout" color="inkMuted" style={{ textAlign: 'center' }}>
+        {`${jobLabel}. You haven't been charged.`}
+      </T>
+      <Button label="Back to home" onPress={() => router.replace('/home')} style={{ alignSelf: 'stretch' }} />
+    </SafeAreaView>
   );
 }
 
@@ -720,6 +751,7 @@ function JobDone({
 }
 
 const styles = StyleSheet.create({
+  cancelled: { flex: 1, justifyContent: 'center', gap: Spacing.four, padding: Layout.gutter },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   titleRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: Spacing.three },
   summary: { borderRadius: Radii.lg, padding: Spacing.four, gap: Spacing.three },

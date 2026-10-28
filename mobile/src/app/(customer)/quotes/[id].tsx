@@ -7,6 +7,7 @@ import { Avatar, Button, Card, Chip, Footer, IconTile, Note, ProgressBar, Screen
 import { Radii, Spacing, usePalette } from '@/constants/theme';
 import { formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
 import { DEMO_QUOTES } from '@/lib/demo';
+import { ensureSavedCard } from '@/lib/payments';
 import { acceptQuote, type Quote } from '@/lib/quotes';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
@@ -25,6 +26,9 @@ function fromRow(r: QuoteRow): Quote {
   };
 }
 
+/** Adds quotes not already shown: the first load and a realtime insert can both bring the same one. */
+const merge = (all: Quote[], more: Quote[]) => [...all, ...more.filter((q) => !all.some((a) => a.id === q.id))];
+
 export default function Quotes() {
   const c = usePalette();
   const { id, description, freeze } = useLocalSearchParams<{ id: string; description?: string; freeze?: string }>();
@@ -32,6 +36,8 @@ export default function Quotes() {
   const [quotes, setQuotes] = useState<Quote[]>(freeze ? DEMO_QUOTES.slice(0, Number(freeze)) : []);
   const [accepting, setAccepting] = useState<string | null>(null);
   const [booked, setBooked] = useState<Quote | null>(null);
+  // Opened from My jobs there's no description in the link, so it's read with the quotes.
+  const [loadedDescription, setDescription] = useState<string | null>(null);
 
   // Demo: quotes trickle in. Live: load what's there, then listen for new ones.
   useEffect(() => {
@@ -46,21 +52,31 @@ export default function Quotes() {
       .select('id, trade, price_pence, note, earliest_at')
       .eq('request_id', id)
       .order('created_at')
-      .then(({ data }) => data && setQuotes((data as QuoteRow[]).map(fromRow)));
+      .then(({ data }) => data && setQuotes((all) => merge(all, (data as QuoteRow[]).map(fromRow))));
+    if (!description) {
+      supabase
+        .from('quote_requests')
+        .select('description')
+        .eq('id', id)
+        .maybeSingle()
+        .then(({ data }) => data && setDescription((data as { description: string }).description));
+    }
     const channel = supabase
       .channel(`quotes-${id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'quotes', filter: `request_id=eq.${id}` }, (payload) =>
-        setQuotes((all) => [...all, fromRow(payload.new as QuoteRow)]),
+        setQuotes((all) => merge(all, [fromRow(payload.new as QuoteRow)])),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id, demo, freeze]);
+  }, [id, demo, freeze, description]);
 
   async function accept(q: Quote) {
     setAccepting(q.id);
     try {
+      // The job is charged to a saved card once it's done, as with any other booking.
+      if (!(await ensureSavedCard())) return;
       await acceptQuote(q.id);
       setBooked(q);
     } catch (e) {
@@ -104,7 +120,7 @@ export default function Quotes() {
             YOUR REQUEST
           </T>
           <T variant="subhead" numberOfLines={2}>
-            {description ?? 'Your job'}
+            {description ?? loadedDescription ?? 'Your job'}
           </T>
         </View>
       </View>

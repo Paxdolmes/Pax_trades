@@ -8,7 +8,7 @@ const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 /** False until .env.local is filled in; screens fall back to demo data. */
 export const isSupabaseConfigured = Boolean(url && anonKey);
 
-export const supabase = createClient(url ?? 'http://localhost:54321', anonKey ?? 'not-configured', {
+export const supabase = createClient(url || 'http://localhost:54321', anonKey || 'not-configured', {
   auth: {
     storage: Platform.OS === 'web' ? undefined : AsyncStorage,
     autoRefreshToken: true,

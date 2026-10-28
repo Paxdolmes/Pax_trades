@@ -61,19 +61,35 @@ The other timers need no setup. These are:
 
 ## 4. Test builds on your phone
 
-The apps now use native features (camera, photos, Stripe), so Expo Go can't run them. You need a test build of each app.
+The apps use native features (camera, photos, location, notifications, Stripe), so Expo Go can't run them. You need a test build of each app. Expo is set up: the organisation is `relay-trades`, with the projects `relay` and `relay-traders`, and the `EXPO_TOKEN` secret is in GitHub.
 
-1. Create a free Expo account at https://expo.dev/signup.
-2. Ask Claude to link the project. That needs an Expo access token, which you add in GitHub secrets as `EXPO_TOKEN`, never in chat.
-3. These are the build profiles in `mobile/eas.json`:
-   - `development` and `development-traders`: for testing, with live reload
-   - `preview` and `preview-traders`: shareable test builds
-   - `production` and `production-traders`: store builds
+To make test builds:
 
-   iPhone builds need an Apple Developer account, which costs $99 a year. Android test builds are free.
+1. On GitHub, open **Actions**, then **Build apps** on the left.
+2. Click **Run workflow**. Pick the platform (`android` is free; `ios` needs an Apple Developer account at $99 a year) and which apps.
+3. Each build takes 10 to 20 minutes on Expo's servers. When it's done, open https://expo.dev/accounts/relay-trades/projects, pick the project, then **Builds**, and scan the QR code with your phone to install it.
 
-## Still to build before real customers
+The build profiles in `mobile/eas.json`:
+- `preview` and `preview-traders`: shareable test builds (what the workflow makes)
+- `development` and `development-traders`: for testing with live reload
+- `production` and `production-traders`: store builds
 
-- **Live data on the remaining screens.** The pros' offers, the jobs lists and the customer home greeting still show demo data.
-- **Push notifications** for new offers and messages.
-- **An admin screen** for handling problem reports and approving pros. Until then, the Supabase table editor will do.
+## 5. Making yourself an admin
+
+The admin screen (approving pros and sorting out problem reports) is in Relay Traders, for accounts with the admin role.
+
+1. Sign up in Relay Traders with your email, and enter your name.
+2. In Supabase, open **SQL Editor** and run this, with your email:
+
+   ```sql
+   update public.profiles set role = 'admin'
+    where id = (select id from auth.users where email = 'you@example.com');
+   ```
+3. Close and reopen Relay Traders. It opens on the admin screen.
+
+## Still to do before real customers
+
+- **Your own email domain in Resend.** `onboarding@resend.dev` only delivers to the email you signed up to Resend with. Add and verify a domain in Resend, then change the sender in Supabase.
+- **Failed charges are followed up by hand.** When a card is declined or the bank asks the customer to approve the payment, the job is marked with `payment_failed_at` in the jobs table. Contact the customer and charge them from the Stripe dashboard.
+- **Extra work on fixed-price and quoted jobs** isn't approved in the app yet. Those jobs are charged at the agreed price; if the pro and customer agree more in chat, add it by hand in Stripe. Callout jobs are charged for the pro's time, which can include parts.
+- **Refunds** are made in the Stripe dashboard first, then marked as refunded on the admin screen.

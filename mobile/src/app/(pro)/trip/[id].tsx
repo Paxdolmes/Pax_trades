@@ -22,7 +22,7 @@ import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
-import { Avatar, Button, Card, Chip, Divider, Footer, IconButton, IconTile, Screen, SectionLabel, Sheet, T } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Divider, Footer, IconButton, IconTile, Note, Screen, SectionLabel, Sheet, T } from '@/components/ui';
 import { Colors, Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
 import { CALLOUT_RATES, findJobType, formatPence, PILOT } from '@/domain/catalog';
 import { calloutChargePence } from '@/domain/rules';
@@ -51,7 +51,7 @@ export default function Trip() {
 
 /** A live job in the shape the trip screens use. The full postcode shows now they've accepted. */
 function tripView(j: ProJob): OfferView | undefined {
-  const jobType = findJobType(j.jobTypeId);
+  const jobType = findJobType(j.jobTypeId, j.finalPricePence);
   if (!jobType) return undefined;
   const minutesAway = j.arriveBy ? Math.max(1, Math.round((Date.parse(j.arriveBy) - Date.now()) / 60000)) : 15;
   return {
@@ -183,7 +183,7 @@ function OnJob({ offer, jobId }: { offer: OfferView; jobId: string }) {
 
   // Demo: the customer approves extra work a few seconds after it's sent.
   useEffect(() => {
-    if (!items.some((i) => i.status === 'waiting')) return;
+    if (isLive || !items.some((i) => i.status === 'waiting')) return;
     const t = setTimeout(() => setItems((all) => all.map((i) => ({ ...i, status: 'approved' }))), 4000);
     return () => clearTimeout(t);
   }, [items]);
@@ -283,53 +283,62 @@ function OnJob({ offer, jobId }: { offer: OfferView; jobId: string }) {
         </View>
       </View>
 
-      <View style={{ gap: Spacing.three }}>
-        <SectionLabel
-          right={
-            <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
-              Customer approves in their app
-            </T>
-          }>
-          Parts and extra work
-        </SectionLabel>
-        <Card style={{ padding: 0 }}>
-          {items.map((item, i) => (
-            <View key={i}>
-              {i > 0 ? <Divider inset={68} /> : null}
-              <View style={[styles.row, { padding: Spacing.three }]}>
-                <IconTile icon={item.status === 'approved' ? Wrench : Hourglass} tone="neutral" size={44} />
-                <View style={{ flex: 1, gap: 4 }}>
-                  <T variant="bodyStrong" numberOfLines={1}>
-                    {item.title}
-                  </T>
-                  {item.status === 'approved' ? (
-                    <Chip label="Approved" icon={CircleCheck} tone="success" />
-                  ) : (
-                    <Chip label="Awaiting approval" icon={Hourglass} tone="warning" />
-                  )}
-                  <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
-                    {item.detail}
+      {isLive ? (
+        // Parts and extra work aren't approved in the app yet, so they can't be added here.
+        <Note icon={MessageSquare}>
+          {callout
+            ? 'Include parts in your time on the job for now. Agree anything else with the customer in chat first.'
+            : 'This job is charged at the agreed price. Agree any extra work with the customer in chat and the Relay team will add it.'}
+        </Note>
+      ) : (
+        <View style={{ gap: Spacing.three }}>
+          <SectionLabel
+            right={
+              <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
+                Customer approves in their app
+              </T>
+            }>
+            Parts and extra work
+          </SectionLabel>
+          <Card style={{ padding: 0 }}>
+            {items.map((item, i) => (
+              <View key={i}>
+                {i > 0 ? <Divider inset={68} /> : null}
+                <View style={[styles.row, { padding: Spacing.three }]}>
+                  <IconTile icon={item.status === 'approved' ? Wrench : Hourglass} tone="neutral" size={44} />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <T variant="bodyStrong" numberOfLines={1}>
+                      {item.title}
+                    </T>
+                    {item.status === 'approved' ? (
+                      <Chip label="Approved" icon={CircleCheck} tone="success" />
+                    ) : (
+                      <Chip label="Awaiting approval" icon={Hourglass} tone="warning" />
+                    )}
+                    <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
+                      {item.detail}
+                    </T>
+                  </View>
+                  <T variant="headline" style={{ fontVariant: ['tabular-nums'] }}>
+                    {formatPence(item.pence)}
                   </T>
                 </View>
-                <T variant="headline" style={{ fontVariant: ['tabular-nums'] }}>
-                  {formatPence(item.pence)}
-                </T>
               </View>
-            </View>
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() =>
-              setItems((all) => [...all, { title: 'Pressure relief valve', detail: 'Part · Screwfix, Fulham', pence: 3850, status: 'waiting' }])
-            }
-            style={[styles.addRow, items.length > 0 && { borderTopWidth: 1, borderTopColor: c.border }]}>
-            <Plus size={20} color={c.brand} strokeWidth={2.75} />
-            <T variant="headline" color="brand">
-              Add part or extra work
-            </T>
-          </Pressable>
-        </Card>
-      </View>
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                setItems((all) => [...all, { title: 'Pressure relief valve', detail: 'Part · Screwfix, Fulham', pence: 3850, status: 'waiting' }])
+              }
+              style={[styles.addRow, items.length > 0 && { borderTopWidth: 1, borderTopColor: c.border }]}>
+              <Plus size={20} color={c.brand} strokeWidth={2.75} />
+              <T variant="headline" color="brand">
+                Add part or extra work
+              </T>
+            </Pressable>
+          </Card>
+        </View>
+      )}
 
       <View style={{ gap: Spacing.three }}>
         <SectionLabel>Photos and certificate</SectionLabel>

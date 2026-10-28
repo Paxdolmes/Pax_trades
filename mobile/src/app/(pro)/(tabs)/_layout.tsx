@@ -3,7 +3,7 @@ import { Briefcase, FileCheck, House, PoundSterling, UserRound } from 'lucide-re
 
 import { makeTabBar } from '@/components/tab-bar';
 import { credentialStatus } from '@/domain/rules';
-import { usePro } from '@/lib/pro';
+import { useOnlineHeartbeat, usePro } from '@/lib/pro';
 
 const tabs = (documentsBadge: boolean) => [
   { name: 'dashboard', label: 'Home', icon: House },
@@ -19,6 +19,7 @@ const WithoutBadge = makeTabBar(tabs(false));
 export default function ProTabs() {
   const today = new Date().toISOString().slice(0, 10);
   const { credentials } = usePro();
+  useOnlineHeartbeat();
   const TabBar = credentials.some((c) => credentialStatus(c, today) !== 'verified') ? WithBadge : WithoutBadge;
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>

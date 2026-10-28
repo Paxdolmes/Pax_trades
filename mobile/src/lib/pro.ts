@@ -2,6 +2,7 @@
 
 import * as Location from 'expo-location';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 
 import type { Trade } from '@/domain/catalog';
 import { useAuth } from '@/lib/auth';
@@ -17,7 +18,7 @@ import {
   type ProAccount,
   type ProJob,
 } from '@/lib/live';
-import { setOnline } from '@/lib/pro-state';
+import { setOnline, useOnline } from '@/lib/pro-state';
 
 export type ProView = ProAccount & { name: string; firstName: string };
 
@@ -54,6 +55,30 @@ export async function goOnline(next: boolean): Promise<void> {
     await setAvailability(next, point);
   }
   setOnline(next);
+}
+
+/**
+ * While the pro is online, checks in with their location every 10 minutes and when
+ * the app comes back to the front. Offers stop going to pros who haven't checked in
+ * for 4 hours, so a phone left switched off doesn't keep getting jobs.
+ */
+export function useOnlineHeartbeat() {
+  const [online] = useOnline();
+  useEffect(() => {
+    if (!isLive || !online) return;
+    const beat = async () => {
+      const pos = (await Location.getLastKnownPositionAsync()) ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+      await setAvailability(true, { lng: pos.coords.longitude, lat: pos.coords.latitude });
+    };
+    const safely = () => void beat().catch(() => {});
+    safely();
+    const timer = setInterval(safely, 10 * 60_000);
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && safely());
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [online]);
 }
 
 export type ProStats = { todayPence: number; todayJobs: number; weekPence: number };
