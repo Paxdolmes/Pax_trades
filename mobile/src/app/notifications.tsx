@@ -3,8 +3,10 @@ import { Bell, ChevronLeft } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { SignInPrompt } from '@/components/sign-in-prompt';
 import { Card, IconButton, IconTile, Screen, T } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
+import { needsSignIn, useAuth } from '@/lib/auth';
 import { dayAndTime, isLive, useLive } from '@/lib/live';
 import { loadNotifications, markNotificationsRead, type AppNotification } from '@/lib/notifications';
 
@@ -15,10 +17,11 @@ const DEMO: AppNotification[] = [
 /** Everything we've told the person, newest first. Opening it marks them read. */
 export default function Notifications() {
   const c = usePalette();
+  const guest = needsSignIn(useAuth().status);
   const { data, error } = useLive(loadNotifications, DEMO);
   useEffect(() => {
-    if (isLive) void markNotificationsRead();
-  }, []);
+    if (isLive && !guest) void markNotificationsRead();
+  }, [guest]);
 
   return (
     <Screen>
@@ -27,12 +30,15 @@ export default function Notifications() {
         <T variant="headline">Notifications</T>
         <View style={{ width: 44 }} />
       </View>
-      {error ? (
+      {guest ? (
+        <SignInPrompt icon={Bell} title="Updates about your jobs" body="Sign in and we'll tell you here when a pro accepts, is on the way, or sends a quote." />
+      ) : null}
+      {error && !guest ? (
         <T variant="callout" color="danger">
           {error}
         </T>
       ) : null}
-      {data.length === 0 ? (
+      {data.length === 0 && !guest ? (
         <T variant="callout" color="inkMuted">
           Nothing yet. Updates about your jobs will appear here.
         </T>

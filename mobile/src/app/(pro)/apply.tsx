@@ -7,7 +7,7 @@ import { Wordmark } from '@/components/brand';
 import { Button, Footer, IconButton, Screen, T, type LucideIcon } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
 import { FOUNDING_COMMISSION, STANDARD_COMMISSION, type Trade } from '@/domain/catalog';
-import { startProApplication, useAuth } from '@/lib/auth';
+import { startProApplication, useAccountGate, useAuth } from '@/lib/auth';
 
 const STEPS = ['Details', 'Documents', 'ID check', 'Bank details'];
 
@@ -32,9 +32,11 @@ export default function Apply() {
   const { refresh } = useAuth();
   const [selected, setSelected] = useState<Trade[]>(['plumbing', 'heating']);
   const [saving, setSaving] = useState(false);
+  const signedIn = useAccountGate();
   const current = 0;
 
   async function next() {
+    if (!signedIn()) return;
     setSaving(true);
     try {
       await startProApplication(selected);

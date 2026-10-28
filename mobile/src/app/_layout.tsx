@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 
 import { Colors, useScheme } from '@/constants/theme';
 import '@/lib/alert-polyfill';
-import { AuthProvider, needsSignIn, useAuth } from '@/lib/auth';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import { handlePushTaps, registerForPush } from '@/lib/push';
 
 void SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -49,10 +49,10 @@ export default function RootLayout() {
   );
 }
 
-// Signed-out people only reach the sign-in screen. Demo mode has no sign-in.
+// Guests can look around every public screen; actions that need an account open
+// sign-in on top (useAccountGate), so they come back to where they were.
 function Routes() {
   const { status } = useAuth();
-  const signIn = needsSignIn(status);
   const ready = status === 'ready';
 
   // Once signed in, this phone gets the account's notifications, and tapping one opens its screen.
@@ -64,14 +64,10 @@ function Routes() {
   return (
     <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Protected guard={signIn}>
-        <Stack.Screen name="sign-in" options={{ headerShown: false, gestureEnabled: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={!signIn}>
-        <Stack.Screen name="(customer)" options={{ headerShown: false }} />
-        <Stack.Screen name="(pro)" options={{ headerShown: false }} />
-        <Stack.Screen name="notifications" options={{ headerShown: false }} />
-      </Stack.Protected>
+      <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+      <Stack.Screen name="(customer)" options={{ headerShown: false }} />
+      <Stack.Screen name="(pro)" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications" options={{ headerShown: false }} />
     </Stack>
   );
 }

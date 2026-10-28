@@ -2,6 +2,7 @@
 // text-message fees. Without Supabase the apps stay in demo mode and skip sign-in.
 
 import type { Session } from '@supabase/supabase-js';
+import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import type { Trade } from '@/domain/catalog';
@@ -40,8 +41,25 @@ const AuthContext = createContext<AuthState>({
 
 export const useAuth = () => useContext(AuthContext);
 
-/** True when the person must go through the sign-in screen. */
+/** True until the person has an account in this app. Guests can still look around. */
 export const needsSignIn = (s: AuthStatus) => s === 'signed-out' || s === 'needs-name' || s === 'wrong-app';
+
+/** Signed in but not finished (no name yet, or the other app's account): send them back to sign-in. */
+export const mustFinishSignIn = (s: AuthStatus) => s === 'needs-name' || s === 'wrong-app';
+
+/**
+ * For actions that need an account, such as sending a request. Returns a check
+ * that opens sign-in for guests and returns false, so the screen keeps what
+ * they typed and they can carry on after signing in.
+ */
+export function useAccountGate() {
+  const { status } = useAuth();
+  return useCallback(() => {
+    if (!needsSignIn(status)) return true;
+    router.push('/sign-in');
+    return false;
+  }, [status]);
+}
 
 type ProfileRow = { id: string; role: Profile['role']; full_name: string | null };
 

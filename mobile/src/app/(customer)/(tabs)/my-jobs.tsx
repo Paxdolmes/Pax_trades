@@ -2,9 +2,11 @@ import { router } from 'expo-router';
 import { ChevronRight, ClipboardPen, Flame, Wrench, Zap } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
+import { SignInPrompt } from '@/components/sign-in-prompt';
 import { Avatar, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon, type Tone } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
 import { findJobType, formatPence, type Trade } from '@/domain/catalog';
+import { needsSignIn, useAuth } from '@/lib/auth';
 import { STATUS_LABELS } from '@/lib/jobs';
 import {
   dayAndTime,
@@ -119,10 +121,25 @@ const SECTIONS: { title: string; jobs: JobRow[] }[] = [
 
 export default function MyJobs() {
   const c = usePalette();
+  const { status } = useAuth();
   const { data: jobs } = useLive(() => loadCustomerJobs(), [] as CustomerJob[]);
   const { data: requests } = useLive(loadCustomerQuoteRequests, [] as CustomerQuoteRequest[]);
   const sections = isLive ? liveSections(jobs, requests) : SECTIONS;
   const empty = sections.every((s) => s.jobs.length === 0);
+  if (needsSignIn(status)) {
+    return (
+      <Screen>
+        <T variant="display" accessibilityRole="header">
+          My jobs
+        </T>
+        <SignInPrompt
+          icon={ClipboardPen}
+          title="Your jobs live here"
+          body="Sign in to follow your pro on the way, chat with them, confirm the work and see your receipts and certificates."
+        />
+      </Screen>
+    );
+  }
   return (
     <Screen>
       <T variant="display" accessibilityRole="header">

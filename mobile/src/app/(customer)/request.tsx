@@ -10,6 +10,7 @@ import { formatPence, jobTypesForTrade, TRADES, type JobType, type Trade } from 
 import { bookingDays } from '@/domain/slots';
 import { createJob, type Urgency } from '@/lib/jobs';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
+import { useAccountGate } from '@/lib/auth';
 import { ensureSavedCard } from '@/lib/payments';
 import { priceLine } from '@/lib/pricing';
 
@@ -36,6 +37,7 @@ export default function RequestJob() {
   const [days] = useState(() => bookingDays(new Date()));
   const [dayKey, setDayKey] = useState(days[0]?.key);
   const [slot, setSlot] = useState<string | null>(null);
+  const signedIn = useAccountGate();
 
   // Opened without a trade, e.g. a refreshed web page: start again from home.
   if (!jobType) return <Redirect href="/home" />;
@@ -46,6 +48,7 @@ export default function RequestJob() {
   const ready = urgent || slot !== null;
 
   async function submit() {
+    if (!signedIn()) return;
     setSubmitting(true);
     try {
       if (!(await ensureSavedCard())) return;
