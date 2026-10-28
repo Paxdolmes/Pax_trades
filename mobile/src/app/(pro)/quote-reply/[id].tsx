@@ -3,11 +3,11 @@ import { ChevronLeft, CircleCheck, ClipboardPen, MapPin, Send } from 'lucide-rea
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { Button, Card, Chip, Footer, IconButton, IconTile, Screen, T, Unavailable } from '@/components/ui';
+import { Button, Card, Chip, Footer, IconButton, IconTile, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { FOUNDING_COMMISSION, formatPence, QUOTE_TIMING_LABELS, STANDARD_COMMISSION, TRADES, type Trade } from '@/domain/catalog';
 import { splitPayment } from '@/domain/rules';
-import { useQuoteRequestList } from '@/lib/offers';
+import { useQuoteRequests } from '@/lib/offers';
 import { usePro } from '@/lib/pro';
 import { recordQuote, useSentQuote } from '@/lib/pro-state';
 import { sendQuote } from '@/lib/quotes';
@@ -37,8 +37,7 @@ export default function QuoteReply() {
   const c = usePalette();
   const { id } = useLocalSearchParams<{ id: string }>();
   const pro = usePro();
-  const { requests, loading } = useQuoteRequestList(pro.trades);
-  const request = requests.find((r) => r.id === id);
+  const request = useQuoteRequests(pro.trades).find((r) => r.id === id);
   const sent = useSentQuote(id);
   const [picked, setTrade] = useState<Trade | undefined>();
   const trade = picked ?? request?.quotableAs[0];
@@ -47,17 +46,7 @@ export default function QuoteReply() {
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
 
-  if (!request || !trade) {
-    return (
-      <Unavailable
-        loading={loading}
-        title="This request has closed"
-        text="The customer may have picked a quote already, or it isn't for your trades. Open requests are on the Jobs tab."
-        actionLabel="See open jobs"
-        onAction={() => router.replace('/jobs')}
-      />
-    );
-  }
+  if (!request || !trade) return null;
   const pence = parsePrice(price);
   const rate = pro.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION;
 

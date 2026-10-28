@@ -22,7 +22,7 @@ import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
-import { Avatar, Button, Card, Chip, Divider, Footer, IconButton, IconTile, Note, Screen, SectionLabel, Sheet, T, Unavailable } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Divider, Footer, IconButton, IconTile, Note, Screen, SectionLabel, Sheet, T } from '@/components/ui';
 import { Colors, Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
 import { CALLOUT_RATES, findJobType, formatPence, PILOT } from '@/domain/catalog';
 import { calloutChargePence } from '@/domain/rules';
@@ -32,13 +32,11 @@ import { proArrived, proFinished } from '@/lib/trust';
 
 export default function Trip() {
   const { id, phase } = useLocalSearchParams<{ id: string; phase?: 'en_route' | 'on_job' }>();
-  const { data: jobs, loading } = useLive(() => loadProJobs(id), [] as ProJob[], id);
+  const { data: jobs } = useLive(() => loadProJobs(id), [] as ProJob[], id);
   const offer = isLive ? (jobs[0] ? tripView(jobs[0]) : undefined) : findOffer(id);
   const [picked, setCurrent] = useState(phase);
   const current = picked ?? (jobs[0]?.status === 'on_site' ? 'on_job' : 'en_route');
-  if (!offer) {
-    return <Unavailable loading={loading} title="Job not found" text="It may have been cancelled or finished. Your jobs are on the Jobs tab." actionLabel="Back to home" onAction={() => router.replace('/dashboard')} />;
-  }
+  if (!offer) return null;
   const jobId = isLive ? id : `demo-${offer.id}`;
   async function arrived() {
     try {

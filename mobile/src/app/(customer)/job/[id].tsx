@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
 import { StarInput } from '@/components/reviews';
 import { TRADE_ICONS } from '@/components/trade-icons';
-import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, ProgressSteps, Sheet, T, Unavailable } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, ProgressSteps, Sheet, T } from '@/components/ui';
 import { Layout, Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { ALL_IN_NOTE, findJobType, formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
 import { arriveBy } from '@/domain/rules';
@@ -99,7 +99,7 @@ export default function JobScreen() {
   }>();
   const demo = params.id.startsWith('demo-');
   const live = isSupabaseConfigured && !demo;
-  const { data: rows, reload, loading } = useLive(
+  const { data: rows, reload } = useLive(
     () => (live ? loadCustomerJobs(params.id) : Promise.resolve([] as CustomerJob[])),
     [] as CustomerJob[],
     params.id,
@@ -172,10 +172,6 @@ export default function JobScreen() {
   const finalPence = row?.finalPricePence ?? null;
   const extraPence = extra === 'approved' ? DEMO_EXTRA_WORK.lines.reduce((s, l) => s + l.pence, 0) : 0;
 
-  // Live: wait for the job instead of showing placeholder details, and say so if it's not theirs or gone.
-  if (live && !row && shown === null) {
-    return <Unavailable loading={loading} title="Job not found" text="It may have been removed, or it belongs to another account. Your jobs are under My jobs." actionLabel="Go to My jobs" onAction={() => router.replace('/my-jobs')} />;
-  }
   if (status === 'finished' || status === 'completed') {
     return (
       <ProContext.Provider value={pro}>
