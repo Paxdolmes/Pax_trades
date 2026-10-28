@@ -1,5 +1,6 @@
-import { ChevronRight, CreditCard, FileText, HelpCircle, MapPin, ShieldCheck } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { router, type Href } from 'expo-router';
+import { ChevronRight, CreditCard, FileText, HelpCircle, MapPin, Scale, ShieldCheck } from 'lucide-react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { SignInPrompt } from '@/components/sign-in-prompt';
 import { SignOutButton } from '@/components/sign-out';
@@ -7,13 +8,25 @@ import { Avatar, Card, Divider, IconTile, Screen, T, type LucideIcon } from '@/c
 import { Spacing, usePalette } from '@/constants/theme';
 import { needsSignIn, useAuth } from '@/lib/auth';
 import { DEMO_CUSTOMER } from '@/lib/demo';
+import { saveCard } from '@/lib/payments';
 
-const ROWS: { icon: LucideIcon; label: string; detail: string; public?: boolean }[] = [
+async function changeCard() {
+  try {
+    if (await saveCard()) Alert.alert('Card saved', "We'll use this card for your next job.");
+  } catch (e) {
+    Alert.alert('Could not open the card form', e instanceof Error ? e.message : 'Please try again.');
+  }
+}
+
+type Row = { icon: LucideIcon; label: string; detail: string; public?: boolean; href?: Href; onPress?: () => void };
+
+const ROWS: Row[] = [
   { icon: MapPin, label: 'Saved addresses', detail: DEMO_CUSTOMER.postcode },
-  { icon: CreditCard, label: 'Payment methods', detail: 'Add a card' },
-  { icon: FileText, label: 'Certificates', detail: 'Gas safety records and EICRs' },
-  { icon: ShieldCheck, label: 'How we vet pros', detail: 'Gas Safe, NICEIC or NAPIT, insurance, ID', public: true },
-  { icon: HelpCircle, label: 'Help', detail: 'Chat with the Relay team', public: true },
+  { icon: CreditCard, label: 'Payment methods', detail: 'Add or change your card', onPress: changeCard },
+  { icon: FileText, label: 'Certificates', detail: 'Gas safety records and EICRs, on each finished job', href: '/my-jobs' },
+  { icon: ShieldCheck, label: 'How we vet pros', detail: 'ID, insurance, Gas Safe, NICEIC or NAPIT', public: true, href: '/safety' },
+  { icon: HelpCircle, label: 'Help', detail: 'Common questions, or message the Relay team', public: true, href: '/help' },
+  { icon: Scale, label: 'Terms and privacy', detail: 'How booking works and what we keep', public: true, href: '/terms' },
 ];
 
 export default function Account() {
@@ -47,7 +60,11 @@ export default function Account() {
         {(guest ? ROWS.filter((r) => r.public) : ROWS).map((r, i) => (
           <View key={r.label}>
             {i > 0 ? <Divider inset={72} /> : null}
-            <View style={styles.row}>
+            <Pressable
+              accessibilityRole={r.href || r.onPress ? 'button' : undefined}
+              disabled={!r.href && !r.onPress}
+              onPress={() => (r.href ? router.push(r.href) : r.onPress?.())}
+              style={({ pressed }) => [styles.row, pressed && { backgroundColor: c.surfaceMuted }]}>
               <IconTile icon={r.icon} tone="neutral" size={40} />
               <View style={{ flex: 1 }}>
                 <T variant="subhead" style={{ fontWeight: '600' }}>
@@ -57,8 +74,8 @@ export default function Account() {
                   {r.detail}
                 </T>
               </View>
-              <ChevronRight size={18} color={c.inkSubtle} />
-            </View>
+              {r.href || r.onPress ? <ChevronRight size={18} color={c.inkSubtle} /> : null}
+            </Pressable>
           </View>
         ))}
       </Card>

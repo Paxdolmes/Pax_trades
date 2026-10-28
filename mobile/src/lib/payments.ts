@@ -13,7 +13,12 @@ export async function ensureSavedCard(): Promise<boolean> {
   if (!me) throw new Error('Please sign in again');
   const { data: profile } = await supabase.from('profiles').select('stripe_payment_method_id').eq('id', me).single();
   if (profile?.stripe_payment_method_id) return true;
+  return saveCard();
+}
 
+/** Adds or replaces the customer's saved card. Resolves false if they back out. Demo: always true. */
+export async function saveCard(): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
   const { data, error } = await supabase.functions.invoke('payment-setup');
   if (error) throw error;
   return presentSaveCardSheet(data as { customerId: string; ephemeralKey: string; setupIntent: string });

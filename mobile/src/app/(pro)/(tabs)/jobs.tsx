@@ -1,30 +1,29 @@
 import { router } from 'expo-router';
-import { CalendarClock, ChevronRight, CircleCheck, ClipboardPen, Droplets, Flame, Lock, MapPin, Plus, Zap } from 'lucide-react-native';
+import { CalendarClock, ChevronRight, CircleCheck, ClipboardPen, Lock, MapPin, Plus, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon } from '@/components/ui';
+import { TRADE_ICONS } from '@/components/trade-icons';
+import { Button, Card, Chip, IconTile, Screen, SectionLabel, T } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
-import { formatPence, PILOT, QUOTE_TIMING_LABELS, type Trade } from '@/domain/catalog';
+import { formatPence, PILOT, QUOTE_TIMING_LABELS, TRADES, type Trade } from '@/domain/catalog';
 import { CREDENTIAL_LABELS } from '@/lib/demo';
 import { isLive } from '@/lib/live';
 import { offerPay, useOffers, useQuoteRequests, type OfferView, type QuoteRequestView } from '@/lib/offers';
 import { goOnline, usePro } from '@/lib/pro';
 import { useOnline, useSentQuote } from '@/lib/pro-state';
 
-const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Droplets, electrical: Zap, heating: Flame };
-const FILTERS: { key: Trade | 'all'; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'heating', label: 'Heating' },
-  { key: 'plumbing', label: 'Plumbing' },
-  { key: 'electrical', label: 'Electrical' },
-];
 
 export default function ProJobs() {
   const c = usePalette();
   const [online] = useOnline();
   const [filter, setFilter] = useState<Trade | 'all'>('all');
   const pro = usePro();
+  // All, then just the trades this pro works in.
+  const filters: { key: Trade | 'all'; label: string }[] = [
+    { key: 'all', label: 'All' },
+    ...TRADES.filter((t) => pro.trades.includes(t.id)).map((t) => ({ key: t.id, label: t.service })),
+  ];
   const allOffers = useOffers();
   const offers = allOffers.filter((o) => filter === 'all' || o.jobType.trade === filter);
   const requests = useQuoteRequests(pro.trades).filter((r) => filter === 'all' || r.quotableAs.includes(filter));
@@ -43,7 +42,7 @@ export default function ProJobs() {
       </View>
 
       <View style={styles.filters}>
-        {FILTERS.map((f) => {
+        {filters.map((f) => {
           const on = filter === f.key;
           const count = f.key === 'all' ? allOffers.length : null;
           return (

@@ -1,7 +1,15 @@
 // Launch catalogue: trades, job types and the credentials each job needs.
 // Prices are in pence and come from the Phase 0 launch price list.
 
-export type Trade = 'plumbing' | 'electrical' | 'heating';
+export type Trade =
+  | 'plumbing'
+  | 'electrical'
+  | 'heating'
+  | 'drains'
+  | 'locksmith'
+  | 'handyman'
+  | 'carpentry'
+  | 'appliances';
 
 export type CredentialType =
   | 'gas_safe'
@@ -23,11 +31,20 @@ export type JobType = {
   urgentAllowed: boolean;
 };
 
-export const TRADES: { id: Trade; label: string; detail: string; pro: string }[] = [
-  { id: 'plumbing', label: 'Plumber', detail: 'Leaks, blockages, taps and toilets', pro: 'plumber' },
-  { id: 'electrical', label: 'Electrician', detail: 'Faults, sockets, lighting and fuse boxes', pro: 'electrician' },
-  { id: 'heating', label: 'Heating & gas engineer', detail: 'No heat, boilers, servicing and CP12', pro: 'Gas Safe engineer' },
+/** The launch trades. `short` fits a small tile; `service` names the trade on the website. */
+export const TRADES: { id: Trade; label: string; short: string; service: string; detail: string; pro: string }[] = [
+  { id: 'plumbing', label: 'Plumber', short: 'Plumber', service: 'Plumbing', detail: 'Leaks, taps, toilets and hot water', pro: 'plumber' },
+  { id: 'electrical', label: 'Electrician', short: 'Electrician', service: 'Electrical', detail: 'Faults, sockets, lighting and safety checks', pro: 'electrician' },
+  { id: 'heating', label: 'Heating & gas engineer', short: 'Heating', service: 'Heating & gas', detail: 'No heat, boilers, radiators and CP12', pro: 'Gas Safe engineer' },
+  { id: 'drains', label: 'Drain engineer', short: 'Drains', service: 'Drains', detail: 'Blocked sinks, showers and outside drains', pro: 'drain engineer' },
+  { id: 'locksmith', label: 'Locksmith', short: 'Locksmith', service: 'Locksmith', detail: 'Locked out, broken or new locks', pro: 'locksmith' },
+  { id: 'handyman', label: 'Handyman', short: 'Handyman', service: 'Handyman', detail: 'Shelves, pictures, curtain rails and flat-pack', pro: 'handyman' },
+  { id: 'carpentry', label: 'Carpenter', short: 'Carpenter', service: 'Carpentry & doors', detail: 'Doors, floorboards, skirting and repairs', pro: 'carpenter' },
+  { id: 'appliances', label: 'Appliance engineer', short: 'Appliances', service: 'Appliance repairs', detail: 'Washing machines, dishwashers and ovens', pro: 'appliance engineer' },
 ];
+
+/** Trades where a pro can be with you within the hour. */
+export const URGENT_TRADES: Trade[] = ['plumbing', 'electrical', 'heating', 'drains', 'locksmith'];
 
 export const CALLOUT_RATES = {
   standard: { firstHourPence: 9500, perHourPence: 8000, label: '7am to 8pm weekdays' },
@@ -49,10 +66,34 @@ export const JOB_TYPES: JobType[] = [
   {
     id: 'blocked-toilet',
     trade: 'plumbing',
-    label: 'Blocked toilet or drain',
+    label: 'Blocked toilet',
     requires: ['plumbing_nvq', 'public_liability'],
     pricing: { kind: 'callout' },
     urgentAllowed: true,
+  },
+  {
+    id: 'tap-repair',
+    trade: 'plumbing',
+    label: 'Dripping or broken tap',
+    requires: ['plumbing_nvq', 'public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
+  },
+  {
+    id: 'toilet-repair',
+    trade: 'plumbing',
+    label: "Toilet won't flush or keeps running",
+    requires: ['plumbing_nvq', 'public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: true,
+  },
+  {
+    id: 'appliance-plumb-in',
+    trade: 'plumbing',
+    label: 'Plumb in a washing machine or dishwasher',
+    requires: ['plumbing_nvq', 'public_liability'],
+    pricing: { kind: 'fixed', pence: 9500 },
+    urgentAllowed: false,
   },
   {
     id: 'unvented-cylinder',
@@ -79,6 +120,22 @@ export const JOB_TYPES: JobType[] = [
     urgentAllowed: false,
   },
   {
+    id: 'light-fitting',
+    trade: 'electrical',
+    label: 'Replace a light fitting',
+    requires: ['competent_person_scheme', 'public_liability'],
+    pricing: { kind: 'fixed', pence: 9500, extraUnitPence: 4000, extraUnitLabel: 'each extra' },
+    urgentAllowed: false,
+  },
+  {
+    id: 'electrical-repair',
+    trade: 'electrical',
+    label: 'Other electrical repair',
+    requires: ['competent_person_scheme', 'public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
+  },
+  {
     id: 'eicr-small',
     trade: 'electrical',
     label: 'EICR, flat up to 2 bedrooms',
@@ -93,6 +150,22 @@ export const JOB_TYPES: JobType[] = [
     requires: ['gas_safe', 'public_liability'],
     pricing: { kind: 'callout' },
     urgentAllowed: true,
+  },
+  {
+    id: 'boiler-repair',
+    trade: 'heating',
+    label: 'Boiler fault or error code',
+    requires: ['gas_safe', 'public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: true,
+  },
+  {
+    id: 'radiator',
+    trade: 'heating',
+    label: 'Radiator cold, leaking or needs moving',
+    requires: ['gas_safe', 'public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
   },
   {
     id: 'boiler-service',
@@ -118,6 +191,86 @@ export const JOB_TYPES: JobType[] = [
     pricing: { kind: 'fixed', pence: 14900 },
     urgentAllowed: false,
   },
+  {
+    id: 'blocked-sink',
+    trade: 'drains',
+    label: 'Blocked sink, shower or bath',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: true,
+  },
+  {
+    id: 'blocked-drain',
+    trade: 'drains',
+    label: 'Blocked outside drain or manhole',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: true,
+  },
+  {
+    id: 'locked-out',
+    trade: 'locksmith',
+    label: 'Locked out',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: true,
+  },
+  {
+    id: 'lock-change',
+    trade: 'locksmith',
+    label: 'Change, repair or upgrade a lock',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: true,
+  },
+  {
+    id: 'odd-jobs',
+    trade: 'handyman',
+    label: 'Shelves, pictures, curtain rails or TV mounting',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
+  },
+  {
+    id: 'flat-pack',
+    trade: 'handyman',
+    label: 'Flat-pack furniture assembly',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
+  },
+  {
+    id: 'door-repair',
+    trade: 'carpentry',
+    label: 'Door sticking, broken or needs hanging',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
+  },
+  {
+    id: 'floor-repair',
+    trade: 'carpentry',
+    label: 'Floorboards, skirting or woodwork repair',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
+  },
+  {
+    id: 'washer-repair',
+    trade: 'appliances',
+    label: 'Washing machine or dishwasher fault',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
+  },
+  {
+    id: 'oven-repair',
+    trade: 'appliances',
+    label: 'Electric oven, hob or fridge fault',
+    requires: ['public_liability'],
+    pricing: { kind: 'callout' },
+    urgentAllowed: false,
+  },
 ];
 
 // "Something else? Get quotes": work outside the catalogue still needs the
@@ -126,6 +279,11 @@ export const QUOTE_REQUIREMENTS: Record<Trade, CredentialType[]> = {
   plumbing: ['plumbing_nvq', 'public_liability'],
   electrical: ['competent_person_scheme', 'public_liability'],
   heating: ['gas_safe', 'public_liability'],
+  drains: ['public_liability'],
+  locksmith: ['public_liability'],
+  handyman: ['public_liability'],
+  carpentry: ['public_liability'],
+  appliances: ['public_liability'],
 };
 
 export type QuoteTiming = 'asap' | 'this_week' | 'flexible';
@@ -162,6 +320,11 @@ const QUOTED_LABELS: Record<Trade, string> = {
   plumbing: 'Quoted plumbing job',
   electrical: 'Quoted electrical job',
   heating: 'Quoted heating or gas job',
+  drains: 'Quoted drainage job',
+  locksmith: 'Quoted locksmith job',
+  handyman: 'Quoted handyman job',
+  carpentry: 'Quoted carpentry job',
+  appliances: 'Quoted appliance repair',
 };
 
 /**

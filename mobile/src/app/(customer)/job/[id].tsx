@@ -7,7 +7,6 @@ import {
   Clock,
   CreditCard,
   FileText,
-  Flame,
   Gift,
   Info,
   Lock,
@@ -15,16 +14,15 @@ import {
   ShieldCheck,
   Star,
   TriangleAlert,
-  Wrench,
-  Zap,
-} from 'lucide-react-native';
+  } from 'lucide-react-native';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
 import { StarInput } from '@/components/reviews';
-import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, Sheet, T, type LucideIcon } from '@/components/ui';
+import { TRADE_ICONS } from '@/components/trade-icons';
+import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, Sheet, T } from '@/components/ui';
 import { Layout, Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { ALL_IN_NOTE, findJobType, formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
 import { arriveBy } from '@/domain/rules';
@@ -36,7 +34,6 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { chargeJob } from '@/lib/payments';
 import { confirmJob, saveReview } from '@/lib/trust';
 
-const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Wrench, electrical: Zap, heating: Flame };
 
 type Extra = 'none' | 'asked' | 'approved' | 'declined';
 
