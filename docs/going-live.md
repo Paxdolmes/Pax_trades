@@ -16,6 +16,19 @@ Project: `qfpujvfopbgnslylsquf`. Its URL and publishable key are already in `mob
    - `SUPABASE_DB_PASSWORD`: the password from step 3
 5. From then on, every merge to `main` that changes `supabase/` updates the live database and server functions. To run it by hand, go to the Actions tab → Deploy Supabase → Run workflow.
 
+### Sign-in emails
+
+People sign in with their email and a 6-digit code. Two settings make that work:
+
+1. **Put the code in the email.** Go to Authentication → Emails → Templates → **Magic Link** (Supabase uses this one for codes) and replace the message with:
+   ```html
+   <h2>Your Relay code</h2>
+   <p>Enter this code in the app to sign in: <strong>{{ .Token }}</strong></p>
+   <p>It works for 1 hour. If you didn't ask for it, you can ignore this email.</p>
+   ```
+   Do the same for the **Confirm signup** template. Under Authentication → Sign In / Providers → Email, check the email code length is **6**.
+2. **Send from your own email service before real users.** Supabase's built-in email only reaches members of your Supabase team and sends a few an hour, which is fine for testing. For real customers, sign up for an email service such as Resend (https://resend.com, free for 3,000 emails a month), verify your domain, and enter its SMTP details under Authentication → Emails → SMTP Settings. Its password goes there, not in chat.
+
 ## 2. Stripe (card payments and paying pros)
 
 1. Sign up at https://dashboard.stripe.com/register. Stay in **test mode**, where no real money moves.
@@ -61,8 +74,6 @@ The apps now use native features (camera, photos, Stripe), so Expo Go can't run 
 
 ## Still to build before real customers
 
-- **Sign-up and sign-in screens.** The apps have no login yet, and live mode needs one.
-- **A profile record for each new user.** It should be created automatically when they sign up.
-- **The pros' live offers list.** In live mode it should read from the database, not the demo data.
+- **Live data on the remaining screens.** The pros' offers, the jobs lists and the customer home greeting still show demo data.
 - **Push notifications** for new offers and messages.
 - **An admin screen** for handling problem reports and approving pros. Until then, the Supabase table editor will do.

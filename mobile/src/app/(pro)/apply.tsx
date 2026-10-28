@@ -1,12 +1,13 @@
 import { router } from 'expo-router';
 import { ArrowRight, Award, BadgePoundSterling, Check, ChevronLeft, Flame, Percent, Timer, Wrench, Zap } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand';
 import { Button, Footer, IconButton, Screen, T, type LucideIcon } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
 import { FOUNDING_COMMISSION, STANDARD_COMMISSION, type Trade } from '@/domain/catalog';
+import { startProApplication, useAuth } from '@/lib/auth';
 
 const STEPS = ['Details', 'Documents', 'ID check', 'Bank details'];
 
@@ -28,19 +29,38 @@ const PERKS: { icon: LucideIcon; title: string; body: string }[] = [
 
 export default function Apply() {
   const c = usePalette();
+  const { refresh } = useAuth();
   const [selected, setSelected] = useState<Trade[]>(['plumbing', 'heating']);
+  const [saving, setSaving] = useState(false);
   const current = 0;
+
+  async function next() {
+    setSaving(true);
+    try {
+      await startProApplication(selected);
+      await refresh();
+      router.navigate('/documents');
+    } catch (e) {
+      Alert.alert('Could not save your trades', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Screen
       background="surface"
       footer={
         <Footer>
-          <Button label="Continue to documents" trailingIcon={ArrowRight} disabled={!selected.length} onPress={() => router.navigate('/documents')} />
+          <Button label="Continue to documents" trailingIcon={ArrowRight} loading={saving} disabled={!selected.length} onPress={next} />
         </Footer>
       }>
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Back" onPress={() => router.back()} tone="muted" />
+        {router.canGoBack() ? (
+          <IconButton icon={ChevronLeft} label="Back" onPress={() => router.back()} tone="muted" />
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
         <Wordmark size={22} traders />
         <View style={{ width: 44 }} />
       </View>
