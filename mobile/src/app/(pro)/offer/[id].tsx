@@ -5,14 +5,20 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
-import { Button, Card, Chip, IconTile, T, useBottomPadding } from '@/components/ui';
+import { Button, Card, Chip, IconTile, T, Unavailable, useBottomPadding } from '@/components/ui';
 import { Layout, Spacing, usePalette } from '@/constants/theme';
 import { FOUNDING_COMMISSION, PILOT, STANDARD_COMMISSION } from '@/domain/catalog';
 import { arriveBy } from '@/domain/rules';
 import { CREDENTIAL_LABELS } from '@/lib/demo';
 import { acceptOffer, isLive } from '@/lib/live';
-import { offerPay, useOffers } from '@/lib/offers';
+import { offerPay, useOffer } from '@/lib/offers';
 import { usePro } from '@/lib/pro';
+
+/** Back to where they came from, or home when the offer was opened from a link. */
+function leave() {
+  if (router.canGoBack()) router.back();
+  else router.replace('/dashboard');
+}
 
 /** Matches job_offers.expires_at in the database. */
 const OFFER_SECONDS = 60;
@@ -26,7 +32,7 @@ export default function JobOffer() {
   const c = usePalette();
   const bottom = useBottomPadding();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const offer = useOffers().find((o) => o.id === id);
+  const { offer, loading } = useOffer(id);
   const pro = usePro();
   const expiresAt = offer?.expiresAt;
   const [openedAt] = useState(() => Date.now());
@@ -44,7 +50,7 @@ export default function JobOffer() {
   }, []);
 
   useEffect(() => {
-    if (secondsLeft === 0) router.back();
+    if (secondsLeft === 0) leave();
   }, [secondsLeft]);
 
   async function accept() {
@@ -59,13 +65,15 @@ export default function JobOffer() {
       router.replace({ pathname: '/trip/[id]', params: { id: jobId } });
     } catch (e) {
       Alert.alert('Could not accept', e instanceof Error ? e.message : 'Please try again.');
-      router.back();
+      leave();
     } finally {
       setAccepting(false);
     }
   }
 
-  if (!offer) return null;
+  if (!offer) {
+    return <Unavailable loading={loading} title="This job has gone" text="Another pro took it, or the time to accept ran out. New jobs show on your home screen." actionLabel="Back to home" onAction={leave} />;
+  }
   const pay = offerPay(offer.jobType);
   const keep = Math.round((1 - (pro.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION)) * 100);
   const requirement = offer.jobType.requires.find((r) => r !== 'public_liability');

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ReviewCard } from '@/components/reviews';
-import { Avatar, Card, Chip, IconButton, Screen, SectionLabel, T } from '@/components/ui';
+import { Avatar, Card, Chip, IconButton, Screen, SectionLabel, T, Unavailable } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
 import { TRADES } from '@/domain/catalog';
 import { CREDENTIAL_LABELS } from '@/lib/demo';
@@ -15,12 +15,17 @@ export default function ProProfileScreen() {
   const c = usePalette();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [pro, setPro] = useState<ProProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadProProfile(id).then(setPro, () => setPro(null));
+    loadProProfile(id)
+      .then(setPro, () => setPro(null))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  if (!pro) return <Screen>{null}</Screen>;
+  if (!pro) {
+    return <Unavailable loading={loading} title="Profile not found" text="This pro may no longer be on Relay." onAction={() => (router.canGoBack() ? router.back() : router.replace('/home'))} />;
+  }
   const joined = pro.trades.map((t) => TRADES.find((x) => x.id === t)?.pro ?? t).join(' and ');
   const trades = joined.charAt(0).toUpperCase() + joined.slice(1);
 
