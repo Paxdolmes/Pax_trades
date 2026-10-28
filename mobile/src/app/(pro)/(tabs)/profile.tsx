@@ -2,10 +2,12 @@ import { router } from 'expo-router';
 import { Award, ChevronRight, ClipboardCheck, HelpCircle, Landmark, MapPin, Star } from 'lucide-react-native';
 import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 
+import { SignOutButton } from '@/components/sign-out';
 import { Avatar, Card, Chip, Divider, IconTile, Screen, T, type LucideIcon } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
 import { TRADES } from '@/domain/catalog';
 import { ratingSummary } from '@/domain/rules';
+import { useAuth } from '@/lib/auth';
 import { DEMO_TRADER, DEMO_TRADER_REVIEWS } from '@/lib/demo';
 import { bankSetupLink } from '@/lib/payments';
 
@@ -21,6 +23,8 @@ async function openBankSetup() {
 
 export default function Profile() {
   const c = usePalette();
+  const { profile } = useAuth();
+  const name = profile?.fullName ?? DEMO_TRADER.name;
   const reviews = ratingSummary(DEMO_TRADER_REVIEWS.map((r) => r.rating));
   const rows: { icon: LucideIcon; label: string; detail: string; onPress?: () => void }[] = [
     {
@@ -37,10 +41,10 @@ export default function Profile() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Avatar name={DEMO_TRADER.name} size={56} />
+        <Avatar name={name} size={56} />
         <View style={{ flex: 1, gap: 4 }}>
           <T variant="title1" accessibilityRole="header">
-            {DEMO_TRADER.name}
+            {name}
           </T>
           <T variant="footnote" color="inkMuted">
             {DEMO_TRADER.trades.map((t) => TRADES.find((x) => x.id === t)?.label).join(', ')}
@@ -67,6 +71,7 @@ export default function Profile() {
           </View>
         ))}
       </Card>
+      <SignOutButton />
     </Screen>
   );
 }

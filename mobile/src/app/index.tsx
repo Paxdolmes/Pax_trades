@@ -1,8 +1,22 @@
 import { Redirect } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
 
+import { usePalette } from '@/constants/theme';
+import { needsSignIn, useAuth } from '@/lib/auth';
 import { appVariant } from '@/lib/variant';
 
-// The same bundle ships as two store apps; send each to its own flow.
+// The same bundle ships as two store apps; send each to its own flow, after sign-in.
 export default function Index() {
-  return <Redirect href={appVariant === 'pro' ? '/dashboard' : '/home'} />;
+  const c = usePalette();
+  const { status, hasApplication } = useAuth();
+  if (status === 'loading') {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg }}>
+        <ActivityIndicator color={c.brand} />
+      </View>
+    );
+  }
+  if (needsSignIn(status)) return <Redirect href="/sign-in" />;
+  if (appVariant === 'pro') return <Redirect href={hasApplication ? '/dashboard' : '/apply'} />;
+  return <Redirect href="/home" />;
 }

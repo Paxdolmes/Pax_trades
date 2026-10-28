@@ -1,8 +1,10 @@
 import { ChevronRight, CreditCard, FileText, HelpCircle, MapPin, ShieldCheck } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
+import { SignOutButton } from '@/components/sign-out';
 import { Avatar, Card, Divider, IconTile, Screen, T, type LucideIcon } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
+import { useAuth } from '@/lib/auth';
 import { DEMO_CUSTOMER } from '@/lib/demo';
 
 const ROWS: { icon: LucideIcon; label: string; detail: string }[] = [
@@ -15,16 +17,18 @@ const ROWS: { icon: LucideIcon; label: string; detail: string }[] = [
 
 export default function Account() {
   const c = usePalette();
+  const { profile, session } = useAuth();
+  const name = profile?.fullName ?? DEMO_CUSTOMER.name;
   return (
     <Screen>
       <View style={styles.header}>
-        <Avatar name={DEMO_CUSTOMER.name} size={56} />
-        <View>
+        <Avatar name={name} size={56} />
+        <View style={{ flex: 1 }}>
           <T variant="title1" accessibilityRole="header">
-            {DEMO_CUSTOMER.name}
+            {name}
           </T>
           <T variant="footnote" color="inkMuted">
-            Fulham, London
+            {session?.user.email ?? 'Fulham, London'}
           </T>
         </View>
       </View>
@@ -47,6 +51,7 @@ export default function Account() {
           </View>
         ))}
       </Card>
+      <SignOutButton />
     </Screen>
   );
 }
