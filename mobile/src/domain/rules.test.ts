@@ -12,6 +12,7 @@ import {
   isOutOfHours,
   missingCredentials,
   outwardCode,
+  quotableTrades,
   splitPayment,
   type Credential,
 } from './rules.ts';
@@ -96,5 +97,27 @@ describe('credential status', () => {
     assert.equal(credentialStatus({ type: 'gas_safe', verified: true, expiresOn: '2026-10-27' }, today), 'expired');
     assert.equal(credentialStatus({ type: 'gas_safe', verified: true, expiresOn: '2027-06-30' }, today), 'verified');
     assert.equal(credentialStatus({ type: 'plumbing_nvq', verified: true, expiresOn: null }, today), 'verified');
+  });
+});
+
+describe('quote requests', () => {
+  const gasAndPlumbing: Credential[] = [
+    { type: 'gas_safe', verified: true, expiresOn: '2027-06-30' },
+    { type: 'plumbing_nvq', verified: true, expiresOn: null },
+    { type: 'public_liability', verified: true, expiresOn: '2027-01-31' },
+  ];
+
+  it('offers every trade the pro is qualified for when the customer is not sure', () => {
+    assert.deepEqual(quotableTrades([], ['plumbing', 'heating'], gasAndPlumbing, today), ['plumbing', 'heating']);
+  });
+
+  it('only quotes under the trades the customer asked for', () => {
+    assert.deepEqual(quotableTrades(['electrical'], ['plumbing', 'heating'], gasAndPlumbing, today), []);
+    assert.deepEqual(quotableTrades(['heating'], ['plumbing', 'heating'], gasAndPlumbing, today), ['heating']);
+  });
+
+  it('drops a trade whose documents have lapsed', () => {
+    const expiredGas = gasAndPlumbing.map((c) => (c.type === 'gas_safe' ? { ...c, expiresOn: '2026-10-01' } : c));
+    assert.deepEqual(quotableTrades([], ['plumbing', 'heating'], expiredGas, today), ['plumbing']);
   });
 });

@@ -1,7 +1,7 @@
 // Pure business rules shared by the app and mirrored in the database.
 // Kept free of React Native imports so they run under `node --test`.
 
-import type { CredentialType, JobType } from './catalog';
+import { QUOTE_REQUIREMENTS, type CredentialType, type JobType, type Trade } from './catalog.ts';
 
 export type Credential = {
   type: CredentialType;
@@ -82,4 +82,21 @@ export function calloutChargePence(
 export function splitPayment(totalPence: number, commissionRate: number) {
   const platformPence = Math.round(totalPence * commissionRate);
   return { platformPence, proPence: totalPence - platformPence };
+}
+
+/**
+ * Trades a pro can quote under for a request. An empty `requestTrades` means the
+ * customer wasn't sure, so any of the pro's trades with valid documents will do.
+ */
+export function quotableTrades(
+  requestTrades: Trade[],
+  proTrades: Trade[],
+  credentials: Credential[],
+  today: string,
+): Trade[] {
+  return proTrades.filter(
+    (t) =>
+      (requestTrades.length === 0 || requestTrades.includes(t)) &&
+      missingCredentials({ requires: QUOTE_REQUIREMENTS[t] }, credentials, today).length === 0,
+  );
 }

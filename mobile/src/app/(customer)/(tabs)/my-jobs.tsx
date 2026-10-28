@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ChevronRight, Flame, Wrench, Zap } from 'lucide-react-native';
+import { ChevronRight, ClipboardPen, Flame, Wrench, Zap } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon, type Tone } from '@/components/ui';
@@ -14,6 +14,7 @@ type JobRow = {
   pro?: string;
   pence?: number;
   open?: { jobType: string; status: string; extra?: string };
+  quotes?: { count: number; description: string };
 };
 
 // Demo history until jobs are read from Supabase.
@@ -21,6 +22,13 @@ const SECTIONS: { title: string; jobs: JobRow[] }[] = [
   {
     title: 'Upcoming',
     jobs: [
+      {
+        title: 'Move a radiator, add a towel rail',
+        meta: 'Asked today',
+        icon: ClipboardPen,
+        chip: { label: '3 quotes', tone: 'brand' },
+        quotes: { count: 3, description: 'Move a radiator to the other wall in the bathroom and fit a towel rail in its place.' },
+      },
       {
         title: 'No heating or hot water',
         meta: 'Today · James Carter',
@@ -56,7 +64,17 @@ export default function MyJobs() {
             <Card
               key={j.title}
               accessibilityLabel={`${j.title}, ${j.chip.label}, ${j.meta}`}
-              onPress={j.open ? () => router.push({ pathname: '/job/[id]', params: { id: 'demo-history', ...j.open } }) : undefined}
+              onPress={
+                j.open
+                  ? () => router.push({ pathname: '/job/[id]', params: { id: 'demo-history', ...j.open } })
+                  : j.quotes
+                    ? () =>
+                        router.push({
+                          pathname: '/quotes/[id]',
+                          params: { id: 'demo-history', freeze: String(j.quotes!.count), description: j.quotes!.description },
+                        })
+                    : undefined
+              }
               style={styles.row}>
               <View>
                 <IconTile icon={j.icon} tone={j.chip.tone === 'neutral' ? 'neutral' : 'brand'} />

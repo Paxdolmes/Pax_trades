@@ -120,6 +120,22 @@ export const JOB_TYPES: JobType[] = [
   },
 ];
 
+// "Something else? Get quotes": work outside the catalogue still needs the
+// trade's baseline documents. Mirrors the custom-* job types in the database.
+export const QUOTE_REQUIREMENTS: Record<Trade, CredentialType[]> = {
+  plumbing: ['plumbing_nvq', 'public_liability'],
+  electrical: ['competent_person_scheme', 'public_liability'],
+  heating: ['gas_safe', 'public_liability'],
+};
+
+export type QuoteTiming = 'asap' | 'this_week' | 'flexible';
+
+export const QUOTE_TIMING_LABELS: Record<QuoteTiming, string> = {
+  asap: 'As soon as possible',
+  this_week: 'This week',
+  flexible: "I'm flexible",
+};
+
 // Outward codes served at launch. Anything else joins the waitlist.
 export const LAUNCH_OUTWARD_CODES = ['SW6'];
 

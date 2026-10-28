@@ -1,14 +1,14 @@
 import { router } from 'expo-router';
-import { CalendarClock, ChevronRight, Droplets, Flame, Lock, MapPin, Plus, Zap } from 'lucide-react-native';
+import { CalendarClock, ChevronRight, CircleCheck, ClipboardPen, Droplets, Flame, Lock, MapPin, Plus, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Chip, IconTile, Screen, T, type LucideIcon } from '@/components/ui';
+import { Button, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
-import type { Trade } from '@/domain/catalog';
+import { formatPence, QUOTE_TIMING_LABELS, type Trade } from '@/domain/catalog';
 import { CREDENTIAL_LABELS } from '@/lib/demo';
-import { listOffers, offerPay, type OfferView } from '@/lib/offers';
-import { setOnline, useOnline } from '@/lib/pro-state';
+import { listOffers, listQuoteRequests, offerPay, type OfferView, type QuoteRequestView } from '@/lib/offers';
+import { setOnline, useOnline, useSentQuote } from '@/lib/pro-state';
 
 const TRADE_ICONS: Record<Trade, LucideIcon> = { plumbing: Droplets, electrical: Zap, heating: Flame };
 const FILTERS: { key: Trade | 'all'; label: string }[] = [
@@ -23,6 +23,7 @@ export default function ProJobs() {
   const [online] = useOnline();
   const [filter, setFilter] = useState<Trade | 'all'>('all');
   const offers = listOffers().filter((o) => filter === 'all' || o.jobType.trade === filter);
+  const requests = listQuoteRequests().filter((r) => filter === 'all' || r.quotableAs.includes(filter));
 
   return (
     <Screen>
@@ -64,7 +65,62 @@ export default function ProJobs() {
           </T>
         ) : null}
       </View>
+
+      {requests.length ? (
+        <View style={{ gap: Spacing.three }}>
+          <SectionLabel>Quote requests</SectionLabel>
+          <T variant="footnote" color="inkMuted" style={{ marginTop: -4 }}>
+            Jobs outside our price list. Send your own price; the customer picks one quote.
+          </T>
+          {requests.map((r) => (
+            <QuoteRequestCard key={r.id} request={r} />
+          ))}
+        </View>
+      ) : null}
     </Screen>
+  );
+}
+
+function QuoteRequestCard({ request }: { request: QuoteRequestView }) {
+  const c = usePalette();
+  const sent = useSentQuote(request.id);
+  return (
+    <Card
+      accessibilityLabel={`Quote request: ${request.description}`}
+      onPress={() => router.push({ pathname: '/quote-reply/[id]', params: { id: request.id } })}
+      style={{ gap: Spacing.three }}>
+      <View style={styles.cardTop}>
+        <IconTile icon={ClipboardPen} tone="neutral" size={44} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <T variant="bodyStrong" numberOfLines={2}>
+            {request.description}
+          </T>
+          <View style={styles.inline}>
+            <MapPin size={14} color={c.inkMuted} strokeWidth={2.25} />
+            <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
+              {`${request.postcode} · ${QUOTE_TIMING_LABELS[request.timing]} · ${request.postedAgo}`}
+            </T>
+          </View>
+        </View>
+      </View>
+      <View style={[styles.cardBottom, { borderTopColor: c.border }]}>
+        {sent ? (
+          <Chip label={`You quoted ${formatPence(sent)}`} icon={CircleCheck} tone="success" />
+        ) : (
+          <T variant="subhead" color="inkMuted">
+            {request.quotes === 0 ? 'No quotes yet' : `${request.quotes} ${request.quotes === 1 ? 'quote' : 'quotes'} so far`}
+          </T>
+        )}
+        {sent ? null : (
+          <View style={styles.inline}>
+            <T variant="subhead" color="brand" style={{ fontWeight: '600' }}>
+              Send a quote
+            </T>
+            <ChevronRight size={18} color={c.brand} strokeWidth={2.5} />
+          </View>
+        )}
+      </View>
+    </Card>
   );
 }
 
