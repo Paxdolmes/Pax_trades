@@ -56,4 +56,14 @@ The look comes from the v0 design boards for Relay and Relay Traders. In demo mo
 | --- | --- | --- | --- |
 | ![](docs/screenshots/traders-1-home.png) | ![](docs/screenshots/traders-2-job-offer.png) | ![](docs/screenshots/traders-3-on-the-job.png) | ![](docs/screenshots/traders-4-earnings.png) |
 
+Pilot trust features: confirm or report, Relay Guarantee, in-app chat with numbers hidden, verified reviews, and no-show reassignment.
+
+| Confirm or report | Report a problem | Chat, numbers hidden | Pro profile and reviews |
+| --- | --- | --- | --- |
+| ![](docs/screenshots/pilot-1-confirm-or-report.png) | ![](docs/screenshots/pilot-2-report-problem.png) | ![](docs/screenshots/pilot-3-chat.png) | ![](docs/screenshots/pilot-4-pro-profile.png) |
+
+| Late pro, job reassigned | Traders: arrive-by deadline | Waiting for the customer | Reply to reviews |
+| --- | --- | --- | --- |
+| ![](docs/screenshots/pilot-5-reassigned.png) | ![](docs/screenshots/pilot-6-arrive-by.png) | ![](docs/screenshots/pilot-7-awaiting-confirmation.png) | ![](docs/screenshots/pilot-8-reviews.png) |
+
 The Fulham map is a static OpenStreetMap image (© OpenStreetMap contributors) until live maps are added.

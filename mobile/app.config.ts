@@ -45,6 +45,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     'expo-router',
     [
+      'expo-image-picker',
+      {
+        photosPermission: 'Relay uses your photos so you can show the pro what needs fixing.',
+        cameraPermission: 'Relay uses your camera so you can show the pro what needs fixing.',
+        microphonePermission: 'Relay uses your microphone when you record a short video of the problem.',
+      },
+    ],
+    [
       'expo-splash-screen',
       {
         backgroundColor: '#1B44C4',

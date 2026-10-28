@@ -8,6 +8,8 @@ export default function ProLayout() {
       <Stack.Screen name="trip/[id]" options={{ gestureEnabled: false }} />
       <Stack.Screen name="quote-reply/[id]" />
       <Stack.Screen name="apply" />
+      <Stack.Screen name="pro-chat/[id]" />
+      <Stack.Screen name="reviews" />
     </Stack>
   );
 }

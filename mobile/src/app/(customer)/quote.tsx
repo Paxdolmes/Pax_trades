@@ -3,9 +3,11 @@ import { Check, ChevronLeft, CircleHelp, Flame, Send, ShieldCheck, Wrench, Zap }
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { MediaPicker } from '@/components/media-picker';
 import { Button, Card, Footer, IconButton, Note, Radio, Screen, T, type LucideIcon } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { QUOTE_TIMING_LABELS, type QuoteTiming, type Trade } from '@/domain/catalog';
+import { PILOT, QUOTE_TIMING_LABELS, type QuoteTiming, type Trade } from '@/domain/catalog';
+import { uploadMedia, type PickedMedia } from '@/lib/media';
 import { createQuoteRequest } from '@/lib/quotes';
 
 const MIN_DESCRIPTION = 10;
@@ -28,6 +30,7 @@ export default function QuoteRequest() {
   const [description, setDescription] = useState('');
   const [trades, setTrades] = useState<Trade[]>([]);
   const [timing, setTiming] = useState<QuoteTiming>('this_week');
+  const [media, setMedia] = useState<PickedMedia[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const ready = description.trim().length >= MIN_DESCRIPTION;
 
@@ -37,6 +40,7 @@ export default function QuoteRequest() {
     setSubmitting(true);
     try {
       const { id } = await createQuoteRequest({ trades, postcode, description: description.trim(), timing });
+      await uploadMedia({ quoteRequestId: id }, media);
       router.replace({ pathname: '/quotes/[id]', params: { id, description: description.trim() } });
     } catch (e) {
       Alert.alert('Could not send your request', e instanceof Error ? e.message : 'Please try again.');
@@ -49,7 +53,7 @@ export default function QuoteRequest() {
     <Screen
       footer={
         <Footer>
-          <Note icon={ShieldCheck}>Only vetted, insured pros can quote. Asking is free and you only pay for the quote you accept.</Note>
+          <Note icon={ShieldCheck}>Only vetted, insured pros can quote. Asking is free, quotes include VAT and fees, and you only pay for the one you accept.</Note>
           <Button label="Get quotes" icon={Send} disabled={!ready} loading={submitting} onPress={submit} />
         </Footer>
       }>
@@ -78,8 +82,9 @@ export default function QuoteRequest() {
           style={[Type.callout, styles.notes, Shadows.card, { backgroundColor: c.surface, color: c.ink }]}
         />
         <T variant="footnote" color="inkSubtle">
-          The more detail you give, the more accurate the quotes will be.
+          The more detail you give, the more accurate the quotes will be. Photos help a lot.
         </T>
+        <MediaPicker value={media} onChange={setMedia} />
       </View>
 
       <View style={{ gap: Spacing.three }}>
@@ -119,8 +124,8 @@ export default function QuoteRequest() {
         </View>
         <T variant="footnote" color="inkMuted">
           {trades.length === 0
-            ? 'Your request goes to every vetted plumber, electrician and heating engineer nearby.'
-            : 'Your request goes to every vetted pro nearby in the trades you picked.'}
+            ? `Vetted plumbers, electricians and heating engineers nearby can quote. We stop at ${PILOT.maxQuotesPerRequest} quotes so you get a short list, not a flood.`
+            : `Vetted pros nearby in the trades you picked can quote. We stop at ${PILOT.maxQuotesPerRequest} quotes so you get a short list, not a flood.`}
         </T>
       </View>
 

@@ -73,7 +73,7 @@ export default function CustomerHome() {
           {TRADES.map((t) => (
             <Card
               key={t.id}
-              accessibilityLabel={`${t.label}. ${t.detail}. From ${formatPence(fromPricePence(t.id))}`}
+              accessibilityLabel={`${t.label}. ${t.detail}. From ${formatPence(fromPricePence(t.id))}, including VAT and fees`}
               onPress={() => covered && router.push({ pathname: '/request', params: { trade: t.id, postcode } })}
               style={styles.trade}>
               <IconTile icon={TRADE_ICONS[t.id]} size={56} />
@@ -83,7 +83,7 @@ export default function CustomerHome() {
                   {t.detail}
                 </T>
                 <T variant="caption" color="brand" style={{ marginTop: 4 }}>
-                  {`From ${formatPence(fromPricePence(t.id))}`}
+                  {`From ${formatPence(fromPricePence(t.id))} all-in · No hidden fees`}
                 </T>
               </View>
               <ChevronRight size={20} color={c.inkSubtle} />
@@ -139,7 +139,7 @@ export default function CustomerHome() {
       <View style={[styles.trust, { backgroundColor: c.surfaceMuted }]}>
         <Note icon={ShieldCheck} color="success">
           <T variant="footnote" color="inkMuted">
-            Gas Safe registered · NICEIC or NAPIT electricians · Insured
+            Gas Safe registered · NICEIC or NAPIT electricians · Insured · 30-day Relay Guarantee
           </T>
         </Note>
       </View>

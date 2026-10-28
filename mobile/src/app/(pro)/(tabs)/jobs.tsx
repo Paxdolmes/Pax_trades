@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
-import { formatPence, QUOTE_TIMING_LABELS, type Trade } from '@/domain/catalog';
+import { formatPence, PILOT, QUOTE_TIMING_LABELS, type Trade } from '@/domain/catalog';
 import { CREDENTIAL_LABELS } from '@/lib/demo';
 import { listOffers, listQuoteRequests, offerPay, type OfferView, type QuoteRequestView } from '@/lib/offers';
 import { setOnline, useOnline, useSentQuote } from '@/lib/pro-state';
@@ -70,7 +70,7 @@ export default function ProJobs() {
         <View style={{ gap: Spacing.three }}>
           <SectionLabel>Quote requests</SectionLabel>
           <T variant="footnote" color="inkMuted" style={{ marginTop: -4 }}>
-            Jobs outside our price list. Send your own price; the customer picks one quote.
+            Jobs outside our price list. Send your own all-in price; each request takes 5 quotes, and the customer picks one.
           </T>
           {requests.map((r) => (
             <QuoteRequestCard key={r.id} request={r} />
@@ -108,7 +108,7 @@ function QuoteRequestCard({ request }: { request: QuoteRequestView }) {
           <Chip label={`You quoted ${formatPence(sent)}`} icon={CircleCheck} tone="success" />
         ) : (
           <T variant="subhead" color="inkMuted">
-            {request.quotes === 0 ? 'No quotes yet' : `${request.quotes} ${request.quotes === 1 ? 'quote' : 'quotes'} so far`}
+            {request.quotes === 0 ? `No quotes yet · ${PILOT.maxQuotesPerRequest} places` : `${request.quotes} of ${PILOT.maxQuotesPerRequest} quotes in`}
           </T>
         )}
         {sent ? null : (

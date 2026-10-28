@@ -9,6 +9,7 @@ export type JobStatus =
   | 'accepted'
   | 'en_route'
   | 'on_site'
+  | 'finished' // the pro says it's done; waiting for the customer to confirm
   | 'completed'
   | 'cancelled';
 
@@ -45,6 +46,7 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
   accepted: 'Pro accepted',
   en_route: 'On the way',
   on_site: 'Arrived',
+  finished: 'Waiting for your OK',
   completed: 'Job done',
   cancelled: 'Cancelled',
 };

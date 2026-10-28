@@ -5,7 +5,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Chip, Footer, IconTile, Note, ProgressBar, Screen, T } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
-import { formatPence, TRADES, type Trade } from '@/domain/catalog';
+import { formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
 import { DEMO_QUOTES } from '@/lib/demo';
 import { acceptQuote, type Quote } from '@/lib/quotes';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -116,7 +116,9 @@ export default function Quotes() {
         <T variant="callout" color="inkMuted">
           {quotes.length === 0
             ? 'Your request has gone to vetted pros in Fulham. Most quotes arrive within a few hours.'
-            : 'More may come in. Compare them and accept the one that suits you.'}
+            : quotes.length >= PILOT.maxQuotesPerRequest
+              ? `That's your shortlist: requests close at ${PILOT.maxQuotesPerRequest} quotes. Accept the one that suits you.`
+              : `Up to ${PILOT.maxQuotesPerRequest - quotes.length} more may come in. Compare them and accept the one that suits you.`}
         </T>
         {quotes.length === 0 ? <ProgressBar value={0.35} /> : null}
       </View>
@@ -138,6 +140,9 @@ export default function Quotes() {
               <View style={{ alignItems: 'flex-end' }}>
                 <T variant="title2" style={{ fontWeight: '700', fontVariant: ['tabular-nums'] }}>
                   {formatPence(q.pricePence)}
+                </T>
+                <T variant="caption" color="inkSubtle">
+                  All-in
                 </T>
                 {q.pricePence === cheapest && quotes.length > 1 ? <Chip label="Lowest" tone="success" /> : null}
               </View>
@@ -164,8 +169,8 @@ export default function Quotes() {
 
       <View style={[styles.how, { backgroundColor: c.surfaceMuted }]}>
         <Note icon={Users}>Every pro who quotes has had their ID, insurance and trade qualifications checked.</Note>
-        <Note icon={Lock}>The price you accept is fixed. Any extra work needs your OK in the app first.</Note>
-        <Note icon={Clock}>Requests stay open for 7 days.</Note>
+        <Note icon={Lock}>Quotes include VAT and fees, with no hidden extras. The price you accept is fixed, and any extra work needs your OK in the app first.</Note>
+        <Note icon={Clock}>{`Requests close after ${PILOT.maxQuotesPerRequest} quotes or 7 days.`}</Note>
       </View>
     </Screen>
   );

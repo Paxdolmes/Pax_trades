@@ -3,10 +3,12 @@ import { ArrowRight, CalendarDays, ChevronLeft, Lock, Zap } from 'lucide-react-n
 import { useState } from 'react';
 import { Alert, StyleSheet, TextInput, View } from 'react-native';
 
+import { MediaPicker } from '@/components/media-picker';
 import { Button, Card, Chip, Footer, IconButton, IconTile, Note, Radio, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { formatPence, jobTypesForTrade, TRADES, type JobType, type Trade } from '@/domain/catalog';
 import { createJob, type Urgency } from '@/lib/jobs';
+import { uploadMedia, type PickedMedia } from '@/lib/media';
 import { priceLine } from '@/lib/pricing';
 
 /** Saving against booking the two jobs separately, e.g. service plus CP12. */
@@ -27,6 +29,7 @@ export default function RequestJob() {
   const [jobType, setJobType] = useState<JobType>(jobTypes[0]);
   const [urgency, setUrgency] = useState<Urgency>('urgent');
   const [description, setDescription] = useState('');
+  const [media, setMedia] = useState<PickedMedia[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const effectiveUrgency: Urgency = jobType.urgentAllowed ? urgency : 'booked';
@@ -36,6 +39,7 @@ export default function RequestJob() {
     setSubmitting(true);
     try {
       const { id } = await createJob({ trade, jobTypeId: jobType.id, urgency: effectiveUrgency, postcode, description });
+      await uploadMedia({ jobId: id }, media);
       router.replace({ pathname: '/job/[id]', params: { id, jobType: jobType.id, urgency: effectiveUrgency } });
     } catch (e) {
       Alert.alert('Could not send your request', e instanceof Error ? e.message : 'Please try again.');
@@ -48,7 +52,7 @@ export default function RequestJob() {
     <Screen
       footer={
         <Footer>
-          <Note icon={Lock}>Your card is held, not charged, until the job is done. Any extra work needs your OK in the app first.</Note>
+          <Note icon={Lock}>Prices include VAT and fees, with no hidden extras. Your card is held, not charged, until you confirm the job is done.</Note>
           {urgent ? (
             <Button label="Find a pro now" variant="urgent" icon={Zap} loading={submitting} onPress={submit} />
           ) : (
@@ -137,6 +141,7 @@ export default function RequestJob() {
           accessibilityLabel="Notes for your tradesperson"
           style={[Type.callout, styles.notes, Shadows.card, { backgroundColor: c.surface, color: c.ink }]}
         />
+        <MediaPicker value={media} onChange={setMedia} />
       </View>
     </Screen>
   );

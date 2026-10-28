@@ -147,7 +147,7 @@ export default function QuoteReply() {
           />
         </View>
         <T variant="footnote" color="inkSubtle">
-          The full price for the job, including parts and VAT if you charge it.
+          {"The customer pays exactly this, so include parts and VAT if you charge it. Relay's commission comes out of it."}
         </T>
       </View>
 

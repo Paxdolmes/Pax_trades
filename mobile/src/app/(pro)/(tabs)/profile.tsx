@@ -1,15 +1,23 @@
 import { router } from 'expo-router';
-import { Award, ChevronRight, ClipboardCheck, HelpCircle, Landmark, MapPin } from 'lucide-react-native';
+import { Award, ChevronRight, ClipboardCheck, HelpCircle, Landmark, MapPin, Star } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, Card, Chip, Divider, IconTile, Screen, T, type LucideIcon } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
 import { TRADES } from '@/domain/catalog';
-import { DEMO_TRADER } from '@/lib/demo';
+import { ratingSummary } from '@/domain/rules';
+import { DEMO_TRADER, DEMO_TRADER_REVIEWS } from '@/lib/demo';
 
 export default function Profile() {
   const c = usePalette();
+  const reviews = ratingSummary(DEMO_TRADER_REVIEWS.map((r) => r.rating));
   const rows: { icon: LucideIcon; label: string; detail: string; onPress?: () => void }[] = [
+    {
+      icon: Star,
+      label: 'Reviews',
+      detail: reviews.rating ? `${reviews.rating} from ${reviews.count} verified reviews` : 'No reviews yet',
+      onPress: () => router.push('/reviews'),
+    },
     { icon: MapPin, label: 'Work area', detail: 'Fulham, SW6 · up to 5 km' },
     { icon: Landmark, label: 'Bank details', detail: 'Payouts within 48 hours' },
     { icon: ClipboardCheck, label: 'Application', detail: 'See the sign-up steps', onPress: () => router.push('/apply') },

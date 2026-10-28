@@ -43,6 +43,15 @@ const SECTIONS: { title: string; jobs: JobRow[] }[] = [
   {
     title: 'Past',
     jobs: [
+      {
+        title: 'Blocked toilet',
+        meta: '24 Oct · Guaranteed to 23 Nov',
+        icon: Wrench,
+        chip: { label: 'Paid', tone: 'success' },
+        pro: 'James Carter',
+        pence: 9500,
+        open: { jobType: 'blocked-toilet', status: 'completed' },
+      },
       { title: 'Leaking kitchen tap', meta: '14 Sep · Tomasz Nowak', icon: Wrench, chip: { label: 'Paid', tone: 'success' }, pro: 'Tomasz Nowak', pence: 9500 },
       { title: 'Lights tripping the fuse box', meta: '2 Aug · Priya Shah', icon: Zap, chip: { label: 'Paid', tone: 'success' }, pro: 'Priya Shah', pence: 13500 },
       { title: 'Landlord gas safety (CP12)', meta: '19 Jun · Cancelled by you', icon: Flame, chip: { label: 'Cancelled', tone: 'neutral' } },
