@@ -10,6 +10,10 @@ const VARIANTS = {
     scheme: 'relay',
     bundleId: 'uk.relaytrades.customer',
     easProjectId: '1b6eef7b-828e-4a3c-ab94-22c4038fcf40',
+    // Brand colours from the Conduit R refresh: navy for Relay, teal for Relay Traders.
+    tile: '#0D1B3E',
+    files: '',
+    style: 'automatic',
   },
   pro: {
     name: 'Relay Traders',
@@ -17,6 +21,9 @@ const VARIANTS = {
     scheme: 'relaytraders',
     bundleId: 'uk.relaytrades.traders',
     easProjectId: 'c1756266-f0b7-43f3-9ec3-8e233b1f0c3f',
+    tile: '#1ED6C4',
+    files: '-traders',
+    style: 'dark', // Relay Traders is always dark
   },
 } as const;
 
@@ -30,8 +37,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: v.scheme,
   version: '0.1.0',
   orientation: 'portrait',
-  icon: './assets/images/icon.png',
-  userInterfaceStyle: 'automatic',
+  icon: `./assets/images/icon${v.files}.png`,
+  userInterfaceStyle: v.style,
   ios: {
     bundleIdentifier: v.bundleId,
     supportsTablet: false,
@@ -39,9 +46,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: v.bundleId,
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
-      foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundImage: './assets/images/android-icon-background.png',
+      backgroundColor: v.tile,
+      foregroundImage: `./assets/images/android-icon-foreground${v.files}.png`,
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
   },
@@ -66,17 +72,25 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             : 'Relay uses your location to find tradespeople near you.',
       },
     ],
-    ['expo-notifications', { color: '#1B44C4' }],
+    ['expo-notifications', { color: v.tile }],
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#1B44C4',
-        image: './assets/images/splash-icon.png',
-        imageWidth: 76,
+        backgroundColor: v.tile,
+        image: `./assets/images/splash-icon${v.files}.png`,
+        imageWidth: 120,
       },
     ],
   ],
+  web: {
+    output: 'single',
+    name: v.name,
+    shortName: v.name,
+    favicon: `./assets/images/favicon${v.files}.png`,
+  },
   experiments: {
+    // The web build is served from a sub-folder (e.g. /Pax_trades/traders); see scripts/build-web.mjs.
+    baseUrl: process.env.EXPO_BASE_URL || undefined,
     typedRoutes: true,
     reactCompiler: true,
   },

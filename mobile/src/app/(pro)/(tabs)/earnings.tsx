@@ -65,18 +65,18 @@ export default function Earnings() {
 
       <View style={[styles.payout, { backgroundColor: c.success }]}>
         <View style={styles.inline}>
-          <Banknote size={16} color={c.onBrand} strokeWidth={2.5} />
-          <T variant="overline" color="onBrand" style={{ opacity: 0.9 }}>
+          <Banknote size={16} color={c.onSuccess} strokeWidth={2.5} />
+          <T variant="overline" color="onSuccess" style={{ opacity: 0.9 }}>
             NEXT PAYOUT
           </T>
         </View>
-        <T variant="money" color="onBrand" style={{ fontVariant: ['tabular-nums'] }}>
+        <T variant="money" color="onSuccess" style={{ fontVariant: ['tabular-nums'] }}>
           {formatPence(weekTotal)}
         </T>
-        <T variant="bodyStrong" color="onBrand">
+        <T variant="bodyStrong" color="onSuccess">
           Paid within 48 hours of each job
         </T>
-        <T variant="caption" color="onBrand" style={{ opacity: 0.85, fontWeight: '500' }}>
+        <T variant="caption" color="onSuccess" style={{ opacity: 0.85, fontWeight: '500' }}>
           {`${weekJobs} jobs this week · after ${Math.round(rate * 100)}% commission`}
         </T>
       </View>

@@ -1,18 +1,49 @@
+import {
+  BricolageGrotesque_600SemiBold,
+  BricolageGrotesque_700Bold,
+  BricolageGrotesque_800ExtraBold,
+} from '@expo-google-fonts/bricolage-grotesque';
+import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold } from '@expo-google-fonts/figtree';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
+import { Colors, useScheme } from '@/constants/theme';
+import '@/lib/alert-polyfill';
 import { AuthProvider, needsSignIn, useAuth } from '@/lib/auth';
 import { handlePushTaps, registerForPush } from '@/lib/push';
 
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const navThemes = {
+  light: { ...DefaultTheme, colors: { ...DefaultTheme.colors, primary: Colors.light.brand, background: Colors.light.bg, card: Colors.light.surface, text: Colors.light.ink, border: Colors.light.border } },
+  dark: { ...DarkTheme, colors: { ...DarkTheme.colors, primary: Colors.dark.brand, background: Colors.dark.bg, card: Colors.dark.surface, text: Colors.dark.ink, border: Colors.dark.border } },
+};
+
 export default function RootLayout() {
-  const scheme = useColorScheme();
+  const scheme = useScheme();
+  const [fontsLoaded, fontError] = useFonts({
+    BricolageGrotesque_600SemiBold,
+    BricolageGrotesque_700Bold,
+    BricolageGrotesque_800ExtraBold,
+    Figtree_400Regular,
+    Figtree_500Medium,
+    Figtree_600SemiBold,
+    Figtree_700Bold,
+  });
+  const ready = fontsLoaded || Boolean(fontError);
+  useEffect(() => {
+    if (ready) void SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+  if (!ready) return null;
+
   return (
     <AuthProvider>
-      <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={navThemes[scheme]}>
         <Routes />
-        <StatusBar style="auto" />
+        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
     </AuthProvider>
   );

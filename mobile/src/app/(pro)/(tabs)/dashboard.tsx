@@ -106,15 +106,15 @@ export default function ProHome() {
         ]}>
         <View style={{ flex: 1, gap: 4 }}>
           <View style={styles.headerMeta}>
-            <View style={[styles.statusDot, { backgroundColor: online ? c.onBrand : c.inkSubtle }]} />
-            <T variant="overline" color={online ? 'onBrand' : 'inkMuted'}>
+            <View style={[styles.statusDot, { backgroundColor: online ? c.onSuccess : c.inkSubtle }]} />
+            <T variant="overline" color={online ? 'onSuccess' : 'inkMuted'}>
               {online ? 'RECEIVING JOBS' : 'NOT RECEIVING JOBS'}
             </T>
           </View>
-          <T variant="title1" color={online ? 'onBrand' : 'ink'} style={{ fontSize: 28, lineHeight: 34 }}>
+          <T variant="title1" color={online ? 'onSuccess' : 'ink'} style={{ fontSize: 28, lineHeight: 34 }}>
             {online ? "You're online" : "You're offline"}
           </T>
-          <T variant="callout" color={online ? 'onBrand' : 'inkMuted'} style={{ opacity: online ? 0.9 : 1 }}>
+          <T variant="callout" color={online ? 'onSuccess' : 'inkMuted'} style={{ opacity: online ? 0.9 : 1 }}>
             {online ? onlineFor(since, now) : 'Tap to start getting offers'}
           </T>
         </View>

@@ -26,6 +26,8 @@ npm run start:pro  # tradesperson app (Relay Traders)
 
 Scan the QR code with Expo Go. When switching between the two apps, add `-- --clear` so the bundler does not reuse the other app's config.
 
+The web version of both apps (`npm run build:web`, published by the **Web version** workflow) is at https://app.relay-trade.co.uk, with Relay Traders at `/traders`. See [docs/going-live.md](docs/going-live.md) section 6.
+
 Without Supabase settings the apps run in **demo mode** with sample jobs. To connect a backend, copy `mobile/.env.example` to `mobile/.env.local` and fill in your Supabase URL and anon key.
 
 ## Set up the backend
@@ -46,7 +48,7 @@ CI runs both on every pull request.
 
 ## Screenshots (demo mode)
 
-The look comes from the v0 design boards for Relay and Relay Traders. In demo mode (no Supabase keys) each flow plays through on a timer, so you can tap from request to payment on a phone.
+The look comes from the v0 brand refresh board (the "Conduit R" mark, navy, teal and Ember, Bricolage Grotesque and Figtree). Relay Traders always uses the dark palette. In demo mode (no Supabase keys) each flow plays through on a timer, so you can tap from request to payment on a phone.
 
 | Relay: home | Choose the job | Pro on the way | Job done and pay |
 | --- | --- | --- | --- |

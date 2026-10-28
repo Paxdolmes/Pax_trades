@@ -87,9 +87,26 @@ The admin screen (approving pros and sorting out problem reports) is in Relay Tr
    ```
 3. Close and reopen Relay Traders. It opens on the admin screen.
 
+## 6. The web version (test on any phone)
+
+Both apps also run in a web browser, so anyone can try them without installing anything:
+
+- **Relay:** https://app.relay-trade.co.uk
+- **Relay Traders:** https://app.relay-trade.co.uk/traders
+
+The **Web version** workflow rebuilds the site every time something is merged to `main`. It's free (GitHub Pages). One-off setup:
+
+1. On GitHub, open the repo's **Settings**, then **Pages**. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+2. In Cloudflare, open relay-trade.co.uk, then **DNS** > **Records** > **Add record**: type `CNAME`, name `app`, target `paxdolmes.github.io`, and switch **Proxy status** off (grey cloud, "DNS only").
+3. Back on GitHub, open **Actions** > **Web version** > **Run workflow**.
+4. In **Settings** > **Pages**, type `app.relay-trade.co.uk` under **Custom domain** and save. When the DNS check is green, tick **Enforce HTTPS** (this can take up to an hour to become available).
+
+On an iPhone, open the link in Safari, tap Share, then **Add to Home Screen**, and it opens full screen like an app.
+
+What's different on the web: there are no push notifications, and cards are saved with Stripe's web form instead of the phone sheet. While Stripe is in test mode, use the card `4242 4242 4242 4242` with any future date and any CVC.
+
 ## Still to do before real customers
 
-- **Your own email domain in Resend.** `onboarding@resend.dev` only delivers to the email you signed up to Resend with. Add and verify a domain in Resend, then change the sender in Supabase.
 - **Failed charges are followed up by hand.** When a card is declined or the bank asks the customer to approve the payment, the job is marked with `payment_failed_at` in the jobs table. Contact the customer and charge them from the Stripe dashboard.
 - **Extra work on fixed-price and quoted jobs** isn't approved in the app yet. Those jobs are charged at the agreed price; if the pro and customer agree more in chat, add it by hand in Stripe. Callout jobs are charged for the pro's time, which can include parts.
 - **Refunds** are made in the Stripe dashboard first, then marked as refunded on the admin screen.

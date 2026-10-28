@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { ArrowRight, CalendarDays, ChevronLeft, Lock, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
@@ -36,6 +36,9 @@ export default function RequestJob() {
   const [days] = useState(() => bookingDays(new Date()));
   const [dayKey, setDayKey] = useState(days[0]?.key);
   const [slot, setSlot] = useState<string | null>(null);
+
+  // Opened without a trade, e.g. a refreshed web page: start again from home.
+  if (!jobType) return <Redirect href="/home" />;
 
   const effectiveUrgency: Urgency = jobType.urgentAllowed ? urgency : 'booked';
   const urgent = effectiveUrgency === 'urgent';
