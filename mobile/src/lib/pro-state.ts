@@ -23,3 +23,21 @@ export function useOnline(): [boolean, number | null] {
   );
   return [value, onlineSince];
 }
+
+// Quotes this pro has sent in the demo, by request id, in pence.
+const sentQuotes = new Map<string, number>();
+
+export function recordQuote(requestId: string, pence: number) {
+  sentQuotes.set(requestId, pence);
+  listeners.forEach((l) => l());
+}
+
+export function useSentQuote(requestId: string): number | undefined {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => sentQuotes.get(requestId),
+  );
+}

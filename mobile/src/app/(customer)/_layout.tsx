@@ -5,6 +5,8 @@ export default function CustomerLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="request" />
+      <Stack.Screen name="quote" />
+      <Stack.Screen name="quotes/[id]" />
       <Stack.Screen name="job/[id]" options={{ gestureEnabled: false }} />
     </Stack>
   );

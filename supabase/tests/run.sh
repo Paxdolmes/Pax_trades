@@ -12,4 +12,6 @@ psql -q -v ON_ERROR_STOP=1 -d "$db" -f tests/supabase_stubs.sql
 for f in migrations/*.sql; do
   psql -q -v ON_ERROR_STOP=1 -d "$db" -f "$f"
 done
-psql -q -v ON_ERROR_STOP=1 -d "$db" -f tests/matching_test.sql
+for f in tests/*_test.sql; do
+  psql -q -v ON_ERROR_STOP=1 -d "$db" -f "$f"
+done

@@ -1,8 +1,9 @@
 // Demo data used until a Supabase project is connected, so the apps can be
 // clicked through on a phone from day one.
 
-import type { CredentialType, Trade } from '@/domain/catalog';
+import type { CredentialType, QuoteTiming, Trade } from '@/domain/catalog';
 import type { Credential } from '@/domain/rules';
+import type { Quote } from '@/lib/quotes';
 
 export const CREDENTIAL_LABELS: Record<CredentialType, string> = {
   gas_safe: 'Gas Safe registration',
@@ -136,4 +137,86 @@ export const DEMO_COMPLETED = [
   { title: 'Boiler repair, F28 fault', customer: 'Sarah C.', place: 'Lettice St · Thu', grossPence: 17500 },
   { title: 'Leaking kitchen tap', customer: 'Daniel R.', place: 'Bishops Rd · Thu', grossPence: 9500 },
   { title: 'Boiler service', customer: 'Priya S.', place: 'Munster Rd · Fri', grossPence: 11900 },
+];
+
+/** Quotes that arrive on a demo "Something else?" request, a few seconds apart. */
+export const DEMO_QUOTES: (Quote & { afterMs: number })[] = [
+  {
+    id: 'demo-q1',
+    proName: 'James Carter',
+    trade: 'heating',
+    rating: 4.9,
+    jobs: 128,
+    pricePence: 18000,
+    earliest: 'Thu 30 Oct, 9am',
+    note: 'Includes draining down, moving the pipework and refilling. Towel rail supplied by you.',
+    afterMs: 2500,
+  },
+  {
+    id: 'demo-q2',
+    proName: 'Tomasz Nowak',
+    trade: 'plumbing',
+    rating: 4.8,
+    jobs: 64,
+    pricePence: 15000,
+    earliest: 'Mon 3 Nov, 8am',
+    note: 'Half a day. I can bring a chrome towel rail for £45 extra if you need one.',
+    afterMs: 5500,
+  },
+  {
+    id: 'demo-q3',
+    proName: 'Ade Okafor',
+    trade: 'heating',
+    rating: 5,
+    jobs: 31,
+    pricePence: 21000,
+    earliest: 'Tomorrow, 1pm',
+    note: 'Can do it tomorrow afternoon. Price includes new valves.',
+    afterMs: 9000,
+  },
+];
+
+export type DemoQuoteRequest = {
+  id: string;
+  customer: string;
+  postcode: string;
+  description: string;
+  trades: Trade[];
+  timing: QuoteTiming;
+  postedAgo: string;
+  quotes: number;
+};
+
+/** Open "Something else?" requests a pro might see. */
+export const DEMO_QUOTE_REQUESTS: DemoQuoteRequest[] = [
+  {
+    id: 'demo-r1',
+    customer: 'Sophie T.',
+    postcode: 'SW6 4',
+    description: 'Move a radiator to the other wall in the bathroom and fit a towel rail in its place.',
+    trades: [],
+    timing: 'this_week',
+    postedAgo: '12 min ago',
+    quotes: 1,
+  },
+  {
+    id: 'demo-r2',
+    customer: 'Daniel R.',
+    postcode: 'SW6 5',
+    description: 'Fit an outside tap on the back wall of the house, near the kitchen sink.',
+    trades: ['plumbing'],
+    timing: 'flexible',
+    postedAgo: '1 h ago',
+    quotes: 3,
+  },
+  {
+    id: 'demo-r3',
+    customer: 'Alex M.',
+    postcode: 'SW6 3',
+    description: 'Install an electric car charger on the front of the house.',
+    trades: ['electrical'],
+    timing: 'flexible',
+    postedAgo: '2 h ago',
+    quotes: 2,
+  },
 ];

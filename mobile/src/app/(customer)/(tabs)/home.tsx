@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bell, ChevronRight, CircleCheck, Flame, MapPin, ShieldCheck, Wrench, Zap } from 'lucide-react-native';
+import { Bell, ChevronRight, CircleCheck, ClipboardPen, Flame, MapPin, ShieldCheck, Wrench, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
@@ -89,6 +89,22 @@ export default function CustomerHome() {
               <ChevronRight size={20} color={c.inkSubtle} />
             </Card>
           ))}
+          <Card
+            accessibilityLabel="Something else? Describe any job and get quotes from local pros"
+            onPress={() => covered && router.push({ pathname: '/quote', params: { postcode } })}
+            style={[styles.trade, styles.other, { borderColor: c.border }]}>
+            <IconTile icon={ClipboardPen} tone="neutral" size={56} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <T variant="headline">Something else?</T>
+              <T variant="footnote" color="inkMuted">
+                Describe any job and local pros send you quotes
+              </T>
+              <T variant="caption" color="brand" style={{ marginTop: 4 }}>
+                Free to ask
+              </T>
+            </View>
+            <ChevronRight size={20} color={c.inkSubtle} />
+          </Card>
         </View>
       ) : (
         <Card style={{ gap: Spacing.four, padding: Spacing.five }}>
@@ -137,6 +153,7 @@ const styles = StyleSheet.create({
   input: { padding: 0, margin: 0 },
   covered: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trade: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
+  other: { borderStyle: 'dashed', shadowOpacity: 0, elevation: 0, backgroundColor: 'transparent' },
   email: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.four },
   trust: { borderRadius: Radii.md, paddingHorizontal: Spacing.four, paddingVertical: Spacing.three },
 });

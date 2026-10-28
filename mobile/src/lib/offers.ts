@@ -1,6 +1,6 @@
-import { CALLOUT_RATES, findJobType, formatPence, type CredentialType, type JobType } from '@/domain/catalog';
-import { missingCredentials } from '@/domain/rules';
-import { DEMO_OFFERS, DEMO_PRO_CREDENTIALS, type DemoOffer } from '@/lib/demo';
+import { CALLOUT_RATES, findJobType, formatPence, type CredentialType, type JobType, type Trade } from '@/domain/catalog';
+import { missingCredentials, quotableTrades } from '@/domain/rules';
+import { DEMO_OFFERS, DEMO_PRO_CREDENTIALS, DEMO_QUOTE_REQUESTS, DEMO_TRADER, type DemoOffer, type DemoQuoteRequest } from '@/lib/demo';
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
@@ -25,4 +25,18 @@ export function offerPay(job: JobType): { amount: string; note: string } {
     amount: formatPence(CALLOUT_RATES.standard.firstHourPence),
     note: `+ ${formatPence(CALLOUT_RATES.standard.perHourPence)}/hr`,
   };
+}
+
+export type QuoteRequestView = DemoQuoteRequest & { quotableAs: Trade[] };
+
+/** Open "Something else?" requests this pro may quote on, as the database's can_quote allows. */
+export function listQuoteRequests(): QuoteRequestView[] {
+  return DEMO_QUOTE_REQUESTS.map((r) => ({
+    ...r,
+    quotableAs: quotableTrades(r.trades, DEMO_TRADER.trades, DEMO_PRO_CREDENTIALS, today()),
+  })).filter((r) => r.quotableAs.length > 0);
+}
+
+export function findQuoteRequest(id: string): QuoteRequestView | undefined {
+  return listQuoteRequests().find((r) => r.id === id);
 }
