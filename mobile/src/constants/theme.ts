@@ -16,8 +16,8 @@ export const Colors = {
     inkSubtle: '#858DA0',
     border: '#EBE5DA',
 
-    brand: '#0D1B3E', // main actions: navy
-    brandPressed: '#15275A',
+    brand: '#25479E', // main actions: a softer blue than the navy text (Daniel, 2026-10-29)
+    brandPressed: '#1E3A8A',
     brandTint: '#E3E7F1',
     onBrand: '#FFFFFF',
 

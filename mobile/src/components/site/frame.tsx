@@ -374,8 +374,8 @@ function OpeningBanner({ onList }: { onList: boolean }) {
   const c = usePalette();
   const { narrow } = useBreakpoint();
   return (
-    // Navy in light and dark mode alike, so it reads as a notice rather than part of the page.
-    <View style={[styles.banner, { backgroundColor: '#0D1B3E' }]}>
+    // The light-mode button blue in dark mode too, so it reads as a notice rather than part of the page.
+    <View style={[styles.banner, { backgroundColor: '#25479E' }]}>
       <Sparkles size={15} color={c.accent} strokeWidth={2.2} />
       <T variant="footnote" numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: '600', flexShrink: 1 }}>
         {narrow ? 'Opening soon in Fulham.' : 'Relay opens soon in Fulham. Look around and see how booking will work.'}
@@ -383,7 +383,7 @@ function OpeningBanner({ onList }: { onList: boolean }) {
       {onList ? null : (
         <Pressable {...linkProps('/waitlist')}>
           {(state) => (
-            <T variant="footnote" style={{ color: c.accent, fontWeight: '700', textDecorationLine: isHovered(state) ? 'underline' : 'none' }} numberOfLines={1}>
+            <T variant="footnote" style={{ color: '#FFFFFF', fontWeight: '700', textDecorationLine: isHovered(state) ? 'none' : 'underline' }} numberOfLines={1}>
               Join the waiting list →
             </T>
           )}

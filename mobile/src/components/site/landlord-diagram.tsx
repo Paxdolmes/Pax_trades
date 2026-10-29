@@ -140,7 +140,7 @@ export function LandlordFlowStrip({ dark }: { dark?: boolean }) {
     <View style={[styles.strip, narrow && { flexDirection: 'column', alignItems: 'stretch' }]}>
       {steps.map((s, i) => (
         <View key={s} style={[styles.stripStep, narrow && { flexDirection: 'row' }]}>
-          <View style={[styles.stripChip, { backgroundColor: i === 1 ? c.accent : dark ? '#15275A' : c.surface, flex: narrow ? 1 : undefined }]}>
+          <View style={[styles.stripChip, { backgroundColor: i === 1 ? c.accent : dark ? '#1E3A8A' : c.surface, flex: narrow ? 1 : undefined }]}>
             <T variant="subhead" style={{ fontWeight: '700', color: i === 1 ? c.onAccent : dark ? '#FFFFFF' : c.ink }}>
               {s}
             </T>
