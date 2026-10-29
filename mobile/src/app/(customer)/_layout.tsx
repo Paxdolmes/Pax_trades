@@ -18,6 +18,7 @@ export default function CustomerLayout() {
       <Stack.Screen name="chat/[id]" />
       <Stack.Screen name="report/[id]" />
       <Stack.Screen name="pro/[id]" />
+      <Stack.Screen name="my-home" />
     </Stack>
   );
   if (!isWeb) return stack;

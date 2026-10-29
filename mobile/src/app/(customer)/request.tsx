@@ -1,5 +1,5 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { ArrowRight, CalendarDays, ChevronLeft, Lock, Zap } from 'lucide-react-native';
+import { ArrowRight, Building2, CalendarDays, ChevronLeft, Lock, Send, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
@@ -11,8 +11,10 @@ import { bookingDays } from '@/domain/slots';
 import { createJob, type Urgency } from '@/lib/jobs';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
 import { useAccountGate } from '@/lib/auth';
+import { useLive } from '@/lib/live';
 import { ensureSavedCard } from '@/lib/payments';
 import { priceLine } from '@/lib/pricing';
+import { loadMyProperty } from '@/lib/properties';
 
 /** Saving against booking the two jobs separately, e.g. service plus CP12. */
 function bundleSaving(job: JobType, all: JobType[]): number | null {
@@ -26,7 +28,8 @@ function bundleSaving(job: JobType, all: JobType[]): number | null {
 
 export default function RequestJob() {
   const c = usePalette();
-  const { trade, postcode, job } = useLocalSearchParams<{ trade: Trade; postcode: string; job?: string }>();
+  const params = useLocalSearchParams<{ trade: Trade; postcode: string; job?: string; property?: string; propertyName?: string }>();
+  const { trade, job } = params;
   const tradeInfo = TRADES.find((t) => t.id === trade);
   const jobTypes = jobTypesForTrade(trade);
   // A job picked on the website's Services page starts selected.
@@ -39,6 +42,13 @@ export default function RequestJob() {
   const [dayKey, setDayKey] = useState(days[0]?.key);
   const [slot, setSlot] = useState<string | null>(null);
   const signedIn = useAccountGate();
+  // A tenant who has joined their landlord's property can send the request to them
+  // to approve and pay. A manager booking for one of their properties arrives with it.
+  const { data: home } = useLive(loadMyProperty, null);
+  const [toLandlord, setToLandlord] = useState(true);
+  const tenantHome = !params.property && home && toLandlord ? home : null;
+  const propertyId = params.property ?? tenantHome?.id ?? null;
+  const postcode = tenantHome?.postcode ?? params.postcode;
 
   // Opened without a trade, e.g. a refreshed web page: start again from home.
   if (!jobType) return <Redirect href="/home" />;
@@ -47,13 +57,17 @@ export default function RequestJob() {
   const urgent = effectiveUrgency === 'urgent';
   const day = days.find((d) => d.key === dayKey) ?? days[0];
   const ready = urgent || slot !== null;
+  // Emergencies skip the landlord's OK when their property allows it.
+  const needsApproval = Boolean(tenantHome) && !(urgent && tenantHome?.autoApproveUrgent);
 
   async function submit() {
     if (!signedIn()) return;
     setSubmitting(true);
     try {
-      if (!(await ensureSavedCard())) return;
+      // The landlord pays for their tenant's requests, so the tenant needs no card.
+      if (!tenantHome && !(await ensureSavedCard())) return;
       const { id } = await createJob({
+        propertyId,
         trade,
         jobTypeId: jobType.id,
         urgency: effectiveUrgency,
@@ -77,8 +91,18 @@ export default function RequestJob() {
     <Screen
       footer={
         <Footer>
-          <Note icon={Lock}>Prices include VAT and fees, with no hidden extras. Your card is held, not charged, until you confirm the job is done.</Note>
-          {urgent ? (
+          {tenantHome ? (
+            <Note icon={Building2}>
+              {needsApproval
+                ? `This goes to ${tenantHome.managerName} to approve. They pay the bill, so there's nothing for you to pay.`
+                : `Emergencies go straight to a pro, and ${tenantHome.managerName} pays the bill. There's nothing for you to pay.`}
+            </Note>
+          ) : (
+            <Note icon={Lock}>Prices include VAT and fees, with no hidden extras. Your card is held, not charged, until you confirm the job is done.</Note>
+          )}
+          {needsApproval ? (
+            <Button label={`Send to ${tenantHome?.managerName}`} icon={Send} loading={submitting} disabled={!ready} onPress={submit} />
+          ) : urgent ? (
             <Button label="Find a pro now" variant="urgent" icon={Zap} loading={submitting} onPress={submit} />
           ) : (
             <Button label="Request a booking" trailingIcon={ArrowRight} loading={submitting} disabled={!ready} onPress={submit} />
@@ -89,11 +113,24 @@ export default function RequestJob() {
         <IconButton icon={ChevronLeft} label="Back" onPress={() => router.back()} />
         <View>
           <T variant="caption" color="inkSubtle">
-            {postcode}
+            {params.propertyName ? `${params.propertyName} · ${postcode}` : postcode}
           </T>
           <T variant="headline">{tradeInfo?.label}</T>
         </View>
       </View>
+
+      {home && !params.property ? (
+        <Card selected={toLandlord} onPress={() => setToLandlord(!toLandlord)} style={styles.option} accessibilityLabel={`Send to ${home.managerName} to approve and pay`}>
+          <IconTile icon={Building2} size={44} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <T variant="headline">{`Send to ${home.managerName}`}</T>
+            <T variant="footnote" color="inkMuted">
+              {toLandlord ? `For ${home.name}. They approve it and pay the bill.` : "Off: you're booking and paying for this yourself."}
+            </T>
+          </View>
+          <Radio on={toLandlord} />
+        </Card>
+      ) : null}
 
       <View style={{ gap: Spacing.three }}>
         <T variant="title1" accessibilityRole="header">

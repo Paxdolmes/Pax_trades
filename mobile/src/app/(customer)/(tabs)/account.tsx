@@ -1,5 +1,5 @@
 import { router, type Href } from 'expo-router';
-import { ChevronRight, CreditCard, FileText, HelpCircle, MapPin, Scale, ShieldCheck } from 'lucide-react-native';
+import { Building2, ChevronRight, CreditCard, FileText, HelpCircle, House, MapPin, Scale, ShieldCheck } from 'lucide-react-native';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { SignInPrompt } from '@/components/sign-in-prompt';
@@ -23,6 +23,8 @@ type Row = { icon: LucideIcon; label: string; detail: string; public?: boolean; 
 const ROWS: Row[] = [
   { icon: MapPin, label: 'Saved addresses', detail: DEMO_CUSTOMER.postcode },
   { icon: CreditCard, label: 'Payment methods', detail: 'Add or change your card', onPress: changeCard },
+  { icon: House, label: 'Your landlord or agent', detail: 'Renting? Send repairs to them to approve and pay', href: '/my-home' },
+  { icon: Building2, label: 'Properties you manage', detail: 'Landlords and agents: approve repairs, see spend', public: true, href: '/properties' },
   { icon: FileText, label: 'Certificates', detail: 'Gas safety records and EICRs, on each finished job', href: '/my-jobs' },
   { icon: ShieldCheck, label: 'How we vet pros', detail: 'ID, insurance, Gas Safe, NICEIC or NAPIT', public: true, href: '/safety' },
   { icon: HelpCircle, label: 'Help', detail: 'Common questions, or message the Relay team', public: true, href: '/help' },
