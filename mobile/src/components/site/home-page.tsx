@@ -55,7 +55,7 @@ function Hero() {
           <PostcodeCheck />
           {WAITLIST ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: Spacing.five, rowGap: Spacing.three }}>
-              <Pill label="Join the waiting list" icon={ArrowRight} trailing href="/waitlist" />
+              <Pill label="Join the waiting list" variant="teal" icon={ArrowRight} trailing href="/waitlist" />
               <ArrowLink label="See how booking will work" href="/home" />
             </View>
           ) : (
@@ -154,8 +154,8 @@ function HowItWorks() {
         {HOME_STEPS.map((step, i) => (
           <View key={step.title} style={[styles.step, { backgroundColor: c.bg }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
-              <View style={[styles.stepNo, { backgroundColor: c.brand }]}>
-                <T variant="headline" color="onBrand">
+              <View style={[styles.stepNo, { backgroundColor: c.accent }]}>
+                <T variant="headline" color="onAccent">
                   {String(i + 1)}
                 </T>
               </View>
@@ -222,10 +222,11 @@ function Emergency() {
 
 /** Landlords and agents: the pitch in a sentence, and the way to the full page. */
 function ForLandlords() {
+  const c = usePalette();
   const { narrow } = useBreakpoint();
   return (
     <Container style={{ paddingBottom: narrow ? 56 : 88 }}>
-      <View style={[styles.landlords, { backgroundColor: '#25479E', padding: narrow ? Spacing.six : 48 }]}>
+      <View style={[styles.landlords, { backgroundColor: c.ink, padding: narrow ? Spacing.six : 48 }]}>
         <Eyebrow tone="white">Landlords and letting agents</Eyebrow>
         <H2 style={{ color: '#FFFFFF', maxWidth: 720 }}>Let tenants send repairs straight to you.</H2>
         <Lead style={{ color: '#C9CFDD', maxWidth: 640 }}>

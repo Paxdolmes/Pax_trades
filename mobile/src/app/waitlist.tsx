@@ -157,6 +157,7 @@ function SignUpForm({ onJoined }: { onJoined: () => void }) {
       <View style={{ gap: Spacing.three }}>
         <Pill
           label={sending ? 'Joining…' : 'Join the waiting list'}
+          variant="teal"
           icon={Send}
           size="lg"
           onPress={ready && !sending ? join : undefined}

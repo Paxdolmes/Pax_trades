@@ -155,7 +155,7 @@ export function SiteIcon({ icon: Icon, tone = 'teal', size = 48 }: { icon: Lucid
   );
 }
 
-type PillVariant = 'primary' | 'secondary' | 'ember' | 'emberSolid' | 'ghost';
+type PillVariant = 'primary' | 'teal' | 'secondary' | 'ember' | 'emberSolid' | 'ghost';
 
 /** The site's round-ended button. Give it `href` to make it a real link on the web. */
 export function Pill({
@@ -180,6 +180,7 @@ export function Pill({
   const c = usePalette();
   const colors: Record<PillVariant, { bg: string; hover: string; fg: ColorToken }> = {
     primary: { bg: c.brand, hover: c.brandPressed, fg: 'onBrand' },
+    teal: { bg: c.accent, hover: '#17B5A6', fg: 'onAccent' },
     secondary: { bg: c.surface, hover: c.surfaceMuted, fg: 'ink' },
     ember: { bg: c.urgentTint, hover: '#FFDCC8', fg: 'urgent' },
     emberSolid: { bg: c.urgent, hover: c.urgentPressed, fg: 'onBrand' },
@@ -194,7 +195,7 @@ export function Pill({
         styles.pill,
         { height, paddingHorizontal: size === 'lg' ? Spacing.six : Spacing.five, backgroundColor: state.pressed || isHovered(state) ? k.hover : k.bg },
         variant === 'secondary' && { borderWidth: 1, borderColor: c.border },
-        variant === 'primary' && SoftShadows.soft,
+        (variant === 'primary' || variant === 'teal') && SoftShadows.soft,
         style,
       ]}>
       {Icon && !trailing ? <Icon size={17} color={c[k.fg]} strokeWidth={2.2} /> : null}
@@ -333,7 +334,7 @@ export function SiteHeader({ title }: { title?: string }) {
                   </Pressable>
               ))
             : null}
-          {!narrow ? <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} size="sm" /> : null}
+          {!narrow ? <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} variant={WAITLIST ? 'teal' : 'primary'} size="sm" /> : null}
           {wide ? null : (
             <Pressable
               accessibilityRole="button"
@@ -355,7 +356,7 @@ export function SiteHeader({ title }: { title?: string }) {
               ))}
             </View>
             <View style={{ gap: Spacing.three }}>
-              <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} size="lg" />
+              <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} variant={WAITLIST ? 'teal' : 'primary'} size="lg" />
               {account.map((l) => (
                 <Pill key={l.label} label={l.label} href={l.href} variant="secondary" size="lg" />
               ))}
@@ -374,16 +375,16 @@ function OpeningBanner({ onList }: { onList: boolean }) {
   const c = usePalette();
   const { narrow } = useBreakpoint();
   return (
-    // The light-mode button blue in dark mode too, so it reads as a notice rather than part of the page.
-    <View style={[styles.banner, { backgroundColor: '#25479E' }]}>
-      <Sparkles size={15} color={c.accent} strokeWidth={2.2} />
-      <T variant="footnote" numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: '600', flexShrink: 1 }}>
+    // Turquoise with navy text in light and dark mode alike, so it reads as a notice.
+    <View style={[styles.banner, { backgroundColor: c.accent }]}>
+      <Sparkles size={15} color={c.onAccent} strokeWidth={2.2} />
+      <T variant="footnote" numberOfLines={1} style={{ color: c.onAccent, fontWeight: '600', flexShrink: 1 }}>
         {narrow ? 'Opening soon in Fulham.' : 'Relay opens soon in Fulham. Look around and see how booking will work.'}
       </T>
       {onList ? null : (
         <Pressable {...linkProps('/waitlist')}>
           {(state) => (
-            <T variant="footnote" style={{ color: '#FFFFFF', fontWeight: '700', textDecorationLine: isHovered(state) ? 'none' : 'underline' }} numberOfLines={1}>
+            <T variant="footnote" style={{ color: c.onAccent, fontWeight: '800', textDecorationLine: isHovered(state) ? 'none' : 'underline' }} numberOfLines={1}>
               Join the waiting list →
             </T>
           )}

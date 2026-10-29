@@ -31,7 +31,7 @@ export function LocalServicePage({ page }: { page: LocalPage }) {
         <View style={styles.ctas}>
           {WAITLIST ? (
             <>
-              <Pill label="Join the waiting list" size="lg" href={{ pathname: '/waitlist', params: { trade: page.trade } }} />
+              <Pill label="Join the waiting list" variant="teal" size="lg" href={{ pathname: '/waitlist', params: { trade: page.trade } }} />
               <Pill label="See how booking will work" variant="secondary" size="lg" href={{ pathname: '/home', params: page.urgent ? { urgent: '1' } : {} }} />
             </>
           ) : (

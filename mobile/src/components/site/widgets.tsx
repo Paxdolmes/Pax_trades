@@ -170,7 +170,7 @@ export function CtaBand({ title = 'Something need fixing?', sub = CTA_SUB }: { t
         <MarkTile />
         <H2 style={{ textAlign: 'center', fontWeight: '800', fontSize: narrow ? 32 : 46, lineHeight: narrow ? 36 : 52 }}>{title}</H2>
         <Lead style={{ textAlign: 'center', maxWidth: 560 }}>{sub}</Lead>
-        <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} size="lg" icon={ArrowRight} trailing />
+        <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} variant={WAITLIST ? 'teal' : 'primary'} size="lg" icon={ArrowRight} trailing />
         {WAITLIST ? (
           <View>
             <ArrowLink label="See how booking will work" href="/home" />
@@ -219,7 +219,7 @@ export function BookingMockup() {
   return (
     <View accessible accessibilityRole="image" accessibilityLabel="Example Relay booking on a phone" style={styles.mockWrap}>
       <View style={[styles.mockBackdrop, { backgroundColor: c.accentTint }]} />
-      <View style={[styles.phone, SoftShadows.lift, { backgroundColor: c.brand }]}>
+      <View style={[styles.phone, SoftShadows.lift, { backgroundColor: c.ink }]}>
         <View style={[styles.screen, { backgroundColor: c.bg }]}>
           <View style={styles.phoneTop}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -268,7 +268,7 @@ export function BookingMockup() {
               </View>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={[styles.priceChip, { backgroundColor: c.brand }]}>
+              <View style={[styles.priceChip, { backgroundColor: c.ink }]}>
                 <T variant="caption" color="onBrand">
                   £95 including the first hour
                 </T>
@@ -319,7 +319,7 @@ function MapArt() {
       <View style={[styles.pin, { top: 20, left: 44, backgroundColor: c.accentStrong, borderColor: c.surface }]}>
         <Car size={16} color="#FFFFFF" />
       </View>
-      <View style={[styles.pin, { top: 118, left: 186, width: 44, height: 44, borderRadius: 22, backgroundColor: c.brand, borderColor: c.surface }]}>
+      <View style={[styles.pin, { top: 118, left: 186, width: 44, height: 44, borderRadius: 22, backgroundColor: c.ink, borderColor: c.surface }]}>
         <House size={16} color="#FFFFFF" />
       </View>
     </View>

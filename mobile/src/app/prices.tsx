@@ -49,7 +49,7 @@ export default function Prices() {
                   <T variant="body" style={{ flex: 1 }}>{line}</T>
                 </View>
               ))}
-              <Pill label={WAITLIST ? 'Join the waiting list' : 'Book a callout'} href={WAITLIST ? '/waitlist' : '/home'} style={{ alignSelf: 'flex-start', marginTop: Spacing.two }} />
+              <Pill label={WAITLIST ? 'Join the waiting list' : 'Book a callout'} variant={WAITLIST ? 'teal' : 'primary'} href={WAITLIST ? '/waitlist' : '/home'} style={{ alignSelf: 'flex-start', marginTop: Spacing.two }} />
             </View>
           ))}
         </Grid>
