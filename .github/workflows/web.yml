@@ -41,6 +41,8 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci
+      # A headless browser copies each page's text into its HTML for search engines (scripts/build-web.mjs).
+      - run: npm install --no-save playwright@1.63.0 && npx playwright install --with-deps chromium
       - run: npm run build:web
       - run: echo app.relay-trade.co.uk > dist-web/CNAME
       - uses: actions/upload-pages-artifact@v3
