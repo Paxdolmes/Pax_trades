@@ -1,7 +1,7 @@
 import { ShieldCheck } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
-import { Container, H2, Lead, PageIntro, Pill, SiteIcon, SitePage, useBreakpoint } from '@/components/site/frame';
+import { Container, H2, headingLevel, Lead, PageIntro, Pill, SiteIcon, SitePage, useBreakpoint } from '@/components/site/frame';
 import { CtaBand } from '@/components/site/widgets';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
@@ -32,7 +32,7 @@ export default function HowItWorks() {
               <T variant="subhead" color="accentStrong" style={{ fontWeight: '700' }}>
                 {`Step ${i + 1}`}
               </T>
-              <T variant="display" accessibilityRole="header" style={{ fontSize: narrow ? 26 : 32, lineHeight: narrow ? 31 : 38 }}>
+              <T variant="display" accessibilityRole="header" {...headingLevel(2)} style={{ fontSize: narrow ? 26 : 32, lineHeight: narrow ? 31 : 38 }}>
                 {step.title}
               </T>
               <Lead>{step.text}</Lead>
