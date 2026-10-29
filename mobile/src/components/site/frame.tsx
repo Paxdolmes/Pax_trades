@@ -3,6 +3,7 @@
 // the information pages. On the web it also sits above the booking screens.
 // Phones show the information pages under a plain back bar instead.
 import { router, usePathname, type Href } from 'expo-router';
+import Head from 'expo-router/head';
 import { ArrowRight, ChevronLeft, Menu, X } from 'lucide-react-native';
 import { useState, type ReactNode, type Ref } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ScrollViewInstance, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
@@ -11,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RelayMark, Wordmark } from '@/components/brand';
 import { IconButton, T, type LucideIcon } from '@/components/ui';
 import { Radii, SoftShadows, Spacing, usePalette, type ColorToken } from '@/constants/theme';
+import { LOCAL_PAGES } from '@/content/local';
+import SEO from '@/content/seo.json';
 import { OFFERED_TRADES } from '@/domain/catalog';
 import { needsSignIn, useAuth } from '@/lib/auth';
 
@@ -72,11 +75,14 @@ export function H1({ children, style }: { children: ReactNode; style?: StyleProp
   );
 }
 
+/** Section headings are h2 and h3 on the web, so each page has one h1 for search engines. */
+export const headingLevel = (level: 2 | 3) => ({ 'aria-level': level }) as object;
+
 export function H2({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
   const { narrow } = useBreakpoint();
   const size = narrow ? 30 : 38;
   return (
-    <T variant="display" accessibilityRole="header" style={[{ fontSize: size, lineHeight: Math.round(size * 1.15), letterSpacing: -0.02 * size, fontWeight: '700' }, style]}>
+    <T variant="display" accessibilityRole="header" {...headingLevel(2)} style={[{ fontSize: size, lineHeight: Math.round(size * 1.15), letterSpacing: -0.02 * size, fontWeight: '700' }, style]}>
       {children}
     </T>
   );
@@ -84,7 +90,7 @@ export function H2({ children, style }: { children: ReactNode; style?: StyleProp
 
 export function H3({ children, style, color }: { children: ReactNode; style?: StyleProp<TextStyle>; color?: ColorToken }) {
   return (
-    <T variant="title2" color={color} style={style}>
+    <T variant="title2" color={color} accessibilityRole="header" {...headingLevel(3)} style={style}>
       {children}
     </T>
   );
@@ -360,7 +366,8 @@ export function SiteFooter() {
   const c = usePalette();
   const { narrow } = useBreakpoint();
   const columns: { title: string; links: { label: string; href: Href }[] }[] = [
-    { title: 'Services', links: OFFERED_TRADES.map((t) => ({ label: t.service, href: { pathname: '/services', params: { trade: t.id } } })) },
+    // Each trade links to its own page, so search engines find them.
+    { title: 'Services', links: OFFERED_TRADES.map((t) => ({ label: t.service, href: LOCAL_PAGES.find((p) => p.trade === t.id)?.path ?? '/services' })) },
     {
       title: 'Company',
       links: [
@@ -480,10 +487,34 @@ export function PageIntro({ eyebrow, title, sub, children }: { eyebrow: string; 
 }
 
 /** A whole information page: menu, scrolling content, footer. */
+type SeoPath = keyof typeof SEO.pages;
+
+/** The page's title, description and share card, for search engines and links shared in chats.
+ *  The same tags are written into each page's HTML when the site is built (scripts/build-web.mjs). */
+function PageMeta() {
+  const pathname = usePathname();
+  const path = (pathname.replace(/\/$/, '') || '/') as SeoPath;
+  const page = SEO.pages[path];
+  if (!page) return null;
+  const url = SEO.site + (path === '/' ? '/' : `${path}/`); // as GitHub Pages serves it
+  return (
+    <Head>
+      <title>{page.title}</title>
+      <meta name="description" content={page.description} />
+      <link rel="canonical" href={url} />
+      <meta property="og:title" content={page.title} />
+      <meta property="og:description" content={page.description} />
+      <meta property="og:url" content={url} />
+      <meta property="og:image" content={SEO.site + SEO.image} />
+    </Head>
+  );
+}
+
 export function SitePage({ children, title, scrollRef }: { children: ReactNode; title: string; scrollRef?: Ref<ScrollViewInstance> }) {
   const c = usePalette();
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
+      {isWeb ? <PageMeta /> : null}
       <SiteHeader title={title} />
       <ScrollView ref={scrollRef} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={{ flexGrow: 1 }}>{children}</View>

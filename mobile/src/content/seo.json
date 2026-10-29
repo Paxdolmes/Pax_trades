@@ -1,0 +1,62 @@
+{
+  "site": "https://app.relay-trade.co.uk",
+  "image": "/og-image.png",
+  "pages": {
+    "/": {
+      "title": "Plumbers, electricians and gas engineers in Fulham | Relay",
+      "description": "Book a vetted local plumber, electrician, gas engineer or carpenter in Fulham, SW6. See the price first, watch them arrive on the map and pay only when it’s fixed."
+    },
+    "/services": {
+      "title": "Plumbing, electrical, heating and carpentry in Fulham | Relay",
+      "description": "Clear prices for plumbing, electrical, heating and gas, and carpentry jobs in Fulham. Leaks, boilers, power cuts, doors and more, with a vetted local pro booked in two minutes."
+    },
+    "/how-it-works": {
+      "title": "How it works: book a vetted local tradesperson | Relay",
+      "description": "Tell us what’s wrong, we send a checked local pro nearby, and you pay only when the job’s done. Here’s how booking a tradesperson with Relay works."
+    },
+    "/prices": {
+      "title": "Prices: callouts from £95, fixed-price jobs | Relay",
+      "description": "All-in prices with VAT and fees included: callouts from £95 for the first hour, plus fixed prices for boiler services, gas safety certificates (CP12), EICRs and more."
+    },
+    "/safety": {
+      "title": "How we vet every tradesperson | Relay",
+      "description": "Every Relay pro has their ID, insurance and trade qualifications checked, from Gas Safe registration to NICEIC or NAPIT. Every job is covered by the Relay Guarantee."
+    },
+    "/landlords": {
+      "title": "Tenant repairs for landlords and letting agents | Relay",
+      "description": "Tenants report repairs in Relay, you approve with one tap and a vetted local pro fixes it. One bill, filed under each property, with spend per property. Free to set up."
+    },
+    "/for-tradespeople": {
+      "title": "Local jobs for tradespeople in Fulham | Relay Traders",
+      "description": "Plumbers, electricians, gas engineers and carpenters: get local jobs near you in Fulham with Relay Traders. No lead fees and no monthly subscription."
+    },
+    "/help": {
+      "title": "Help and contact | Relay",
+      "description": "Answers about booking, prices, payments and the Relay Guarantee, or send us a message and we’ll get back to you."
+    },
+    "/privacy": {
+      "title": "Privacy policy | Relay",
+      "description": "How Relay collects, uses and protects your personal information."
+    },
+    "/terms": {
+      "title": "Terms of use | Relay",
+      "description": "The terms for booking local tradespeople through Relay, including prices, payment, cancelling and the Relay Guarantee."
+    },
+    "/plumber-fulham": {
+      "title": "Emergency plumber in Fulham, SW6 | Relay",
+      "description": "Burst pipe, leak or blocked toilet? Book a vetted local plumber in Fulham in two minutes. All-in prices from £95, and we aim to be with you within the hour, day or night."
+    },
+    "/electrician-fulham": {
+      "title": "Emergency electrician in Fulham, SW6 | Relay",
+      "description": "Power cut or tripping fuse? Book a NICEIC or NAPIT registered electrician in Fulham in two minutes. All-in prices from £95, with someone with you within the hour, day or night."
+    },
+    "/gas-engineer-fulham": {
+      "title": "Gas engineer and boiler repair in Fulham, SW6 | Relay",
+      "description": "No heating or hot water? Book a Gas Safe registered engineer in Fulham for boiler repairs, servicing (£119) and gas safety certificates (£95). See the price first."
+    },
+    "/carpenter-fulham": {
+      "title": "Carpenter and handyman in Fulham, SW6 | Relay",
+      "description": "Doors, floorboards, shelves, TV mounting and flat-pack furniture. Book a vetted local carpenter in Fulham at a time that suits you, with the price shown first."
+    }
+  }
+}

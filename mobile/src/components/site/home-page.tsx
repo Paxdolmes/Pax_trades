@@ -12,7 +12,7 @@ import { BENEFITS, HOME_FAQS, HOME_STEPS } from '@/content/site';
 import { CALLOUT_RATES, formatPence, fromPricePence, OFFERED_TRADES } from '@/domain/catalog';
 
 import { LandlordFlowStrip } from './landlord-diagram';
-import { ArrowLink, Container, Eyebrow, Grid, H1, H2, H3, isHovered, linkProps, Lead, Pill, Section, SectionHeading, SiteIcon, SitePage, useBreakpoint } from './frame';
+import { ArrowLink, Container, Eyebrow, Grid, H1, H2, H3, headingLevel, isHovered, linkProps, Lead, Pill, Section, SectionHeading, SiteIcon, SitePage, useBreakpoint } from './frame';
 import { BookingMockup, ComingSoon, CtaBand, FaqList, PostcodeCheck, TrustStrip } from './widgets';
 
 export function HomePage() {
@@ -194,7 +194,7 @@ function Emergency() {
       <View style={[styles.emergency, { backgroundColor: c.urgentTint, padding: narrow ? Spacing.six : 48 }, !wide && { flexDirection: 'column', alignItems: 'flex-start' }]}>
         <View style={{ flex: 1, gap: Spacing.four }}>
           <SiteIcon icon={Siren} tone="white" size={56} />
-          <T variant="display" accessibilityRole="header" style={{ fontSize: narrow ? 30 : 36, lineHeight: narrow ? 34 : 42 }}>
+          <T variant="display" accessibilityRole="header" {...headingLevel(2)} style={{ fontSize: narrow ? 30 : 36, lineHeight: narrow ? 34 : 42 }}>
             Emergency?
           </T>
           <Lead style={{ color: c.ink, maxWidth: 580 }}>
@@ -269,7 +269,7 @@ function FaqTeaser() {
       <View style={[{ flexDirection: 'row', gap: Spacing.ten }, !wide && { flexDirection: 'column', gap: Spacing.six }]}>
         <View style={{ width: wide ? 320 : undefined, gap: Spacing.five }}>
           <Eyebrow>Questions</Eyebrow>
-          <T variant="display" accessibilityRole="header" style={{ fontSize: 38, lineHeight: 44 }}>
+          <T variant="display" accessibilityRole="header" {...headingLevel(2)} style={{ fontSize: 38, lineHeight: 44 }}>
             Good to know
           </T>
           <Pill label="See all questions" variant="secondary" icon={ArrowRight} trailing href="/help" style={{ alignSelf: 'flex-start' }} />

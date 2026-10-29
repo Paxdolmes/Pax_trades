@@ -3,7 +3,7 @@ import { Check, Clock, Moon, Sun, MessagesSquare } from 'lucide-react-native';
 import { useRef } from 'react';
 import { Pressable, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 
-import { Container, H3, isHovered, Lead, PageIntro, Pill, SiteIcon, SitePage, useBreakpoint } from '@/components/site/frame';
+import { Container, H3, headingLevel, isHovered, Lead, PageIntro, Pill, SiteIcon, SitePage, useBreakpoint } from '@/components/site/frame';
 import { ComingSoon, CtaBand } from '@/components/site/widgets';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { T } from '@/components/ui';
@@ -106,7 +106,7 @@ export default function Services() {
             style={[styles.trade, !wide && { flexDirection: 'column' }]}>
             <View style={{ width: wide ? 300 : undefined, gap: Spacing.three }}>
               <SiteIcon icon={TRADE_ICONS[t.id]} tone="white" />
-              <T variant="display" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 36 }}>
+              <T variant="display" accessibilityRole="header" {...headingLevel(2)} style={{ fontSize: 30, lineHeight: 36 }}>
                 {t.service}
               </T>
               <View style={{ gap: 6 }}>
