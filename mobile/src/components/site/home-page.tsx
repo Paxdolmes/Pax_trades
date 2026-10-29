@@ -1,4 +1,4 @@
-// The website's front page: what Relay is, the eight trades, how it works and
+// The website's front page: what Relay is, the four trades, how it works and
 // why to trust it, before anyone is asked to book.
 import { ArrowRight, BadgeCheck, Siren } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -9,11 +9,11 @@ import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
 import { EXAMPLE_PROS, EXAMPLE_REVIEWS, EXAMPLES_NOTE } from '@/content/examples';
 import { BENEFITS, HOME_FAQS, HOME_STEPS } from '@/content/site';
-import { CALLOUT_RATES, formatPence, fromPricePence, TRADES } from '@/domain/catalog';
+import { CALLOUT_RATES, formatPence, fromPricePence, OFFERED_TRADES } from '@/domain/catalog';
 
 import { LandlordFlowStrip } from './landlord-diagram';
 import { ArrowLink, Container, Eyebrow, Grid, H1, H2, H3, isHovered, linkProps, Lead, Pill, Section, SectionHeading, SiteIcon, SitePage, useBreakpoint } from './frame';
-import { BookingMockup, CtaBand, FaqList, PostcodeCheck, TrustStrip } from './widgets';
+import { BookingMockup, ComingSoon, CtaBand, FaqList, PostcodeCheck, TrustStrip } from './widgets';
 
 export function HomePage() {
   return (
@@ -49,7 +49,7 @@ function Hero() {
             Trusted local trades at your door, <Text style={{ color: c.accentStrong }}>fast.</Text>
           </H1>
           <Lead big style={{ maxWidth: 560 }}>
-            Plumbers, electricians, gas engineers, locksmiths and more. Book a vetted local pro in two minutes, see the price first, and pay only when the job’s done.
+            Gas engineers, electricians, plumbers and carpenters. Book a vetted local pro in two minutes, see the price first, and pay only when the job’s done.
           </Lead>
           <PostcodeCheck />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.three }}>
@@ -78,14 +78,15 @@ function WhatWeFix() {
     <Section>
       <SectionHeading
         eyebrow="What we fix"
-        title="Eight trades. One easy way to book."
-        sub="From a burst pipe to a stuck front door, one booking gets a checked local pro on the way."
+        title="Four trades. One easy way to book."
+        sub="From a boiler that won’t fire to a door that won’t close, one booking gets a checked local pro on the way."
       />
       <Grid columns={{ narrow: 2, medium: 2, wide: 4 }} gap={Spacing.four}>
-        {TRADES.map((t, i) => (
+        {OFFERED_TRADES.map((t, i) => (
           <TradeTile key={t.id} trade={t} tint={i % 2 === 0 ? 'accentTint' : 'urgentTint'} />
         ))}
       </Grid>
+      <ComingSoon />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.five }}>
         <ArrowLink label="See every job and price" href="/services" />
         <ArrowLink label="Something else? Get quotes" href="/quote" color="ink" />
@@ -94,14 +95,14 @@ function WhatWeFix() {
   );
 }
 
-function TradeTile({ trade, tint }: { trade: (typeof TRADES)[number]; tint: 'accentTint' | 'urgentTint' }) {
+function TradeTile({ trade, tint }: { trade: (typeof OFFERED_TRADES)[number]; tint: 'accentTint' | 'urgentTint' }) {
   const c = usePalette();
   const { narrow } = useBreakpoint();
   const Icon = TRADE_ICONS[trade.id];
   return (
       <Pressable
         {...linkProps({ pathname: '/services', params: { trade: trade.id } })}
-        accessibilityLabel={`${trade.service}. ${trade.detail}. From ${formatPence(fromPricePence(trade.id))}`}
+        accessibilityLabel={`${trade.service}: ${trade.includes.join(', ')}. From ${formatPence(fromPricePence(trade.id))}`}
         style={(state) => [styles.tile, { backgroundColor: c[tint], padding: narrow ? Spacing.four : Spacing.six }, isHovered(state) && SoftShadows.lift]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.two }}>
           <View style={[styles.tileIcon, SoftShadows.soft, { backgroundColor: c.surface }]}>
@@ -115,9 +116,13 @@ function TradeTile({ trade, tint }: { trade: (typeof TRADES)[number]; tint: 'acc
         </View>
         <View style={{ gap: 4 }}>
           <H3 style={narrow ? { fontSize: 17, lineHeight: 22 } : undefined}>{trade.service}</H3>
-          <T variant={narrow ? 'footnote' : 'callout'} color="inkMuted">
-            {trade.detail}
-          </T>
+          <View style={{ gap: 2, marginTop: 2 }}>
+            {trade.includes.slice(0, narrow ? 3 : 4).map((line) => (
+              <T key={line} variant={narrow ? 'footnote' : 'callout'} color="inkMuted">
+                {`· ${line}`}
+              </T>
+            ))}
+          </View>
           {narrow ? (
             <T variant="caption" color="ink" style={{ marginTop: 4 }}>
               {`From ${formatPence(fromPricePence(trade.id))}`}
@@ -193,7 +198,7 @@ function Emergency() {
             Emergency?
           </T>
           <Lead style={{ color: c.ink, maxWidth: 580 }}>
-            Leak, no power, no heating or locked out? We aim to have someone with you within the hour, day or night.
+            Leak, no power or no heating? We aim to have someone with you within the hour, day or night.
           </Lead>
         </View>
         <View style={{ gap: Spacing.two, alignItems: wide ? 'flex-end' : 'flex-start' }}>

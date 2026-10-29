@@ -6,7 +6,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react
 import { MediaPicker } from '@/components/media-picker';
 import { Button, Card, Chip, Footer, IconButton, IconTile, Note, Radio, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { formatPence, jobTypesForTrade, TRADES, type JobType, type Trade } from '@/domain/catalog';
+import { formatPence, isOffered, jobTypesForTrade, TRADES, type JobType, type Trade } from '@/domain/catalog';
 import { bookingDays } from '@/domain/slots';
 import { createJob, type Urgency } from '@/lib/jobs';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
@@ -51,7 +51,8 @@ export default function RequestJob() {
   const postcode = tenantHome?.postcode ?? params.postcode;
 
   // Opened without a trade, e.g. a refreshed web page: start again from home.
-  if (!jobType) return <Redirect href="/home" />;
+  // An old link to a trade we've paused also goes back home.
+  if (!jobType || !isOffered(trade)) return <Redirect href="/home" />;
 
   const effectiveUrgency: Urgency = jobType.urgentAllowed ? urgency : 'booked';
   const urgent = effectiveUrgency === 'urgent';

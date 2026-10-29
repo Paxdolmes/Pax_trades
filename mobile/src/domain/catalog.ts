@@ -31,20 +31,32 @@ export type JobType = {
   urgentAllowed: boolean;
 };
 
-/** The launch trades. `short` fits a small tile; `service` names the trade on the website. */
-export const TRADES: { id: Trade; label: string; short: string; service: string; detail: string; pro: string }[] = [
-  { id: 'plumbing', label: 'Plumber', short: 'Plumber', service: 'Plumbing', detail: 'Leaks, taps, toilets and hot water', pro: 'plumber' },
-  { id: 'electrical', label: 'Electrician', short: 'Electrician', service: 'Electrical', detail: 'Faults, sockets, lighting and safety checks', pro: 'electrician' },
-  { id: 'heating', label: 'Heating & gas engineer', short: 'Heating', service: 'Heating & gas', detail: 'No heat, boilers, radiators and CP12', pro: 'Gas Safe engineer' },
-  { id: 'drains', label: 'Drain engineer', short: 'Drains', service: 'Drains', detail: 'Blocked sinks, showers and outside drains', pro: 'drain engineer' },
-  { id: 'locksmith', label: 'Locksmith', short: 'Locksmith', service: 'Locksmith', detail: 'Locked out, broken or new locks', pro: 'locksmith' },
-  { id: 'handyman', label: 'Handyman', short: 'Handyman', service: 'Handyman', detail: 'Shelves, pictures, curtain rails and flat-pack', pro: 'handyman' },
-  { id: 'carpentry', label: 'Carpenter', short: 'Carpenter', service: 'Carpentry & doors', detail: 'Doors, floorboards, skirting and repairs', pro: 'carpenter' },
-  { id: 'appliances', label: 'Appliance engineer', short: 'Appliances', service: 'Appliance repairs', detail: 'Washing machines, dishwashers and ovens', pro: 'appliance engineer' },
+/**
+ * Every trade the database knows. `short` fits a small tile; `service` names the
+ * trade on the website; `includes` says what customers can book under it.
+ * Customers only see OFFERED_TRADES; the rest stay for older jobs and pros.
+ */
+export const TRADES: { id: Trade; label: string; short: string; service: string; detail: string; pro: string; includes: string[] }[] = [
+  { id: 'plumbing', label: 'Plumber', short: 'Plumber', service: 'Plumbing', detail: 'Leaks, taps, toilets and hot water', pro: 'plumber', includes: ['Leaks and burst pipes', 'Dripping taps', 'Toilets that block, run or won’t flush', 'Washing machines and dishwashers plumbed in', 'Hot water cylinders'] },
+  { id: 'electrical', label: 'Electrician', short: 'Electrician', service: 'Electrical', detail: 'Faults, sockets, lighting and safety checks', pro: 'electrician', includes: ['Power cuts and tripping fuses', 'Sockets and switches', 'Lights and light fittings', 'Electrical repairs', 'EICR safety certificates'] },
+  { id: 'heating', label: 'Heating & gas engineer', short: 'Heating', service: 'Heating & gas', detail: 'No heat, boilers, radiators and CP12', pro: 'Gas Safe engineer', includes: ['No heating or hot water', 'Boiler faults and error codes', 'Boiler servicing', 'Radiators', 'Gas safety certificates (CP12)'] },
+  { id: 'drains', label: 'Drain engineer', short: 'Drains', service: 'Drains', detail: 'Blocked sinks, showers and outside drains', pro: 'drain engineer', includes: [] },
+  { id: 'locksmith', label: 'Locksmith', short: 'Locksmith', service: 'Locksmith', detail: 'Locked out, broken or new locks', pro: 'locksmith', includes: [] },
+  { id: 'handyman', label: 'Handyman', short: 'Handyman', service: 'Handyman', detail: 'Shelves, pictures, curtain rails and flat-pack', pro: 'handyman', includes: [] },
+  { id: 'carpentry', label: 'Carpenter', short: 'Carpenter', service: 'Carpentry', detail: 'Doors, floors, shelves and flat-pack', pro: 'carpenter', includes: ['Doors that stick, break or need hanging', 'Floorboards, skirting and woodwork', 'Shelves, pictures, curtain rails and TV mounting', 'Flat-pack furniture'] },
+  { id: 'appliances', label: 'Appliance engineer', short: 'Appliances', service: 'Appliance repairs', detail: 'Washing machines, dishwashers and ovens', pro: 'appliance engineer', includes: [] },
 ];
 
+/** What customers can book while Relay launches, in the order the website shows them. */
+export const OFFERED_TRADES = (['heating', 'electrical', 'plumbing', 'carpentry'] as const).map((id) => TRADES.find((t) => t.id === id)!);
+
+export const isOffered = (trade: Trade) => OFFERED_TRADES.some((t) => t.id === trade);
+
+/** Shown as "coming soon" on the website. Roofing comes from Pimlico Plumbers' range. */
+export const COMING_SOON = ['Drains', 'Locksmiths', 'Appliance repairs', 'Roofing'];
+
 /** Trades where a pro can be with you within the hour. */
-export const URGENT_TRADES: Trade[] = ['plumbing', 'electrical', 'heating', 'drains', 'locksmith'];
+export const URGENT_TRADES: Trade[] = ['heating', 'electrical', 'plumbing'];
 
 export const CALLOUT_RATES = {
   standard: { firstHourPence: 9500, perHourPence: 8000, label: '7am to 8pm weekdays' },
@@ -225,7 +237,7 @@ export const JOB_TYPES: JobType[] = [
   },
   {
     id: 'odd-jobs',
-    trade: 'handyman',
+    trade: 'carpentry',
     label: 'Shelves, pictures, curtain rails or TV mounting',
     requires: ['public_liability'],
     pricing: { kind: 'callout' },
@@ -233,7 +245,7 @@ export const JOB_TYPES: JobType[] = [
   },
   {
     id: 'flat-pack',
-    trade: 'handyman',
+    trade: 'carpentry',
     label: 'Flat-pack furniture assembly',
     requires: ['public_liability'],
     pricing: { kind: 'callout' },

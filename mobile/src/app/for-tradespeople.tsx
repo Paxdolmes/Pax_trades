@@ -6,7 +6,7 @@ import { TRADE_ICONS } from '@/components/trade-icons';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
 import { COMMISSION, JOIN_STEPS, PERKS } from '@/content/site';
-import { TRADES, type Trade } from '@/domain/catalog';
+import { OFFERED_TRADES, type Trade } from '@/domain/catalog';
 import { openTradersApp } from '@/lib/links';
 
 const WANTED: Record<Trade, string> = {
@@ -89,7 +89,7 @@ export default function ForTradespeople() {
         <View style={{ gap: Spacing.four }}>
           <H3>We’re looking for</H3>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
-            {TRADES.map((t) => {
+            {OFFERED_TRADES.map((t) => {
               const Icon = TRADE_ICONS[t.id];
               return (
                 <View key={t.id} style={[styles.chip, { backgroundColor: c.surface, borderColor: c.border }]}>

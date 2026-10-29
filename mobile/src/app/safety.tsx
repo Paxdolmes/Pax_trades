@@ -31,7 +31,7 @@ export default function Safety() {
           ))}
         </Grid>
         <T variant="callout" color="inkMuted" style={{ marginTop: Spacing.five }}>
-          Locksmiths, handymen, carpenters, drain and appliance engineers have their ID and insurance checked. Gas Safe and NICEIC registration only apply to gas and electrical work.
+          Carpenters have their ID and insurance checked. Gas Safe and NICEIC registration only apply to gas and electrical work.
         </T>
       </Container>
       <Container>

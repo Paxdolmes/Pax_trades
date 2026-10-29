@@ -10,7 +10,7 @@ import { Button, Card, IconButton, IconTile, Note, Screen, SectionLabel, T } fro
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { EXAMPLE_PROS, EXAMPLE_REVIEWS, EXAMPLES_NOTE } from '@/content/examples';
 import { isWeb } from '@/components/site/frame';
-import { formatPence, fromPricePence, JOB_TYPES, LAUNCH_OUTWARD_CODES, TRADES, URGENT_TRADES, type Trade } from '@/domain/catalog';
+import { COMING_SOON, formatPence, fromPricePence, JOB_TYPES, LAUNCH_OUTWARD_CODES, OFFERED_TRADES, TRADES, URGENT_TRADES, type Trade } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
 import { needsSignIn, useAuth } from '@/lib/auth';
 import { sendEnquiry } from '@/lib/contact';
@@ -128,7 +128,7 @@ export default function CustomerHome() {
             </View>
             <View style={{ gap: 4 }}>
               <T variant="title1" color="onUrgent" accessibilityRole="header">
-                Leak, no power, no heat or locked out?
+                Leak, no power or no heat?
               </T>
               <T variant="callout" color="onUrgent" style={{ fontWeight: '500' }}>
                 A vetted pro at your door, usually within the hour.
@@ -153,7 +153,7 @@ export default function CustomerHome() {
           <View style={{ gap: Spacing.three }}>
             <SectionLabel>Book a job</SectionLabel>
             <View style={styles.tiles}>
-              {TRADES.map((t) => {
+              {OFFERED_TRADES.map((t) => {
                 const Icon = TRADE_ICONS[t.id];
                 return (
                   <Pressable
@@ -192,6 +192,9 @@ export default function CustomerHome() {
             </Card>
             <T variant="footnote" color="inkMuted" style={{ textAlign: 'center' }}>
               Prices are all-in: VAT and fees included, no hidden extras.
+            </T>
+            <T variant="footnote" color="inkSubtle" style={{ textAlign: 'center' }}>
+              {`Coming soon: ${COMING_SOON.join(', ').toLowerCase()}.`}
             </T>
           </View>
         </>
