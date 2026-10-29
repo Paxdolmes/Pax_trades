@@ -4,7 +4,7 @@
 // Phones show the information pages under a plain back bar instead.
 import { router, usePathname, type Href } from 'expo-router';
 import Head from 'expo-router/head';
-import { ArrowRight, ChevronLeft, Menu, X } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft, Menu, Sparkles, X } from 'lucide-react-native';
 import { useState, type ReactNode, type Ref } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type ScrollViewInstance, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +16,7 @@ import { LOCAL_PAGES } from '@/content/local';
 import SEO from '@/content/seo.json';
 import { OFFERED_TRADES } from '@/domain/catalog';
 import { needsSignIn, useAuth } from '@/lib/auth';
+import { WAITLIST } from '@/lib/launch';
 
 export const isWeb = Platform.OS === 'web';
 
@@ -51,6 +52,9 @@ function hrefToUrl(href: Href): string {
   const query = new URLSearchParams(params ?? {}).toString();
   return query ? `${pathname}?${query}` : pathname;
 }
+
+/** The main button: booking once Relay opens, the waiting list until then. */
+export const MAIN_CTA: { label: string; href: Href } = WAITLIST ? { label: 'Join the waiting list', href: '/waitlist' } : { label: 'Book a job', href: '/home' };
 
 export const SITE_LINKS: { label: string; href: Href }[] = [
   { label: 'Services', href: '/services' },
@@ -305,6 +309,7 @@ export function SiteHeader({ title }: { title?: string }) {
 
   return (
     <View style={[styles.header, { backgroundColor: c.bg, borderBottomColor: c.border }]}>
+      {WAITLIST ? <OpeningBanner onList={path === '/waitlist'} /> : null}
       <View style={[styles.headerInner, { paddingHorizontal: narrow ? Spacing.five : Spacing.eight }]}>
         <Pressable {...linkProps('/', close)} accessibilityLabel="Relay home">
           <Wordmark size={30} />
@@ -328,7 +333,7 @@ export function SiteHeader({ title }: { title?: string }) {
                   </Pressable>
               ))
             : null}
-          {!narrow ? <Pill label="Book a job" href="/home" size="sm" /> : null}
+          {!narrow ? <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} size="sm" /> : null}
           {wide ? null : (
             <Pressable
               accessibilityRole="button"
@@ -342,7 +347,7 @@ export function SiteHeader({ title }: { title?: string }) {
         </View>
       </View>
       {open && !wide ? (
-        <View style={[styles.sheet, { backgroundColor: c.bg, borderTopColor: c.border, height: height - 72 }]}>
+        <View style={[styles.sheet, { backgroundColor: c.bg, borderTopColor: c.border, top: 72 + (WAITLIST ? BANNER_HEIGHT : 0), height: height - 72 - (WAITLIST ? BANNER_HEIGHT : 0) }]}>
           <ScrollView contentContainerStyle={{ padding: Spacing.five, gap: Spacing.six }}>
             <View style={{ gap: Spacing.one }}>
               {SITE_LINKS.map((l) => (
@@ -350,7 +355,7 @@ export function SiteHeader({ title }: { title?: string }) {
               ))}
             </View>
             <View style={{ gap: Spacing.three }}>
-              <Pill label="Book a job" href="/home" size="lg" />
+              <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} size="lg" />
               {account.map((l) => (
                 <Pill key={l.label} label={l.label} href={l.href} variant="secondary" size="lg" />
               ))}
@@ -358,6 +363,32 @@ export function SiteHeader({ title }: { title?: string }) {
           </ScrollView>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+const BANNER_HEIGHT = 40;
+
+/** Until Relay opens: a line above the menu saying booking isn't open yet. */
+function OpeningBanner({ onList }: { onList: boolean }) {
+  const c = usePalette();
+  const { narrow } = useBreakpoint();
+  return (
+    // Navy in light and dark mode alike, so it reads as a notice rather than part of the page.
+    <View style={[styles.banner, { backgroundColor: '#0D1B3E' }]}>
+      <Sparkles size={15} color={c.accent} strokeWidth={2.2} />
+      <T variant="footnote" numberOfLines={1} style={{ color: '#FFFFFF', fontWeight: '600', flexShrink: 1 }}>
+        {narrow ? 'Opening soon in Fulham.' : 'Relay opens soon in Fulham. Look around and see how booking will work.'}
+      </T>
+      {onList ? null : (
+        <Pressable {...linkProps('/waitlist')}>
+          {(state) => (
+            <T variant="footnote" style={{ color: c.accent, fontWeight: '700', textDecorationLine: isHovered(state) ? 'underline' : 'none' }} numberOfLines={1}>
+              Join the waiting list →
+            </T>
+          )}
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -394,7 +425,7 @@ export function SiteFooter() {
           <View style={{ gap: Spacing.four, maxWidth: 300 }}>
             <Wordmark size={30} />
             <T variant="body" color="inkMuted">
-              Vetted local trades at your door. Now in Fulham, SW6.
+              {`Vetted local trades at your door. ${WAITLIST ? 'Opening soon in' : 'Now in'} Fulham, SW6.`}
             </T>
           </View>
           <View style={styles.footerCols}>
@@ -530,7 +561,8 @@ const styles = StyleSheet.create({
   navRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   navLink: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: Radii.pill },
   menuButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  sheet: { position: 'absolute', top: 72, left: 0, right: 0, borderTopWidth: 1 },
+  sheet: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1 },
+  banner: { height: BANNER_HEIGHT, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two, paddingHorizontal: Spacing.four },
   sheetLink: { paddingHorizontal: Spacing.four, paddingVertical: Spacing.four, borderRadius: Radii.md },
   pill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two, borderRadius: Radii.pill },
   arrowLink: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },

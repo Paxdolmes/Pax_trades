@@ -8,6 +8,7 @@ import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
 import { AREAS, LOCAL_PAGES, type LocalPage } from '@/content/local';
 import { formatPence, jobTypesForTrade, PILOT, TRADES } from '@/domain/catalog';
+import { WAITLIST } from '@/lib/launch';
 import { priceLine } from '@/lib/pricing';
 
 import { ArrowLink, Grid, H3, PageIntro, Pill, Section, SectionHeading, SiteIcon, SitePage, SoftCard, useBreakpoint } from './frame';
@@ -28,8 +29,17 @@ export function LocalServicePage({ page }: { page: LocalPage }) {
     <SitePage title={page.name}>
       <PageIntro eyebrow="Fulham, SW6" title={page.title} sub={page.sub}>
         <View style={styles.ctas}>
-          {page.urgent ? <Pill label="Emergency? Get help now" variant="emberSolid" size="lg" icon={Siren} href={{ pathname: '/home', params: { urgent: '1' } }} /> : null}
-          <Pill label={`Book a ${trade.pro}`} variant={page.urgent ? 'secondary' : 'primary'} size="lg" href="/home" />
+          {WAITLIST ? (
+            <>
+              <Pill label="Join the waiting list" size="lg" href={{ pathname: '/waitlist', params: { trade: page.trade } }} />
+              <Pill label="See how booking will work" variant="secondary" size="lg" href={{ pathname: '/home', params: page.urgent ? { urgent: '1' } : {} }} />
+            </>
+          ) : (
+            <>
+              {page.urgent ? <Pill label="Emergency? Get help now" variant="emberSolid" size="lg" icon={Siren} href={{ pathname: '/home', params: { urgent: '1' } }} /> : null}
+              <Pill label={`Book a ${trade.pro}`} variant={page.urgent ? 'secondary' : 'primary'} size="lg" href="/home" />
+            </>
+          )}
         </View>
       </PageIntro>
 
@@ -57,7 +67,7 @@ export function LocalServicePage({ page }: { page: LocalPage }) {
                     {priceLine(job, 'booked')}
                   </T>
                 </View>
-                <Pill label="Book" size="sm" href={{ pathname: '/home', params: { trade: page.trade, job: job.id } }} />
+                <Pill label={WAITLIST ? 'Preview' : 'Book'} variant={WAITLIST ? 'secondary' : 'primary'} size="sm" href={{ pathname: '/home', params: { trade: page.trade, job: job.id } }} />
               </View>
             ))}
           </View>

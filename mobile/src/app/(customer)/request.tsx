@@ -1,5 +1,5 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { ArrowRight, Building2, CalendarDays, ChevronLeft, Lock, Send, Zap } from 'lucide-react-native';
+import { ArrowRight, BellRing, Building2, CalendarDays, ChevronLeft, Lock, Send, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
@@ -11,6 +11,7 @@ import { bookingDays } from '@/domain/slots';
 import { createJob, type Urgency } from '@/lib/jobs';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
 import { useAccountGate } from '@/lib/auth';
+import { WAITLIST } from '@/lib/launch';
 import { useLive } from '@/lib/live';
 import { ensureSavedCard } from '@/lib/payments';
 import { priceLine } from '@/lib/pricing';
@@ -88,9 +89,22 @@ export default function RequestJob() {
     }
   }
 
+  // Until Relay opens, the last step is the waiting list, with this job noted.
+  const waitlistFooter = (
+    <Footer>
+      <Note icon={BellRing}>Bookings open soon. Join the waiting list and we’ll tell you the day you can book this.</Note>
+      <Button
+        label="Join the waiting list"
+        trailingIcon={ArrowRight}
+        onPress={() => router.push({ pathname: '/waitlist', params: { trade, job: jobType.id, postcode: postcode ?? '', ...(urgent ? { urgent: '1' } : {}) } })}
+      />
+    </Footer>
+  );
+
   return (
     <Screen
       footer={
+        WAITLIST ? waitlistFooter : (
         <Footer>
           {tenantHome ? (
             <Note icon={Building2}>
@@ -109,6 +123,7 @@ export default function RequestJob() {
             <Button label="Request a booking" trailingIcon={ArrowRight} loading={submitting} disabled={!ready} onPress={submit} />
           )}
         </Footer>
+        )
       }>
       <View style={styles.header}>
         <IconButton icon={ChevronLeft} label="Back" onPress={() => router.back()} />

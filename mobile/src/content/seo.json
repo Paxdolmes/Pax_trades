@@ -30,6 +30,10 @@
       "title": "Local jobs for tradespeople in Fulham | Relay Traders",
       "description": "Plumbers, electricians, gas engineers and carpenters: get local jobs near you in Fulham with Relay Traders. No lead fees and no monthly subscription."
     },
+    "/waitlist": {
+      "title": "Join the waiting list: opening soon in Fulham | Relay",
+      "description": "Relay is opening soon in Fulham, SW6. Join the waiting list and we’ll tell you the day you can book a vetted local plumber, electrician, gas engineer or carpenter."
+    },
     "/help": {
       "title": "Help and contact | Relay",
       "description": "Answers about booking, prices, payments and the Relay Guarantee, or send us a message and we’ll get back to you."

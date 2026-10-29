@@ -12,10 +12,12 @@ import { COMING_SOON, LAUNCH_OUTWARD_CODES } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
 import { TRUST_ITEMS, type Faq } from '@/content/site';
 import { sendEnquiry } from '@/lib/contact';
+import { WAITLIST } from '@/lib/launch';
 
-import { ArrowLink, Container, Grid, H2, Lead, MarkTile, Pill, SiteIcon, useBreakpoint } from './frame';
+import { ArrowLink, Container, Grid, H2, Lead, MAIN_CTA, MarkTile, Pill, SiteIcon, useBreakpoint } from './frame';
 
-/** "Check my area": covered postcodes go on to booking, others can join the waitlist. */
+/** "Check my area": covered postcodes go on to booking (the waiting list until Relay
+ *  opens), others can join the waitlist for their area. */
 export function PostcodeCheck({ next = '/home', stacked }: { next?: string; stacked?: boolean }) {
   const c = usePalette();
   const narrow = useBreakpoint().narrow || stacked;
@@ -73,9 +75,13 @@ export function PostcodeCheck({ next = '/home', stacked }: { next?: string; stac
         <View style={[styles.result, { backgroundColor: c.accentTint }]}>
           <CircleCheck size={20} color={c.accentStrong} />
           <T variant="bodyStrong" style={{ flex: 1 }}>
-            {`Good news, we cover ${postcode}.`}
+            {WAITLIST ? `Good news, we’re opening in ${outwardCode(postcode)} first.` : `Good news, we cover ${postcode}.`}
           </T>
-          <ArrowLink label="Book a job" href={{ pathname: next as '/home', params: { postcode } }} />
+          {WAITLIST ? (
+            <ArrowLink label="Join the waiting list" href={{ pathname: '/waitlist', params: { postcode } }} />
+          ) : (
+            <ArrowLink label="Book a job" href={{ pathname: next as '/home', params: { postcode } }} />
+          )}
         </View>
       ) : null}
       {result === 'waitlist' ? (
@@ -151,7 +157,11 @@ export function FaqList({ items }: { items: Faq[] }) {
   );
 }
 
-export function CtaBand({ title = 'Something need fixing?', sub = 'Tell us what’s wrong and we’ll send a vetted local pro. See the price before you book.' }: { title?: string; sub?: string }) {
+const CTA_SUB = WAITLIST
+  ? 'Relay opens soon in Fulham. Join the waiting list and we’ll tell you the day you can book.'
+  : 'Tell us what’s wrong and we’ll send a vetted local pro. See the price before you book.';
+
+export function CtaBand({ title = 'Something need fixing?', sub = CTA_SUB }: { title?: string; sub?: string }) {
   const c = usePalette();
   const { narrow } = useBreakpoint();
   return (
@@ -160,7 +170,12 @@ export function CtaBand({ title = 'Something need fixing?', sub = 'Tell us what�
         <MarkTile />
         <H2 style={{ textAlign: 'center', fontWeight: '800', fontSize: narrow ? 32 : 46, lineHeight: narrow ? 36 : 52 }}>{title}</H2>
         <Lead style={{ textAlign: 'center', maxWidth: 560 }}>{sub}</Lead>
-        <Pill label="Book a job" href="/home" size="lg" icon={ArrowRight} trailing />
+        <Pill label={MAIN_CTA.label} href={MAIN_CTA.href} size="lg" icon={ArrowRight} trailing />
+        {WAITLIST ? (
+          <View>
+            <ArrowLink label="See how booking will work" href="/home" />
+          </View>
+        ) : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
           <T variant="callout" color="inkMuted">
             Are you a tradesperson?
