@@ -2,7 +2,7 @@
 // short footer. Plain tables and inline styles, so it looks the same in Gmail,
 // Outlook and Apple Mail. supabase/templates/sign-in-code.html uses the same look.
 
-export const SITE = 'https://app.relay-trade.co.uk';
+export const SITE = 'https://relay-trade.co.uk';
 
 const C = { bg: '#FAF7F2', card: '#FFFFFF', ink: '#0D1B3E', muted: '#525D78', border: '#EBE5DA', tint: '#E3F6F3', teal: '#008F80' };
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
@@ -51,7 +51,7 @@ export function brandedEmail({ preheader, heading, body, footer }: { preheader: 
     `<tr><td style="padding:20px 4px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${C.muted}">` +
     (footer ? `${footer}<br>` : '') +
     `Relay · Trusted local trades at your door, in Fulham, SW6<br>` +
-    `<a href="${SITE}" style="color:${C.teal};text-decoration:none">app.relay-trade.co.uk</a> · <a href="${SITE}/help" style="color:${C.teal};text-decoration:none">Help</a>` +
+    `<a href="${SITE}" style="color:${C.teal};text-decoration:none">relay-trade.co.uk</a> · <a href="${SITE}/help" style="color:${C.teal};text-decoration:none">Help</a>` +
     `</td></tr></table></td></tr></table></body></html>`;
 }
 

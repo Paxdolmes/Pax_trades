@@ -85,15 +85,15 @@ The admin screen (approving pros and sorting out problem reports) is in Relay Tr
 
 Both apps also run in a web browser, so anyone can try them without installing anything:
 
-- **Relay:** https://app.relay-trade.co.uk
-- **Relay Traders:** https://app.relay-trade.co.uk/traders
+- **Relay:** https://relay-trade.co.uk
+- **Relay Traders:** https://relay-trade.co.uk/traders
 
 The **Web version** workflow rebuilds the site every time something is merged to `main`. It's free (GitHub Pages). One-off setup:
 
 1. On GitHub, open the repo's **Settings**, then **Pages**. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-2. In Cloudflare, open relay-trade.co.uk, then **DNS** > **Records** > **Add record**: type `CNAME`, name `app`, target `paxdolmes.github.io`, and switch **Proxy status** off (grey cloud, "DNS only").
+2. In Cloudflare, open relay-trade.co.uk, then **DNS** > **Records**: four `A` records named `@` pointing to `185.199.108.153`, `185.199.109.153`, `185.199.110.153` and `185.199.111.153`, and a `CNAME` named `www` pointing to `paxdolmes.github.io`, all with **Proxy status** off (grey cloud, "DNS only"). The old address `app.relay-trade.co.uk` is a proxied record with a Cloudflare redirect rule sending every path to the same path on relay-trade.co.uk.
 3. Back on GitHub, open **Actions** > **Web version** > **Run workflow**.
-4. In **Settings** > **Pages**, type `app.relay-trade.co.uk` under **Custom domain** and save. When the DNS check is green, tick **Enforce HTTPS** (this can take up to an hour to become available).
+4. In **Settings** > **Pages**, type `relay-trade.co.uk` under **Custom domain** and save. When the DNS check is green, tick **Enforce HTTPS** (this can take up to an hour to become available).
 
 On an iPhone, open the link in Safari, tap Share, then **Add to Home Screen**, and it opens full screen like an app.
 
@@ -101,7 +101,7 @@ What's different on the web: there are no push notifications, and cards are save
 
 ### Website pages and the contact form
 
-On a laptop or phone browser, `https://app.relay-trade.co.uk` opens on the Relay website: a home page, Services (all eight trades with every job and price), How it works, Prices, Safety (how pros are vetted), For tradespeople and Help. Booking starts from **Book a job**. The words live in `mobile/src/content/site.ts` and the prices come from `mobile/src/domain/catalog.ts`, so the pages always match booking.
+On a laptop or phone browser, `https://relay-trade.co.uk` opens on the Relay website: a home page, Services (all eight trades with every job and price), How it works, Prices, Safety (how pros are vetted), For tradespeople and Help. Booking starts from **Book a job**. The words live in `mobile/src/content/site.ts` and the prices come from `mobile/src/domain/catalog.ts`, so the pages always match booking.
 
 Messages from the Help page's contact form, and waitlist sign-ups from postcodes outside SW6, are saved in the `enquiries` table (Supabase → Table Editor). To have help messages emailed to you as well, add two secrets in Supabase → Edge Functions → Secrets:
 

@@ -107,7 +107,7 @@ for (const app of apps) {
   copyFileSync(app.icon, join(app.dir, 'apple-touch-icon.png'));
   // The logo at the top of Relay's emails (supabase/functions/_shared/email.ts) is served from the site.
   if (app.variant === 'customer') copyFileSync('assets/images/email-logo.png', join(app.dir, 'email-logo.png'));
-  // Proves to Google Search Console that we own app.relay-trade.co.uk. Keep it, or the site is unverified.
+  // Proves to Google Search Console that we own relay-trade.co.uk. Keep it, or the site is unverified.
   if (app.variant === 'customer') copyFileSync('assets/web/googleddf927cddb8aba22.html', join(app.dir, 'googleddf927cddb8aba22.html'));
   // The picture shown when a page is shared in WhatsApp, iMessage or on social media.
   if (app.variant === 'customer') copyFileSync('assets/web/og-image.png', join(app.dir, 'og-image.png'));

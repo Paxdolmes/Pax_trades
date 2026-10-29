@@ -1,4 +1,4 @@
-// The web version calls Edge Functions from app.relay-trade.co.uk, so browsers
+// The web version calls Edge Functions from relay-trade.co.uk, so browsers
 // first ask (OPTIONS) whether that's allowed, and drop any response without the
 // CORS headers, which the app then only sees as "Failed to send a request".
 

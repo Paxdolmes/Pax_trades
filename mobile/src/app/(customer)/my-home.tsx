@@ -110,7 +110,7 @@ export default function MyHome() {
             />
             <Button label="Join" icon={KeyRound} loading={busy} disabled={code.replace(/\W/g, '').length < 6} onPress={join} />
           </Card>
-          <Note icon={Building2}>No code? Ask your landlord or agent to add your home at app.relay-trade.co.uk/landlords. It’s free for them to set up.</Note>
+          <Note icon={Building2}>No code? Ask your landlord or agent to add your home at relay-trade.co.uk/landlords. It’s free for them to set up.</Note>
         </>
       )}
     </Screen>

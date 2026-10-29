@@ -291,7 +291,7 @@ const sentence = (s: string) => (s ? `${s[0].toUpperCase()}${s.slice(1)}${/[.!?]
 export async function shareJoinCode(p: { name: string; joinCode: string }, from: string): Promise<boolean> {
   const message =
     `${from || 'Your landlord'} uses Relay for repairs at ${p.name}. ` +
-    `Get the Relay app or go to app.relay-trade.co.uk, open Account, then "Your landlord or agent", and enter the code ${formatJoinCode(p.joinCode)}. ` +
+    `Get the Relay app or go to relay-trade.co.uk, open Account, then "Your landlord or agent", and enter the code ${formatJoinCode(p.joinCode)}. ` +
     `Report a repair there and it comes straight to us to approve.`;
   if (Platform.OS === 'web') {
     const nav = globalThis.navigator as Navigator | undefined;
