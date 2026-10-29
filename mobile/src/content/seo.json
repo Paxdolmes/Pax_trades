@@ -48,19 +48,23 @@
     },
     "/plumber-fulham": {
       "title": "Emergency plumber in Fulham, SW6 | Relay",
-      "description": "Burst pipe, leak or blocked toilet? Book a vetted local plumber in Fulham in two minutes. All-in prices from £95, and we aim to be with you within the hour, day or night."
+      "description": "Burst pipe, leak or blocked toilet? Book a vetted local plumber in Fulham in two minutes. All-in prices from £95, and we aim to be with you within the hour, day or night.",
+      "service": "Plumber"
     },
     "/electrician-fulham": {
       "title": "Emergency electrician in Fulham, SW6 | Relay",
-      "description": "Power cut or tripping fuse? Book a NICEIC or NAPIT registered electrician in Fulham in two minutes. All-in prices from £95, with someone with you within the hour, day or night."
+      "description": "Power cut or tripping fuse? Book a NICEIC or NAPIT registered electrician in Fulham in two minutes. All-in prices from £95, and we aim to be with you within the hour, day or night.",
+      "service": "Electrician"
     },
     "/gas-engineer-fulham": {
       "title": "Gas engineer and boiler repair in Fulham, SW6 | Relay",
-      "description": "No heating or hot water? Book a Gas Safe registered engineer in Fulham for boiler repairs, servicing (£119) and gas safety certificates (£95). See the price first."
+      "description": "No heating or hot water? Book a Gas Safe registered engineer in Fulham for boiler repairs, servicing (£119) and gas safety certificates (£95). See the price first.",
+      "service": "Gas engineer"
     },
     "/carpenter-fulham": {
       "title": "Carpenter and handyman in Fulham, SW6 | Relay",
-      "description": "Doors, floorboards, shelves, TV mounting and flat-pack furniture. Book a vetted local carpenter in Fulham at a time that suits you, with the price shown first."
+      "description": "Doors, floorboards, shelves, TV mounting and flat-pack furniture. Book a vetted local carpenter in Fulham at a time that suits you, with the price shown first.",
+      "service": "Carpenter"
     }
   }
 }

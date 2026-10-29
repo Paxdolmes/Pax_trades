@@ -7,11 +7,14 @@
 // Adds the tags iPhone Safari needs for "Add to Home Screen".
 // For search engines: each website page gets its own title, description and share
 // card (src/content/seo.json), app screens are marked noindex, and robots.txt and
-// sitemap.xml are written at the root.
+// sitemap.xml are written at the root. Each page's text and links are also copied
+// into its HTML (see prerender below), for crawlers that don't run the app.
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
+import { extname, join } from 'node:path';
 
 const base = (process.env.WEB_BASE ?? '').replace(/\/$/, '');
 const out = 'dist-web';
@@ -54,7 +57,23 @@ function pageTags(path) {
     `<meta property="og:image:height" content="630">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     path === '/' ? `<script type="application/ld+json">${JSON.stringify(organisation)}</script>` : '',
+    page.service ? `<script type="application/ld+json">${JSON.stringify(service(path, page))}</script>` : '',
   ].join('');
+}
+
+/** A trade page's service, where it's offered and its starting price. */
+function service(path, page) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    serviceType: page.service,
+    name: page.title.replace(/ \| Relay$/, ''),
+    description: page.description,
+    url: pageUrl(path),
+    provider: { '@type': 'Organization', name: 'Relay', url: `${seo.site}/` },
+    areaServed: { '@type': 'Place', name: 'Fulham, London SW6' },
+    offers: { '@type': 'Offer', price: '95', priceCurrency: 'GBP', description: 'From £95 including the first hour on weekdays, VAT and fees included' },
+  };
 }
 
 rmSync(out, { recursive: true, force: true });
@@ -148,4 +167,56 @@ if (base === '') {
     .join('\n');
   writeFileSync(join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
 }
+if (base === '') await prerender();
 console.log(`Built ${apps.map((a) => a.path).join(' and ')} into ${out}/`);
+
+/**
+ * Opens each website page in a headless browser and copies its text, headings and
+ * links into that page's index.html, so crawlers that don't run the app still read
+ * the whole page. The copy is plain HTML kept invisible: the app replaces it as soon
+ * as it starts, so visitors only ever see the app itself. Needs Playwright (the web
+ * workflow installs it); without it the pages keep the short <noscript> summary.
+ */
+async function prerender() {
+  let chromium;
+  try {
+    ({ chromium } = createRequire(import.meta.url)('playwright'));
+  } catch {
+    console.warn('Playwright not installed: skipping the prerendered page text.');
+    return;
+  }
+  const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.ttf': 'font/ttf', '.css': 'text/css' };
+  const server = createServer((req, res) => {
+    let file = join(out, decodeURIComponent(req.url.split('?')[0]));
+    if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
+    if (!existsSync(file)) file = join(out, 'index.html');
+    res.writeHead(200, { 'content-type': types[extname(file)] ?? 'application/octet-stream' });
+    res.end(readFileSync(file));
+  }).listen(0);
+  const origin = `http://localhost:${server.address().port}`;
+  const browser = await chromium.launch();
+  try {
+    const tab = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    for (const path of Object.keys(seo.pages)) {
+      await tab.goto(origin + (path === '/' ? '/' : `${path}/`), { waitUntil: 'networkidle' });
+      await tab.waitForTimeout(500);
+      // Keep the words, headings, lists and links; drop the app's styling and scripts.
+      const body = await tab.evaluate(() => {
+        const root = document.getElementById('root').cloneNode(true);
+        root.querySelectorAll('script, style, svg, input, textarea, img').forEach((el) => el.remove());
+        root.querySelectorAll('*').forEach((el) => {
+          for (const { name } of [...el.attributes]) if (!['href', 'aria-level', 'role'].includes(name)) el.removeAttribute(name);
+        });
+        return root.innerHTML.replace(/<div>\s*<\/div>/g, '');
+      });
+      if (!/<h1[\s>]/.test(body)) throw new Error(`Prerender of ${path} found no page heading`);
+      const file = join(out, path, 'index.html');
+      const html = readFileSync(file, 'utf8');
+      if (!html.includes('<div id="root"></div>')) throw new Error(`No empty root in ${file}`);
+      writeFileSync(file, html.replace('<div id="root"></div>', `<div id="root"><div style="opacity:0">${body}</div></div>`));
+    }
+  } finally {
+    await browser.close();
+    server.close();
+  }
+}
