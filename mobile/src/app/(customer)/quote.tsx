@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Building2, Check, ChevronLeft, CircleHelp, Plus, Send, ShieldCheck } from 'lucide-react-native';
+import { ArrowRight, BellRing, Building2, Check, ChevronLeft, CircleHelp, Plus, Send, ShieldCheck } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 
@@ -10,6 +10,7 @@ import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { OFFERED_TRADES, PILOT, QUOTE_TIMING_LABELS, type QuoteTiming, type Trade } from '@/domain/catalog';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
 import { useAccountGate } from '@/lib/auth';
+import { WAITLIST } from '@/lib/launch';
 import { useLive } from '@/lib/live';
 import { loadMyProperty } from '@/lib/properties';
 import { createQuoteRequest } from '@/lib/quotes';
@@ -69,9 +70,24 @@ export default function QuoteRequest() {
     }
   }
 
+  // Until Relay opens, the last step is the waiting list, with the job noted.
+  const waitlistFooter = (
+    <Footer>
+      <Note icon={BellRing}>Quotes open soon. Join the waiting list and we’ll tell you the day you can ask for these.</Note>
+      <Button
+        label="Join the waiting list"
+        trailingIcon={ArrowRight}
+        onPress={() =>
+          router.push({ pathname: '/waitlist', params: { postcode: postcode ?? '', quote: description.trim().slice(0, 300) || 'Something else', ...(trades.length === 1 ? { trade: trades[0] } : {}) } })
+        }
+      />
+    </Footer>
+  );
+
   return (
     <Screen
       footer={
+        WAITLIST ? waitlistFooter : (
         <Footer>
           {tenantHome ? (
             <Note icon={Building2}>{`Vetted pros quote, then ${tenantHome.managerName} picks one and pays the bill. There's nothing for you to pay.`}</Note>
@@ -80,6 +96,7 @@ export default function QuoteRequest() {
           )}
           <Button label={tenantHome ? `Get quotes for ${tenantHome.managerName}` : 'Get quotes'} icon={Send} disabled={!ready} loading={submitting} onPress={submit} />
         </Footer>
+        )
       }>
       <View style={styles.header}>
         <IconButton icon={ChevronLeft} label="Back" onPress={() => router.back()} />

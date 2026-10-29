@@ -1,6 +1,7 @@
 // The website's contact form and waitlist. Open to guests, so it checks the input
-// itself and limits each email address to a few messages an hour. Help messages
-// are emailed to the Relay inbox through Resend, with Reply-To set to the sender.
+// itself and limits each email address to a few messages an hour. Help messages and
+// waiting-list sign-ups are emailed to the Relay inbox through Resend, with Reply-To
+// set to the sender.
 // Secrets: RESEND_API_KEY and SUPPORT_INBOX (the address that receives them).
 // Without them messages are still saved in the enquiries table.
 import { admin, brandedEmail, button, caller, detailRows, json, panel, para } from './deps.ts';
@@ -22,8 +23,43 @@ async function sendToInbox(e: { name: string; email: string; topic: string; mess
   const key = Deno.env.get('RESEND_API_KEY');
   const inbox = Deno.env.get('SUPPORT_INBOX');
   if (!key || !inbox) return false;
-  const first = e.name.split(' ')[0];
+  return send(key, inbox, e.email, `Help: ${e.topic || 'New message'} from ${e.name}`, helpEmail(e));
+}
+
+async function sendSignUpToInbox(e: { name: string; email: string; topic: string; message: string; postcode: string }) {
+  const key = Deno.env.get('RESEND_API_KEY');
+  const inbox = Deno.env.get('SUPPORT_INBOX');
+  if (!key || !inbox) return false;
+  const who = e.name || e.email;
   const html = brandedEmail({
+    preheader: `${who} joined the waiting list${e.postcode ? ` from ${e.postcode}` : ''}`,
+    heading: 'New waiting list sign-up',
+    body:
+      para(`${who} joined the Relay waiting list.`, true) +
+      detailRows([
+        ['Name', e.name || 'Not given'],
+        ['Email', e.email],
+        ['Postcode', e.postcode || 'Not given'],
+        ['Needs', e.topic || 'Not given'],
+        ...(e.message ? ([['Note', e.message]] as [string, string][]) : []),
+      ]),
+    footer: 'Every sign-up is also saved in the enquiries table in Supabase.',
+  });
+  return send(key, inbox, e.email, `Waiting list: ${who}${e.postcode ? ` (${e.postcode})` : ''}`, html);
+}
+
+async function send(key: string, inbox: string, replyTo: string, subject: string, html: string) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: 'Relay website <no-reply@relay-trade.co.uk>', to: [inbox], reply_to: replyTo, subject, html }),
+  });
+  return res.ok;
+}
+
+function helpEmail(e: { name: string; email: string; topic: string; message: string; postcode: string }) {
+  const first = e.name.split(' ')[0];
+  return brandedEmail({
     preheader: `${e.name}: ${e.message.slice(0, 90)}`,
     heading: 'New help message',
     body:
@@ -40,18 +76,6 @@ async function sendToInbox(e: { name: string; email: string; topic: string; mess
       button(`Reply to ${first}`, `mailto:${e.email}?subject=${encodeURIComponent(`Re: ${e.topic || 'Your message to Relay'}`)}`),
     footer: 'Pressing Reply in your inbox answers them too.',
   });
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Relay website <no-reply@relay-trade.co.uk>',
-      to: [inbox],
-      reply_to: e.email,
-      subject: `Help: ${e.topic || 'New message'} from ${e.name}`,
-      html,
-    }),
-  });
-  return res.ok;
 }
 
 Deno.serve(async (req) => {
@@ -93,7 +117,8 @@ Deno.serve(async (req) => {
     .single();
   if (error) return reply({ error: 'Could not send your message. Please try again.' }, 500);
 
-  if (kind === 'help' && (await sendToInbox(e).catch(() => false))) {
+  const emailed = kind === 'help' ? sendToInbox(e) : sendSignUpToInbox(e);
+  if (await emailed.catch(() => false)) {
     await db.from('enquiries').update({ emailed_at: new Date().toISOString() }).eq('id', data.id);
   }
   return reply({ ok: true });

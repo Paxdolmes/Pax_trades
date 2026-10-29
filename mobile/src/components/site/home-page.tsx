@@ -10,6 +10,7 @@ import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
 import { EXAMPLE_PROS, EXAMPLE_REVIEWS, EXAMPLES_NOTE } from '@/content/examples';
 import { BENEFITS, HOME_FAQS, HOME_STEPS } from '@/content/site';
 import { CALLOUT_RATES, formatPence, fromPricePence, OFFERED_TRADES } from '@/domain/catalog';
+import { WAITLIST } from '@/lib/launch';
 
 import { LandlordFlowStrip } from './landlord-diagram';
 import { ArrowLink, Container, Eyebrow, Grid, H1, H2, H3, headingLevel, isHovered, linkProps, Lead, Pill, Section, SectionHeading, SiteIcon, SitePage, useBreakpoint } from './frame';
@@ -42,7 +43,7 @@ function Hero() {
           <View style={[styles.badge, SoftShadows.soft, { backgroundColor: c.surface }]}>
             <View style={[styles.dot, { backgroundColor: c.accentStrong }]} />
             <T variant="subhead" style={{ fontWeight: '600' }}>
-              Often at your door within the hour
+              {WAITLIST ? 'Opening soon in Fulham' : 'Often at your door within the hour'}
             </T>
           </View>
           <H1 style={wide ? { fontSize: 64, lineHeight: 68 } : undefined}>
@@ -52,12 +53,19 @@ function Hero() {
             Gas engineers, electricians, plumbers and carpenters. Book a vetted local pro in two minutes, see the price first, and pay only when the job’s done.
           </Lead>
           <PostcodeCheck />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.three }}>
-            <Pill label="Emergency? Get help now" variant="ember" icon={Siren} href={{ pathname: '/home', params: { urgent: '1' } }} />
-            <T variant="subhead" color="inkMuted">
-              Now covering Fulham, SW6
-            </T>
-          </View>
+          {WAITLIST ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: Spacing.five, rowGap: Spacing.three }}>
+              <Pill label="Join the waiting list" variant="teal" icon={ArrowRight} trailing href="/waitlist" />
+              <ArrowLink label="See how booking will work" href="/home" />
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.three }}>
+              <Pill label="Emergency? Get help now" variant="ember" icon={Siren} href={{ pathname: '/home', params: { urgent: '1' } }} />
+              <T variant="subhead" color="inkMuted">
+                Now covering Fulham, SW6
+              </T>
+            </View>
+          )}
           <View style={[styles.tradeCta, { borderTopColor: c.border }]}>
             <T variant="subhead" color="inkMuted">
               Are you a tradesperson?
@@ -146,8 +154,8 @@ function HowItWorks() {
         {HOME_STEPS.map((step, i) => (
           <View key={step.title} style={[styles.step, { backgroundColor: c.bg }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
-              <View style={[styles.stepNo, { backgroundColor: c.ink }]}>
-                <T variant="headline" color="onBrand">
+              <View style={[styles.stepNo, { backgroundColor: c.accent }]}>
+                <T variant="headline" color="onAccent">
                   {String(i + 1)}
                 </T>
               </View>
@@ -202,7 +210,7 @@ function Emergency() {
           </Lead>
         </View>
         <View style={{ gap: Spacing.two, alignItems: wide ? 'flex-end' : 'flex-start' }}>
-          <Pill label="Get urgent help" variant="emberSolid" size="lg" icon={ArrowRight} trailing href={{ pathname: '/home', params: { urgent: '1' } }} />
+          <Pill label={WAITLIST ? 'See how urgent help works' : 'Get urgent help'} variant="emberSolid" size="lg" icon={ArrowRight} trailing href={{ pathname: '/home', params: { urgent: '1' } }} />
           <T variant="footnote" color="inkMuted">
             {`From ${formatPence(CALLOUT_RATES.standard.firstHourPence)} including the first hour`}
           </T>

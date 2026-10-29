@@ -7,6 +7,7 @@ import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
 import { FEES_AND_CANCELLING, PAYMENT_STEPS } from '@/content/site';
 import { ALL_IN_NOTE, CALLOUT_RATES, formatPence, isOffered, JOB_TYPES, TRADES } from '@/domain/catalog';
+import { WAITLIST } from '@/lib/launch';
 
 const CALLOUTS = [
   { icon: Sun, name: 'Standard callout', when: '7am to 8pm, Monday to Friday', rate: CALLOUT_RATES.standard, tint: 'accentTint' as const },
@@ -48,7 +49,7 @@ export default function Prices() {
                   <T variant="body" style={{ flex: 1 }}>{line}</T>
                 </View>
               ))}
-              <Pill label="Book a callout" href="/home" style={{ alignSelf: 'flex-start', marginTop: Spacing.two }} />
+              <Pill label={WAITLIST ? 'Join the waiting list' : 'Book a callout'} variant={WAITLIST ? 'teal' : 'primary'} href={WAITLIST ? '/waitlist' : '/home'} style={{ alignSelf: 'flex-start', marginTop: Spacing.two }} />
             </View>
           ))}
         </Grid>

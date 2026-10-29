@@ -9,6 +9,7 @@ import { TRADE_ICONS } from '@/components/trade-icons';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
 import { CALLOUT_RATES, formatPence, jobTypesForTrade, OFFERED_TRADES, type JobType, type Trade } from '@/domain/catalog';
+import { WAITLIST } from '@/lib/launch';
 
 const std = CALLOUT_RATES.standard;
 const ooh = CALLOUT_RATES.outOfHours;
@@ -142,7 +143,7 @@ export default function Services() {
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.four, justifyContent: 'space-between' }}>
                       <T variant="headline">{p.price}</T>
-                      <Pill label="Book" size="sm" href={{ pathname: '/home', params: { trade: t.id, job: job.id } }} />
+                      <Pill label={WAITLIST ? 'Preview' : 'Book'} variant={WAITLIST ? 'secondary' : 'primary'} size="sm" href={{ pathname: '/home', params: { trade: t.id, job: job.id } }} />
                     </View>
                   </View>
                 );
