@@ -408,6 +408,7 @@ export function SiteFooter() {
         { label: 'Safety', href: '/safety' },
         { label: 'For landlords', href: '/landlords' },
         { label: 'For tradespeople', href: '/for-tradespeople' },
+        { label: 'Guides', href: '/guides' },
         { label: 'Help', href: '/help' },
       ],
     },

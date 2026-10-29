@@ -58,6 +58,7 @@ function pageTags(path) {
     `<meta name="twitter:card" content="summary_large_image">`,
     path === '/' ? `<script type="application/ld+json">${JSON.stringify(organisation)}</script>` : '',
     page.service ? `<script type="application/ld+json">${JSON.stringify(service(path, page))}</script>` : '',
+    page.article ? `<script type="application/ld+json">${JSON.stringify(article(path, page))}</script>` : '',
   ].join('');
 }
 
@@ -73,6 +74,21 @@ function service(path, page) {
     provider: { '@type': 'Organization', name: 'Relay', url: `${seo.site}/` },
     areaServed: { '@type': 'Place', name: 'Fulham, London SW6' },
     offers: { '@type': 'Offer', price: '95', priceCurrency: 'GBP', description: 'From £95 including the first hour on weekdays, VAT and fees included' },
+  };
+}
+
+/** A guide, written by Relay. */
+function article(path, page) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: page.title.replace(/ \| Relay$/, ''),
+    description: page.description,
+    url: pageUrl(path),
+    inLanguage: 'en-GB',
+    author: { '@type': 'Organization', name: 'Relay', url: `${seo.site}/` },
+    publisher: { '@type': 'Organization', name: 'Relay', logo: { '@type': 'ImageObject', url: `${seo.site}/apple-touch-icon.png` } },
+    image: `${seo.site}${seo.image}`,
   };
 }
 
@@ -165,6 +181,8 @@ if (base === '') {
   const urls = Object.keys(seo.pages)
     .map((path) => `  <url><loc>${pageUrl(path)}</loc><lastmod>${today}</lastmod></url>`)
     .join('\n');
+  // Proves to Bing and other IndexNow search engines that the pings after each deploy come from us (scripts/indexnow.mjs).
+  writeFileSync(join(out, `${seo.indexNowKey}.txt`), seo.indexNowKey);
   writeFileSync(join(out, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
 }
 if (base === '') await prerender();
