@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
+import { GUIDES } from '@/content/guides';
 import { AREAS, LOCAL_PAGES, type LocalPage } from '@/content/local';
 import { formatPence, jobTypesForTrade, PILOT, TRADES } from '@/domain/catalog';
 import { WAITLIST } from '@/lib/launch';
@@ -19,6 +20,7 @@ export function LocalServicePage({ page }: { page: LocalPage }) {
   const { narrow } = useBreakpoint();
   const trade = TRADES.find((t) => t.id === page.trade)!;
   const jobs = jobTypesForTrade(page.trade);
+  const guides = GUIDES.filter((g) => g.related === page.path);
   const why = [
     { icon: BadgeCheck, title: 'Vetted local pros', text: `${page.checks} before their first job.` },
     { icon: PoundSterling, title: 'The price first', text: 'All-in prices with VAT and fees included. Your card is only charged when the job’s done.' },
@@ -105,6 +107,16 @@ export function LocalServicePage({ page }: { page: LocalPage }) {
           <View style={{ flex: narrow ? undefined : 1.3, gap: Spacing.four }}>
             <SectionHeading title="Questions" />
             <FaqList items={page.faqs} />
+            {guides.length ? (
+              <View style={{ gap: Spacing.two, marginTop: Spacing.two }}>
+                <T variant="subhead" color="inkMuted">
+                  Helpful guides
+                </T>
+                {guides.map((g) => (
+                  <ArrowLink key={g.slug} label={g.title} href={g.path} />
+                ))}
+              </View>
+            ) : null}
           </View>
         </View>
       </Section>

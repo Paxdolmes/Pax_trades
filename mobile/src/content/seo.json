@@ -1,6 +1,7 @@
 {
   "site": "https://app.relay-trade.co.uk",
   "image": "/og-image.png",
+  "indexNowKey": "284c501d4b535d141f4c77b44ae168cb",
   "pages": {
     "/": {
       "title": "Plumbers, electricians and gas engineers in Fulham | Relay",
@@ -65,6 +66,35 @@
       "title": "Carpenter and handyman in Fulham, SW6 | Relay",
       "description": "Doors, floorboards, shelves, TV mounting and flat-pack furniture. Book a vetted local carpenter in Fulham at a time that suits you, with the price shown first.",
       "service": "Carpenter"
+    },
+    "/guides": {
+      "title": "Home repair guides for Fulham | Relay",
+      "description": "Plain-English guides for when something goes wrong at home: boiler checks, burst pipes, tripping fuses, plumber prices and landlord gas safety certificates."
+    },
+    "/guides/boiler-not-working": {
+      "title": "Boiler not working? 6 checks before you call an engineer | Relay",
+      "description": "No heating or hot water? Check the power, timer, pressure and condensate pipe, and reset it once. If that doesn’t work, book a Gas Safe engineer in Fulham.",
+      "article": true
+    },
+    "/guides/burst-pipe": {
+      "title": "Burst pipe or leak? What to do right now | Relay",
+      "description": "Turn off the stopcock, switch off electrics near the water, drain the pipes and take photos for your insurer. Then get a vetted plumber in Fulham.",
+      "article": true
+    },
+    "/guides/plumber-cost-fulham": {
+      "title": "How much does a plumber cost in Fulham? | Relay",
+      "description": "Relay’s plumbing prices in full: £95 including the first hour on weekdays, then £80 an hour, with VAT and fees included. Plus what changes the price.",
+      "article": true
+    },
+    "/guides/landlord-gas-safety-certificate": {
+      "title": "Landlord gas safety certificate (CP12): a plain guide | Relay",
+      "description": "What landlords must do each year: a check by a Gas Safe engineer, a copy for tenants within 28 days and records kept for two years. CP12 in Fulham from £95.",
+      "article": true
+    },
+    "/guides/fuse-keeps-tripping": {
+      "title": "Fuse box keeps tripping? How to find the cause | Relay",
+      "description": "Find which switch has tripped, unplug everything, reset it and plug things back one at a time. Plus the signs you need an electrician straight away.",
+      "article": true
     }
   }
 }
