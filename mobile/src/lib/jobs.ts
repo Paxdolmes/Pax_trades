@@ -22,6 +22,8 @@ export type NewJob = {
   description: string;
   /** Booked jobs: the start of the 2-hour slot. */
   scheduledFor: string | null;
+  /** A tenant's request to their landlord, or a landlord booking for their property. */
+  propertyId?: string | null;
 };
 
 /** Creates a job request. Without Supabase configured, returns a local demo id. */
@@ -39,6 +41,7 @@ export async function createJob(job: NewJob): Promise<{ id: string }> {
       postcode: job.postcode,
       description: job.description,
       scheduled_for: job.scheduledFor,
+      property_id: job.propertyId ?? null,
       location,
     })
     .select('id')

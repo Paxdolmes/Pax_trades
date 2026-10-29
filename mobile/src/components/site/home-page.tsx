@@ -11,7 +11,8 @@ import { EXAMPLE_PROS, EXAMPLE_REVIEWS, EXAMPLES_NOTE } from '@/content/examples
 import { BENEFITS, HOME_FAQS, HOME_STEPS } from '@/content/site';
 import { CALLOUT_RATES, formatPence, fromPricePence, TRADES } from '@/domain/catalog';
 
-import { ArrowLink, Container, Eyebrow, Grid, H1, H3, isHovered, linkProps, Lead, Pill, Section, SectionHeading, SiteIcon, SitePage, useBreakpoint } from './frame';
+import { LandlordFlowStrip } from './landlord-diagram';
+import { ArrowLink, Container, Eyebrow, Grid, H1, H2, H3, isHovered, linkProps, Lead, Pill, Section, SectionHeading, SiteIcon, SitePage, useBreakpoint } from './frame';
 import { BookingMockup, CtaBand, FaqList, PostcodeCheck, TrustStrip } from './widgets';
 
 export function HomePage() {
@@ -24,6 +25,7 @@ export function HomePage() {
       <LocalPros />
       <Emergency />
       <WhyRelay />
+      <ForLandlords />
       <FaqTeaser />
       <CtaBand />
     </SitePage>
@@ -205,6 +207,25 @@ function Emergency() {
   );
 }
 
+/** Landlords and agents: the pitch in a sentence, and the way to the full page. */
+function ForLandlords() {
+  const c = usePalette();
+  const { narrow } = useBreakpoint();
+  return (
+    <Container style={{ paddingBottom: narrow ? 56 : 88 }}>
+      <View style={[styles.landlords, { backgroundColor: c.ink, padding: narrow ? Spacing.six : 48 }]}>
+        <Eyebrow tone="white">Landlords and letting agents</Eyebrow>
+        <H2 style={{ color: '#FFFFFF', maxWidth: 720 }}>Let tenants send repairs straight to you.</H2>
+        <Lead style={{ color: '#C9CFDD', maxWidth: 640 }}>
+          No more back and forth between your tenant, you and a tradesperson. Approve with one tap, and see every property’s repairs and spend in one dashboard.
+        </Lead>
+        <LandlordFlowStrip dark />
+        <Pill label="Relay for landlords" variant="secondary" size="lg" icon={ArrowRight} trailing href="/landlords" style={{ alignSelf: 'flex-start' }} />
+      </View>
+    </Container>
+  );
+}
+
 function WhyRelay() {
   const c = usePalette();
   return (
@@ -267,6 +288,7 @@ const styles = StyleSheet.create({
   step: { borderRadius: 28, padding: Spacing.six, gap: Spacing.four, flex: 1 },
   stepNo: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   emergency: { flexDirection: 'row', alignItems: 'center', gap: Spacing.six, borderRadius: 28 },
+  landlords: { borderRadius: 28, gap: Spacing.five },
   benefit: { borderRadius: 24, padding: Spacing.six, gap: Spacing.four, flex: 1 },
   vetBar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: Spacing.three, borderRadius: 999, paddingHorizontal: Spacing.five, paddingVertical: Spacing.four },
 });

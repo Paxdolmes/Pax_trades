@@ -38,8 +38,13 @@ type JobRow = {
 function jobRow(j: CustomerJob): JobRow {
   const type = findJobType(j.jobTypeId);
   const waiting = j.status === 'on_site' && j.finishedAt && !j.confirmedAt;
+  const approval = j.property?.approval;
   const chip: JobRow['chip'] = waiting
     ? { label: 'Needs your OK', tone: 'urgent' }
+    : approval === 'pending' && j.status === 'requested'
+      ? { label: `Waiting for ${j.property?.approverName}`, tone: 'warning' }
+    : approval === 'declined'
+      ? { label: 'Not approved', tone: 'neutral' }
     : j.status === 'completed'
       ? { label: j.paidAt ? 'Paid' : 'Done', tone: 'success' }
       : j.status === 'cancelled'

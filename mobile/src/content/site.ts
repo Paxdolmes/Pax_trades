@@ -30,6 +30,10 @@ import {
   Briefcase,
   Wrench,
   Zap,
+  LayoutDashboard,
+  House,
+  KeyRound,
+  FileCheck,
   type LucideIcon,
 } from 'lucide-react-native';
 
@@ -231,3 +235,39 @@ export const FAQ_GROUPS: { id: string; title: string; items: Faq[] }[] = [
 export const HOME_FAQS = [FAQ_GROUPS[1].items[0], FAQ_GROUPS[0].items[0], FAQ_GROUPS[2].items[0]];
 
 export const HELP_TOPICS = ['Booking', 'Prices & payment', 'A problem with a job', 'Becoming a pro', 'Something else'];
+
+// For landlords and letting agents -------------------------------------------------
+
+export const LANDLORD_FEATURES: Item[] = [
+  { icon: LayoutDashboard, title: 'Every property in one place', text: 'See what’s waiting for your OK, what’s in progress and what’s done, across all your properties.' },
+  { icon: PoundSterling, title: 'Spend per property', text: 'Every job is filed under its property with its cost, so this year’s spend is always one look away.' },
+  { icon: Zap, title: 'Emergencies don’t wait', text: 'Leaks, no heating, power cuts and lock-outs can go straight to a pro. You’re told the moment it happens.' },
+  { icon: FileCheck, title: 'Vetted pros, records kept', text: 'Gas Safe engineers and NICEIC or NAPIT electricians, all insured and ID-checked. Gas safety records and EICRs stay with each job.' },
+];
+
+export const LANDLORD_STEPS: Item[] = [
+  { icon: House, title: 'Add your properties', text: 'Just the address and postcode. It takes a minute each, and it’s free.' },
+  { icon: KeyRound, title: 'Send each tenant their code', text: 'Your tenant enters the six-character code in Relay, and their repairs come to you.' },
+  { icon: CircleCheck, title: 'Approve, and you’re done', text: 'You see the job and the price, then tap Approve. We handle the rest with your tenant.' },
+];
+
+export const LANDLORD_FAQS: Faq[] = [
+  {
+    q: 'Who pays for the work?',
+    a: 'You do, at the same all-in prices as everyone else on Relay. The bill for each job you approve goes on your saved card once your tenant confirms it’s fixed. Tenants pay nothing.',
+  },
+  { q: 'What does it cost to set up?', a: 'Nothing. There’s no subscription and no setup fee. You only pay for the jobs you approve.' },
+  {
+    q: 'Do I have to approve everything?',
+    a: 'Every request waits for you, except emergencies if you choose. Each property has a switch for emergencies: on, they go straight to a pro and you’re told at once; off, they wait for you too.',
+  },
+  {
+    q: 'Can I book jobs myself, like a gas safety certificate?',
+    a: 'Yes. Open the property and book any job for it, such as a CP12, an EICR or a boiler service. Your own bookings need no approval.',
+  },
+  {
+    q: 'What if my tenant wants something done that I won’t pay for?',
+    a: 'Decline it with a short note and they’ll see why. Tenants can also switch “Send to my landlord” off and book and pay for something themselves.',
+  },
+  { q: 'Where does it work?', a: 'Fulham, SW6, while we launch. Properties elsewhere in London are coming soon.' },
+];

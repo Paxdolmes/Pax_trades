@@ -67,6 +67,7 @@ function Routes() {
       <Stack.Screen name="sign-in" options={{ headerShown: false }} />
       <Stack.Screen name="(customer)" options={{ headerShown: false }} />
       <Stack.Screen name="(pro)" options={{ headerShown: false }} />
+      <Stack.Screen name="(manager)" options={{ headerShown: false }} />
       <Stack.Screen name="notifications" options={{ headerShown: false }} />
     </Stack>
   );

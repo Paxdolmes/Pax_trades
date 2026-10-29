@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   BadgeCheck,
+  Building2,
   ChevronRight,
   CircleCheck,
   Clock,
@@ -172,11 +173,15 @@ export default function JobScreen() {
   const finalPence = row?.finalPricePence ?? null;
   const extraPence = extra === 'approved' ? DEMO_EXTRA_WORK.lines.reduce((s, l) => s + l.pence, 0) : 0;
 
+  // A tenant's request to their landlord: the landlord's card pays, so no tip on top.
+  const billedTo = row?.property ? row.property.approverName : null;
+
   if (status === 'finished' || status === 'completed') {
     return (
       <ProContext.Provider value={pro}>
       <JobDone
         jobId={params.id}
+        billedTo={billedTo}
         confirmed={status === 'completed'}
         basePence={finalPence ?? held}
         extraPence={finalPence === null ? extraPence : 0}
@@ -186,9 +191,23 @@ export default function JobScreen() {
       </ProContext.Provider>
     );
   }
+  if (status === 'requested' && row?.property?.approval === 'pending') {
+    return (
+      <AwaitingApproval
+        approver={row.property.approverName}
+        propertyName={row.property.name}
+        jobLabel={jobType.label}
+        trade={jobType.trade}
+        urgency={urgency}
+        scheduledFor={row.scheduledFor}
+        onCancel={() => askToCancel(params.id)}
+      />
+    );
+  }
   if (status === 'requested' || status === 'offered') {
     return (
       <Finding
+        billedTo={billedTo}
         postcode={row?.postcode ?? DEMO_CUSTOMER.postcode}
         jobLabel={jobType.label}
         trade={jobType.trade}
@@ -199,7 +218,10 @@ export default function JobScreen() {
       />
     );
   }
-  if (status === 'cancelled') return <Cancelled jobLabel={jobType.label} />;
+  if (status === 'cancelled') {
+    const declined = row?.property?.approval === 'declined' ? row.property : null;
+    return <Cancelled jobLabel={jobType.label} declinedBy={declined?.approverName} reason={declined?.declineReason ?? null} />;
+  }
   return (
     <ProContext.Provider value={pro}>
       <OnTheWay jobId={params.id} arrived={status === 'on_site'} trade={jobType.trade} due={due} />
@@ -225,22 +247,91 @@ function askToCancel(jobId: string) {
   ]);
 }
 
-function Cancelled({ jobLabel }: { jobLabel: string }) {
+function Cancelled({ jobLabel, declinedBy, reason }: { jobLabel: string; declinedBy?: string; reason?: string | null }) {
   const c = usePalette();
   return (
     <SafeAreaView style={[styles.cancelled, { backgroundColor: c.bg }]}>
       <T variant="title1" style={{ textAlign: 'center' }}>
-        Cancelled
+        {declinedBy ? 'Not approved' : 'Cancelled'}
       </T>
       <T variant="callout" color="inkMuted" style={{ textAlign: 'center' }}>
-        {`${jobLabel}. You haven't been charged.`}
+        {declinedBy ? `${declinedBy} didn't approve: ${jobLabel.toLowerCase()}.` : `${jobLabel}. You haven't been charged.`}
       </T>
+      {reason ? (
+        <Card style={{ gap: Spacing.one }}>
+          <T variant="overline" color="inkSubtle">
+            {`MESSAGE FROM ${declinedBy?.toUpperCase()}`}
+          </T>
+          <T variant="callout">{reason}</T>
+        </Card>
+      ) : declinedBy ? (
+        <T variant="footnote" color="inkSubtle" style={{ textAlign: 'center' }}>
+          {"Contact them if you're not sure why. You can still book and pay for it yourself."}
+        </T>
+      ) : null}
       <Button label="Back to home" onPress={() => router.replace('/home')} style={{ alignSelf: 'stretch' }} />
     </SafeAreaView>
   );
 }
 
+/** A tenant's request waits for their landlord or agent before any pro sees it. */
+function AwaitingApproval({
+  approver,
+  propertyName,
+  jobLabel,
+  trade,
+  urgency,
+  scheduledFor,
+  onCancel,
+}: {
+  approver: string;
+  propertyName: string;
+  jobLabel: string;
+  trade: Trade;
+  urgency: Urgency;
+  scheduledFor: string | null;
+  onCancel: () => void;
+}) {
+  const c = usePalette();
+  const when = scheduledFor
+    ? new Date(scheduledFor).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : 'As soon as possible';
+  return (
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.bg }}>
+      <ScrollView contentContainerStyle={styles.doneBody}>
+        <View style={[styles.doneIcon, { backgroundColor: c.warningTint }]}>
+          <Building2 size={24} color={c.warning} strokeWidth={2.2} />
+        </View>
+        <View style={{ gap: Spacing.two }}>
+          <T variant="title1" accessibilityRole="header">
+            {`Sent to ${approver}`}
+          </T>
+          <T variant="callout" color="inkMuted">
+            {`As soon as they approve it, we'll send a vetted pro and let you know. The pro will deal with you directly, and ${approver} pays the bill.`}
+          </T>
+        </View>
+        <ProgressSteps steps={['Sent', 'Approved', 'Pro booked', 'Fixed']} current={0} />
+        <View style={[styles.summary, { backgroundColor: c.surface }]}>
+          <View style={styles.row}>
+            <IconTile icon={TRADE_ICONS[trade]} size={44} />
+            <View style={{ flex: 1 }}>
+              <T variant="headline">{jobLabel}</T>
+              <T variant="footnote" color="inkMuted">
+                {`${urgency === 'urgent' ? 'ASAP' : when} · ${propertyName}`}
+              </T>
+            </View>
+          </View>
+          <Divider />
+          <Note icon={Info}>{`Nothing to pay. ${approver} is billed once the job is done.`}</Note>
+        </View>
+        <Button label="Cancel request" variant="secondary" onPress={onCancel} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
 function Finding({
+  billedTo,
   postcode,
   jobLabel,
   trade,
@@ -249,6 +340,7 @@ function Finding({
   reassigned,
   onCancel,
 }: {
+  billedTo: string | null;
   postcode: string;
   jobLabel: string;
   trade: Trade;
@@ -328,7 +420,9 @@ function Finding({
             <T variant="headline">{formatPence(heldPence)}</T>
           </View>
           <Divider />
-          <Note icon={Lock}>{`${formatPence(heldPence)} held on your card, not charged. ${ALL_IN_NOTE}`}</Note>
+          <Note icon={Lock}>
+            {billedTo ? `Billed to ${billedTo} once the job is done. Nothing for you to pay.` : `${formatPence(heldPence)} held on your card, not charged. ${ALL_IN_NOTE}`}
+          </Note>
         </View>
         <View style={{ gap: Spacing.two, alignItems: 'center' }}>
           <Button label="Cancel request" variant="secondary" onPress={onCancel} style={{ alignSelf: 'stretch' }} />
@@ -503,6 +597,7 @@ const TIPS = [0, 300, 500, 1000];
  */
 function JobDone({
   jobId,
+  billedTo,
   confirmed,
   basePence,
   extraPence,
@@ -510,6 +605,7 @@ function JobDone({
   trade,
 }: {
   jobId: string;
+  billedTo: string | null;
   confirmed: boolean;
   basePence: number;
   extraPence: number;
@@ -518,7 +614,7 @@ function JobDone({
 }) {
   const c = usePalette();
   const pro = useJobPro();
-  const [tip, setTip] = useState(500);
+  const [tip, setTip] = useState(billedTo ? 0 : 500);
   const [paid, setPaid] = useState(confirmed);
   const [paying, setPaying] = useState(false);
   const [rating, setRating] = useState(5);
@@ -537,7 +633,10 @@ function JobDone({
       await confirmJob(jobId, tip);
       const status = await chargeJob(jobId);
       if (status !== 'succeeded' && status !== 'processing') {
-        Alert.alert('Your card was declined', "The job is confirmed. We'll be in touch to sort out payment.");
+        Alert.alert(
+          billedTo ? 'Payment is with your landlord' : 'Your card was declined',
+          billedTo ? `The job is confirmed. We'll sort out payment with ${billedTo}.` : "The job is confirmed. We'll be in touch to sort out payment.",
+        );
       }
       setPaid(true);
     } catch (e) {
@@ -570,7 +669,7 @@ function JobDone({
           </View>
           <View style={{ flex: 1 }}>
             <T variant="title1" accessibilityRole="header">
-              {paid ? 'Paid, thank you' : 'Is everything working?'}
+              {paid ? (billedTo ? 'All done, thank you' : 'Paid, thank you') : 'Is everything working?'}
             </T>
             <T variant="footnote" color="inkMuted">
               {paid ? `${jobLabel} with ${pro.firstName}` : `${pro.firstName} says the job is done`}
@@ -640,11 +739,11 @@ function JobDone({
             <T variant="title1">{formatPence(total)}</T>
           </View>
           <T variant="footnote" color="inkSubtle">
-            {ALL_IN_NOTE}
+            {billedTo ? `Billed to ${billedTo}. Nothing for you to pay.` : ALL_IN_NOTE}
           </T>
         </Card>
 
-        {paid ? null : (
+        {paid || billedTo ? null : (
           <Card style={{ gap: Spacing.three }}>
             <T variant="headline">{`Add a tip for ${pro.firstName}?`}</T>
             <View style={{ flexDirection: 'row', gap: Spacing.two }} accessibilityRole="radiogroup" accessibilityLabel="Tip">
@@ -702,7 +801,13 @@ function JobDone({
           </View>
         ) : (
           <>
-            <Button label={`Confirm and pay ${formatPence(total)}`} variant="ink" icon={CreditCard} loading={paying} onPress={confirmAndPay} />
+            <Button
+              label={billedTo ? "Confirm it's fixed" : `Confirm and pay ${formatPence(total)}`}
+              variant="ink"
+              icon={billedTo ? CircleCheck : CreditCard}
+              loading={paying}
+              onPress={confirmAndPay}
+            />
             <Button label="Something's not right" variant="ghost" icon={TriangleAlert} onPress={report} />
           </>
         )}

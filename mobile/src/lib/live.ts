@@ -8,6 +8,7 @@ import { useCallback, useState } from 'react';
 import type { CredentialType, Trade } from '@/domain/catalog';
 import type { Credential } from '@/domain/rules';
 import type { JobStatus, Urgency } from '@/lib/jobs';
+import type { Approval } from '@/lib/properties';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export const isLive = isSupabaseConfigured;
@@ -260,6 +261,8 @@ export type CustomerJob = {
   paidAt: string | null;
   finalPricePence: number | null;
   tipPence: number;
+  /** A tenant's request to their landlord or agent, who approves it and pays. */
+  property: null | { id: string; name: string; approval: Approval | null; approverName: string; declineReason: string | null };
   pro: null | {
     id: string;
     name: string;
@@ -290,6 +293,11 @@ type CustomerJobRow = {
   pro_reviews: number | null;
   pro_completed_jobs: number | null;
   pro_credentials: CredentialType[] | null;
+  property_id: string | null;
+  property_name: string | null;
+  approval: Approval | null;
+  approver_name: string | null;
+  decline_reason: string | null;
 };
 
 export async function loadCustomerJobs(jobId?: string): Promise<CustomerJob[]> {
@@ -309,6 +317,15 @@ export async function loadCustomerJobs(jobId?: string): Promise<CustomerJob[]> {
     paidAt: r.paid_at,
     finalPricePence: r.final_price_pence,
     tipPence: r.tip_pence,
+    property: r.property_id
+      ? {
+          id: r.property_id,
+          name: r.property_name ?? '',
+          approval: r.approval,
+          approverName: r.approver_name ?? 'Your landlord',
+          declineReason: r.decline_reason,
+        }
+      : null,
     pro: r.pro_id
       ? {
           id: r.pro_id,

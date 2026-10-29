@@ -54,6 +54,7 @@ export const SITE_LINKS: { label: string; href: Href }[] = [
   { label: 'How it works', href: '/how-it-works' },
   { label: 'Prices', href: '/prices' },
   { label: 'Safety', href: '/safety' },
+  { label: 'Landlords', href: '/landlords' },
   { label: 'For tradespeople', href: '/for-tradespeople' },
   { label: 'Help', href: '/help' },
 ];
@@ -366,6 +367,7 @@ export function SiteFooter() {
         { label: 'How it works', href: '/how-it-works' },
         { label: 'Prices', href: '/prices' },
         { label: 'Safety', href: '/safety' },
+        { label: 'For landlords', href: '/landlords' },
         { label: 'For tradespeople', href: '/for-tradespeople' },
         { label: 'Help', href: '/help' },
       ],
