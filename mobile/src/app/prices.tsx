@@ -6,14 +6,14 @@ import { CtaBand } from '@/components/site/widgets';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
 import { FEES_AND_CANCELLING, PAYMENT_STEPS } from '@/content/site';
-import { ALL_IN_NOTE, CALLOUT_RATES, formatPence, JOB_TYPES, TRADES } from '@/domain/catalog';
+import { ALL_IN_NOTE, CALLOUT_RATES, formatPence, isOffered, JOB_TYPES, TRADES } from '@/domain/catalog';
 
 const CALLOUTS = [
   { icon: Sun, name: 'Standard callout', when: '7am to 8pm, Monday to Friday', rate: CALLOUT_RATES.standard, tint: 'accentTint' as const },
   { icon: Moon, name: 'Out-of-hours callout', when: 'After 8pm on weekdays, and all weekend', rate: CALLOUT_RATES.outOfHours, tint: 'urgentTint' as const },
 ];
 
-const FIXED = JOB_TYPES.filter((j) => j.pricing.kind === 'fixed');
+const FIXED = JOB_TYPES.filter((j) => j.pricing.kind === 'fixed' && isOffered(j.trade));
 
 export default function Prices() {
   const c = usePalette();
@@ -42,7 +42,7 @@ export default function Prices() {
                   including the first hour
                 </T>
               </View>
-              {[`Then ${formatPence(rate.perHourPence)} an hour`, 'For repairs: leaks, blockages, faults, lock-outs and more', 'Parts priced and approved by you in the app'].map((line) => (
+              {[`Then ${formatPence(rate.perHourPence)} an hour`, 'For repairs: leaks, blockages, boiler and electrical faults', 'Parts priced and approved by you in the app'].map((line) => (
                 <View key={line} style={{ flexDirection: 'row', gap: Spacing.two, alignItems: 'center' }}>
                   <Check size={18} color={c.accentStrong} strokeWidth={2.6} style={{ flexShrink: 0 }} />
                   <T variant="body" style={{ flex: 1 }}>{line}</T>

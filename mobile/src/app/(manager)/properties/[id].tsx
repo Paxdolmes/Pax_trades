@@ -1,24 +1,26 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CalendarCheck, PoundSterling, Share2, Trash2, Zap } from 'lucide-react-native';
+import { CalendarCheck, ClipboardPen, PoundSterling, Share2, Trash2, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 
-import { BackLink, HistoryRow, ManagerScreen, StatTile } from '@/components/landlord';
+import { BackLink, HistoryRow, ManagerScreen, QuoteRequestCard, StatTile } from '@/components/landlord';
 import { Grid, useBreakpoint } from '@/components/site/frame';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { Button, Card, Divider, SectionLabel, T } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
-import { formatPence, TRADES } from '@/domain/catalog';
+import { formatPence, OFFERED_TRADES, type Trade } from '@/domain/catalog';
 import { isLive, shortDate, useLive } from '@/lib/live';
 import {
   EXAMPLE_COMPANY,
   EXAMPLE_JOBS,
   EXAMPLE_PROPERTIES,
+  EXAMPLE_QUOTE_REQUESTS,
   formatJoinCode,
   isExample,
   loadCompanyName,
   loadManagedJobs,
   loadManagedProperties,
+  loadManagedQuoteRequests,
   loadTenants,
   removeTenant,
   shareJoinCode,
@@ -35,6 +37,8 @@ export default function PropertyScreen() {
   const { data: properties, loading } = useLive(() => (example ? Promise.resolve(EXAMPLE_PROPERTIES) : loadManagedProperties()), example ? EXAMPLE_PROPERTIES : [], id);
   const exampleJobs = EXAMPLE_JOBS.filter((j) => j.propertyId === id);
   const { data: jobs } = useLive(() => (example ? Promise.resolve(exampleJobs) : loadManagedJobs(id)), example ? exampleJobs : [], id);
+  const exampleQuotes = EXAMPLE_QUOTE_REQUESTS.filter((r) => r.propertyId === id);
+  const { data: quoteRequests } = useLive(() => (example ? Promise.resolve(exampleQuotes) : loadManagedQuoteRequests(id)), example ? exampleQuotes : [], id);
   const exampleTenants = (EXAMPLE_PROPERTIES.find((p) => p.id === id)?.tenants ?? []).map((name, i): Tenant => ({ id: `${id}-t${i}`, name, joinedAt: '2026-09-01T10:00:00Z' }));
   const { data: tenants, reload: reloadTenants } = useLive(() => (example ? Promise.resolve(exampleTenants) : loadTenants(id)), example ? exampleTenants : [], id);
   const { data: company } = useLive(() => (example ? Promise.resolve(EXAMPLE_COMPANY) : loadCompanyName()), '', id);
@@ -106,12 +110,20 @@ export default function PropertyScreen() {
     ]);
   }
 
-  function book(trade: (typeof TRADES)[number]['id']) {
+  function book(trade: Trade) {
     if (example || !property) {
       Alert.alert('Example dashboard', 'Sign in and add your property to book jobs for it.');
       return;
     }
     router.push({ pathname: '/request', params: { trade, postcode: property.postcode, property: property.id, propertyName: property.name } });
+  }
+
+  function getQuotes() {
+    if (example || !property) {
+      Alert.alert('Example dashboard', 'Sign in and add your property to ask for quotes.');
+      return;
+    }
+    router.push({ pathname: '/quote', params: { postcode: property.postcode, property: property.id, propertyName: property.name } });
   }
 
   const spentAll = jobs.filter((j) => j.status === 'completed').reduce((s, j) => s + (j.finalPricePence ?? 0), 0);
@@ -167,7 +179,7 @@ export default function PropertyScreen() {
         </View>
         <T variant="footnote" color="inkMuted">
           {urgentOn
-            ? "Leaks, no heating, power cuts and lock-outs go to a pro without waiting for you. We'll tell you straight away."
+            ? "Leaks, no heating and power cuts go to a pro without waiting for you. We'll tell you straight away."
             : 'Every request waits for your OK, even emergencies.'}
         </T>
       </Card>
@@ -182,13 +194,22 @@ export default function PropertyScreen() {
         <StatTile icon={CalendarCheck} label="Jobs" value={String(property.jobs)} tone="neutral" />
       </Grid>
 
+      {quoteRequests.length ? (
+        <View style={{ gap: Spacing.three }}>
+          <SectionLabel>Quote requests</SectionLabel>
+          {quoteRequests.map((r) => (
+            <QuoteRequestCard key={r.id} request={r} onOpen={() => router.push({ pathname: '/quotes/[id]', params: { id: r.id } })} />
+          ))}
+        </View>
+      ) : null}
+
       <View style={{ gap: Spacing.three }}>
         <SectionLabel>Book a job here</SectionLabel>
         <T variant="footnote" color="inkMuted">
           Gas safety certificates, EICRs, a check between tenants: book it yourself and it needs no approval.
         </T>
         <View style={styles.trades}>
-          {TRADES.map((t) => {
+          {OFFERED_TRADES.map((t) => {
             const Icon = TRADE_ICONS[t.id];
             return (
               <Pressable
@@ -203,6 +224,15 @@ export default function PropertyScreen() {
               </Pressable>
             );
           })}
+          <Pressable
+            accessibilityRole="button"
+            onPress={getQuotes}
+            style={({ pressed }) => [styles.trade, { backgroundColor: pressed ? c.surfaceMuted : c.surface, borderColor: c.border }]}>
+            <ClipboardPen size={16} color={c.accentStrong} />
+            <T variant="subhead" style={{ fontWeight: '600' }}>
+              Something else? Get quotes
+            </T>
+          </Pressable>
         </View>
       </View>
 

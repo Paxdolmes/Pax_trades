@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RelayMark, Wordmark } from '@/components/brand';
 import { IconButton, T, type LucideIcon } from '@/components/ui';
 import { Radii, SoftShadows, Spacing, usePalette, type ColorToken } from '@/constants/theme';
-import { TRADES } from '@/domain/catalog';
+import { OFFERED_TRADES } from '@/domain/catalog';
 import { needsSignIn, useAuth } from '@/lib/auth';
 
 export const isWeb = Platform.OS === 'web';
@@ -360,7 +360,7 @@ export function SiteFooter() {
   const c = usePalette();
   const { narrow } = useBreakpoint();
   const columns: { title: string; links: { label: string; href: Href }[] }[] = [
-    { title: 'Services', links: TRADES.map((t) => ({ label: t.service, href: { pathname: '/services', params: { trade: t.id } } })) },
+    { title: 'Services', links: OFFERED_TRADES.map((t) => ({ label: t.service, href: { pathname: '/services', params: { trade: t.id } } })) },
     {
       title: 'Company',
       links: [

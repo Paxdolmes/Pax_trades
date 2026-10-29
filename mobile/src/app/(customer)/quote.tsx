@@ -1,20 +1,22 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, ChevronLeft, CircleHelp, Plus, Send, ShieldCheck } from 'lucide-react-native';
+import { Building2, Check, ChevronLeft, CircleHelp, Plus, Send, ShieldCheck } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 
 import { MediaPicker } from '@/components/media-picker';
 import { TRADE_ICONS } from '@/components/trade-icons';
-import { Button, Card, Footer, IconButton, Note, Radio, Screen, T } from '@/components/ui';
+import { Button, Card, Footer, IconButton, IconTile, Note, Radio, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { PILOT, QUOTE_TIMING_LABELS, TRADES, type QuoteTiming, type Trade } from '@/domain/catalog';
+import { OFFERED_TRADES, PILOT, QUOTE_TIMING_LABELS, type QuoteTiming, type Trade } from '@/domain/catalog';
 import { uploadMedia, type PickedMedia } from '@/lib/media';
 import { useAccountGate } from '@/lib/auth';
+import { useLive } from '@/lib/live';
+import { loadMyProperty } from '@/lib/properties';
 import { createQuoteRequest } from '@/lib/quotes';
 
 const MIN_DESCRIPTION = 10;
 
-const TRADE_CHOICES = TRADES.map((t) => ({ id: t.id, label: t.short, icon: TRADE_ICONS[t.id] }));
+const TRADE_CHOICES = OFFERED_TRADES.map((t) => ({ id: t.id, label: t.short, icon: TRADE_ICONS[t.id] }));
 
 // Tapping one adds it as a line to fill in, so quotes are based on the same facts.
 const PROMPTS = ['Where in the home', 'Size or how many', 'What’s there now', 'Parts you already have', 'Access and parking'];
@@ -27,7 +29,14 @@ const TIMING_DETAIL: Record<QuoteTiming, string> = {
 
 export default function QuoteRequest() {
   const c = usePalette();
-  const { postcode } = useLocalSearchParams<{ postcode: string }>();
+  const params = useLocalSearchParams<{ postcode: string; property?: string; propertyName?: string }>();
+  // A tenant can send the request to their landlord, who picks a quote and pays.
+  // A manager asking for one of their properties arrives with it.
+  const { data: home } = useLive(loadMyProperty, null);
+  const [toLandlord, setToLandlord] = useState(true);
+  const tenantHome = !params.property && home && toLandlord ? home : null;
+  const propertyId = params.property ?? tenantHome?.id ?? null;
+  const postcode = tenantHome?.postcode ?? params.postcode;
   const [description, setDescription] = useState('');
   const input = useRef<TextInputInstance>(null);
   const addPrompt = (p: string) => {
@@ -47,7 +56,7 @@ export default function QuoteRequest() {
     if (!signedIn()) return;
     setSubmitting(true);
     try {
-      const { id } = await createQuoteRequest({ trades, postcode, description: description.trim(), timing });
+      const { id } = await createQuoteRequest({ trades, postcode, description: description.trim(), timing, propertyId });
       // The request is in either way; don't let a failed photo upload send it twice.
       await uploadMedia({ quoteRequestId: id }, media).catch(() =>
         Alert.alert('Your request is sent', "Your photos didn't upload. You can show them to the pro you pick in the chat."),
@@ -64,19 +73,36 @@ export default function QuoteRequest() {
     <Screen
       footer={
         <Footer>
-          <Note icon={ShieldCheck}>Only vetted, insured pros can quote. Asking is free, quotes include VAT and fees, and you only pay for the one you accept.</Note>
-          <Button label="Get quotes" icon={Send} disabled={!ready} loading={submitting} onPress={submit} />
+          {tenantHome ? (
+            <Note icon={Building2}>{`Vetted pros quote, then ${tenantHome.managerName} picks one and pays the bill. There's nothing for you to pay.`}</Note>
+          ) : (
+            <Note icon={ShieldCheck}>Only vetted, insured pros can quote. Asking is free, quotes include VAT and fees, and you only pay for the one you accept.</Note>
+          )}
+          <Button label={tenantHome ? `Get quotes for ${tenantHome.managerName}` : 'Get quotes'} icon={Send} disabled={!ready} loading={submitting} onPress={submit} />
         </Footer>
       }>
       <View style={styles.header}>
         <IconButton icon={ChevronLeft} label="Back" onPress={() => router.back()} />
         <View>
           <T variant="caption" color="inkSubtle">
-            {postcode}
+            {params.propertyName ? `${params.propertyName} · ${postcode}` : postcode}
           </T>
           <T variant="headline">Something else</T>
         </View>
       </View>
+
+      {home && !params.property ? (
+        <Card selected={toLandlord} onPress={() => setToLandlord(!toLandlord)} style={styles.option} accessibilityLabel={`Send to ${home.managerName} to pick a quote and pay`}>
+          <IconTile icon={Building2} size={44} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <T variant="headline">{`Send to ${home.managerName}`}</T>
+            <T variant="footnote" color="inkMuted">
+              {toLandlord ? `For ${home.name}. They pick a quote and pay the bill.` : "Off: you're choosing and paying for this yourself."}
+            </T>
+          </View>
+          <Radio on={toLandlord} />
+        </Card>
+      ) : null}
 
       <View style={{ gap: Spacing.three }}>
         <T variant="title1" accessibilityRole="header">

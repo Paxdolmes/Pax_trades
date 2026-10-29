@@ -7,12 +7,12 @@ import { Wordmark } from '@/components/brand';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { Button, Footer, IconButton, Screen, T, type LucideIcon } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
-import { FOUNDING_COMMISSION, STANDARD_COMMISSION, TRADES, type Trade } from '@/domain/catalog';
+import { FOUNDING_COMMISSION, OFFERED_TRADES, STANDARD_COMMISSION, type Trade } from '@/domain/catalog';
 import { startProApplication, useAccountGate, useAuth } from '@/lib/auth';
 
 const STEPS = ['Details', 'Documents', 'ID check', 'Bank details'];
 
-const TRADE_CHOICES = TRADES.map((t) => ({ key: t.id, label: t.id === 'heating' ? 'Gas Safe engineer' : t.label, icon: TRADE_ICONS[t.id] }));
+const TRADE_CHOICES = OFFERED_TRADES.map((t) => ({ key: t.id, label: t.id === 'heating' ? 'Gas Safe engineer' : t.label, icon: TRADE_ICONS[t.id] }));
 
 const PERKS: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: BadgePoundSterling, title: 'No joining or lead fees', body: 'You only pay when you get paid' },

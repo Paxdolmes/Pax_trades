@@ -66,7 +66,7 @@ export const JOURNEY: (Item & { tone: 'teal' | 'peach' })[] = [
   {
     icon: ListChecks,
     title: 'Choose your job',
-    text: 'Pick from eight trades, from plumbing to locksmiths. You’ll see a fixed price or the callout rate before you go any further.',
+    text: 'Pick from heating and gas, electrical, plumbing or carpentry. You’ll see a fixed price or the callout rate before you go any further.',
     tone: 'teal',
   },
   {
@@ -173,7 +173,7 @@ export const FAQ_GROUPS: { id: string; title: string; items: Faq[] }[] = [
       },
       {
         q: 'What can I book?',
-        a: 'Plumbing, electrical, heating and gas, drains, locksmiths, handyman jobs, carpentry and doors, and appliance repairs. If your job isn’t listed, describe it and get quotes from vetted pros.',
+        a: 'Heating and gas, electrical, plumbing and carpentry. Drains, locksmiths, appliance repairs and roofing are coming soon. If your job isn’t listed, describe it and get quotes from vetted pros.',
       },
       {
         q: 'Do I need to download an app?',
@@ -241,7 +241,7 @@ export const HELP_TOPICS = ['Booking', 'Prices & payment', 'A problem with a job
 export const LANDLORD_FEATURES: Item[] = [
   { icon: LayoutDashboard, title: 'Every property in one place', text: 'See what’s waiting for your OK, what’s in progress and what’s done, across all your properties.' },
   { icon: PoundSterling, title: 'Spend per property', text: 'Every job is filed under its property with its cost, so this year’s spend is always one look away.' },
-  { icon: Zap, title: 'Emergencies don’t wait', text: 'Leaks, no heating, power cuts and lock-outs can go straight to a pro. You’re told the moment it happens.' },
+  { icon: Zap, title: 'Emergencies don’t wait', text: 'Leaks, no heating and power cuts can go straight to a pro. You’re told the moment it happens.' },
   { icon: FileCheck, title: 'Vetted pros, records kept', text: 'Gas Safe engineers and NICEIC or NAPIT electricians, all insured and ID-checked. Gas safety records and EICRs stay with each job.' },
 ];
 
@@ -260,6 +260,10 @@ export const LANDLORD_FAQS: Faq[] = [
   {
     q: 'Do I have to approve everything?',
     a: 'Every request waits for you, except emergencies if you choose. Each property has a switch for emergencies: on, they go straight to a pro and you’re told at once; off, they wait for you too.',
+  },
+  {
+    q: 'What about bigger jobs that need a quote?',
+    a: 'Your tenant describes the job and vetted local pros send fixed, all-in quotes. They come to you: compare them side by side and accept the one you want, or say it’s not going ahead. The pro then arranges the visit with your tenant.',
   },
   {
     q: 'Can I book jobs myself, like a gas safety certificate?',

@@ -3,7 +3,7 @@ import { BellRing, Building2, Eye, House, PoundSterling, Plus, Wrench } from 'lu
 import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { BackLink, HistoryRow, ManagerScreen, PendingCard, PropertyCard, StatTile } from '@/components/landlord';
+import { BackLink, HistoryRow, ManagerScreen, PendingCard, PropertyCard, QuoteRequestCard, StatTile } from '@/components/landlord';
 import { SignInPrompt } from '@/components/sign-in-prompt';
 import { Grid, isWeb } from '@/components/site/frame';
 import { Button, Card, IconTile, SectionLabel, T } from '@/components/ui';
@@ -18,11 +18,14 @@ import {
   EXAMPLE_COMPANY,
   EXAMPLE_JOBS,
   EXAMPLE_PROPERTIES,
+  EXAMPLE_QUOTE_REQUESTS,
   isAwaiting,
   loadCompanyName,
   loadManagedJobs,
   loadManagedProperties,
+  loadManagedQuoteRequests,
   type ManagedJob,
+  type ManagedQuoteRequest,
 } from '@/lib/properties';
 
 /** Landlords and agents: every property, what's waiting for an OK, and what it's all cost. */
@@ -40,6 +43,11 @@ export default function Properties() {
     key,
   );
   const { data: jobs, reload: reloadJobs } = useLive(() => (example ? Promise.resolve(EXAMPLE_JOBS) : loadManagedJobs()), example ? EXAMPLE_JOBS : [], key);
+  const { data: quoteRequests } = useLive(
+    () => (example ? Promise.resolve(EXAMPLE_QUOTE_REQUESTS) : loadManagedQuoteRequests()),
+    example ? EXAMPLE_QUOTE_REQUESTS : [],
+    key,
+  );
   const { data: company } = useLive(() => (example ? Promise.resolve(EXAMPLE_COMPANY) : loadCompanyName()), example ? EXAMPLE_COMPANY : '', key);
   // The example's Approve and Decline buttons work on this screen only.
   const [answered, setAnswered] = useState<Record<string, 'approved' | 'declined'>>({});
@@ -52,6 +60,9 @@ export default function Properties() {
         : j,
   );
   const waiting = shownJobs.filter(isAwaiting);
+  // Quotes in for a tenant's "Get quotes" request also wait on the manager.
+  const toPick = quoteRequests.filter((r) => r.quotes > 0).length;
+  const openQuotes = (r: ManagedQuoteRequest) => router.push({ pathname: '/quotes/[id]', params: { id: r.id } });
   const open = shownJobs.filter((j) => j.approval !== 'pending' && !['completed', 'cancelled'].includes(j.status)).length;
   const spendYear = properties.reduce((s, p) => s + p.spendYearPence, 0);
 
@@ -111,7 +122,7 @@ export default function Properties() {
         <View style={[styles.banner, { backgroundColor: c.accentTint }]}>
           <Eye size={18} color={c.accentStrong} />
           <T variant="footnote" style={{ flex: 1 }}>
-            An example dashboard with made-up properties. Try Approve and Decline: nothing is sent.
+            An example dashboard with made-up properties. Try Approve, Decline and comparing quotes: nothing is sent.
           </T>
           {isLive ? <Button label="Set up yours" size="md" onPress={() => router.replace('/properties')} style={{ paddingHorizontal: Spacing.four }} /> : null}
         </View>
@@ -150,18 +161,19 @@ export default function Properties() {
         <>
           <Grid columns={{ narrow: 2, medium: 4, wide: 4 }} gap={Spacing.three}>
             <StatTile icon={House} label="Properties" value={String(properties.length)} />
-            <StatTile icon={BellRing} label="Waiting for your OK" value={String(waiting.length)} tone={waiting.length ? 'urgent' : 'neutral'} />
+            <StatTile icon={BellRing} label="Waiting for your OK" value={String(waiting.length + toPick)} tone={waiting.length + toPick ? 'urgent' : 'neutral'} />
             <StatTile icon={Wrench} label="Jobs in progress" value={String(open)} tone="neutral" />
             <StatTile icon={PoundSterling} label="Spent this year" value={formatPence(spendYear)} tone="success" />
           </Grid>
 
-          {waiting.length ? (
+          {waiting.length || quoteRequests.length ? (
             <View style={{ gap: Spacing.three }}>
               <SectionLabel>Waiting for your OK</SectionLabel>
               <Grid columns={{ narrow: 1, medium: 2, wide: 2 }} gap={Spacing.four}>
-                {waiting.map((j) => (
-                  <PendingCard key={j.jobId} job={j} onApprove={() => approve(j)} onDecline={(r) => decline(j, r)} />
-                ))}
+                {[
+                  ...waiting.map((j) => <PendingCard key={j.jobId} job={j} onApprove={() => approve(j)} onDecline={(r) => decline(j, r)} />),
+                  ...quoteRequests.map((r) => <QuoteRequestCard key={r.id} request={r} onOpen={() => openQuotes(r)} />),
+                ]}
               </Grid>
             </View>
           ) : null}
@@ -172,7 +184,12 @@ export default function Properties() {
               {properties.map((p) => (
                 <PropertyCard
                   key={p.id}
-                  property={{ ...p, pending: shownJobs.filter((j) => j.propertyId === p.id && isAwaiting(j)).length }}
+                  property={{
+                    ...p,
+                    pending:
+                      shownJobs.filter((j) => j.propertyId === p.id && isAwaiting(j)).length +
+                      quoteRequests.filter((r) => r.propertyId === p.id && r.quotes > 0).length,
+                  }}
                   onPress={() => router.push({ pathname: '/properties/[id]', params: { id: p.id } })}
                 />
               ))}

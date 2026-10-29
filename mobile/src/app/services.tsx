@@ -1,14 +1,14 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Clock, Moon, Sun, MessagesSquare } from 'lucide-react-native';
+import { Check, Clock, Moon, Sun, MessagesSquare } from 'lucide-react-native';
 import { useRef } from 'react';
 import { Pressable, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 
 import { Container, H3, isHovered, Lead, PageIntro, Pill, SiteIcon, SitePage, useBreakpoint } from '@/components/site/frame';
-import { CtaBand } from '@/components/site/widgets';
+import { ComingSoon, CtaBand } from '@/components/site/widgets';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
-import { CALLOUT_RATES, formatPence, jobTypesForTrade, TRADES, type JobType, type Trade } from '@/domain/catalog';
+import { CALLOUT_RATES, formatPence, jobTypesForTrade, OFFERED_TRADES, type JobType, type Trade } from '@/domain/catalog';
 
 const std = CALLOUT_RATES.standard;
 const ooh = CALLOUT_RATES.outOfHours;
@@ -40,14 +40,14 @@ export default function Services() {
     <SitePage title="Services" scrollRef={scroll}>
       <PageIntro
         eyebrow="Services"
-        title="Eight trades, all in one place"
+        title="Four trades, all in one place"
         sub="Every job has a clear price before you book. Pick yours below, or ask for quotes if it’s something else."
       />
 
       <View onLayout={(e) => (base.current = e.nativeEvent.layout.y)}>
       <Container style={{ gap: Spacing.ten, paddingBottom: Spacing.ten }}>
         <View style={styles.chips}>
-          {TRADES.map((t) => {
+          {OFFERED_TRADES.map((t) => {
             const Icon = TRADE_ICONS[t.id];
             return (
               <Pressable
@@ -95,7 +95,7 @@ export default function Services() {
           </View>
         </View>
 
-        {TRADES.map((t) => (
+        {OFFERED_TRADES.map((t) => (
           <View
             key={t.id}
             nativeID={t.id}
@@ -109,9 +109,16 @@ export default function Services() {
               <T variant="display" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 36 }}>
                 {t.service}
               </T>
-              <T variant="body" color="inkMuted">
-                {t.detail}
-              </T>
+              <View style={{ gap: 6 }}>
+                {t.includes.map((line) => (
+                  <View key={line} style={{ flexDirection: 'row', gap: Spacing.two }}>
+                    <Check size={16} color={c.accentStrong} strokeWidth={2.6} style={{ marginTop: 4 }} />
+                    <T variant="body" color="inkMuted" style={{ flex: 1 }}>
+                      {line}
+                    </T>
+                  </View>
+                ))}
+              </View>
             </View>
             <View style={{ flex: 1, gap: Spacing.three }}>
               {jobTypesForTrade(t.id).map((job) => {
@@ -152,6 +159,7 @@ export default function Services() {
           </View>
           <Pill label="Get quotes" href="/quote" size="lg" />
         </View>
+        <ComingSoon />
       </Container>
       </View>
 

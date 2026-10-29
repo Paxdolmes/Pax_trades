@@ -2,10 +2,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { formatPence, fromPricePence, JOB_TYPES, TRADES } from './catalog.ts';
+import { formatPence, fromPricePence, JOB_TYPES, OFFERED_TRADES } from './catalog.ts';
 
-test('every trade has at least one job type', () => {
-  for (const t of TRADES) assert.ok(JOB_TYPES.some((j) => j.trade === t.id), t.id);
+test('every trade customers can book has at least one job type', () => {
+  for (const t of OFFERED_TRADES) assert.ok(JOB_TYPES.some((j) => j.trade === t.id), t.id);
 });
 
 test('from prices match the launch price list', () => {

@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { RelayMark } from '@/components/brand';
 import { T } from '@/components/ui';
 import { Radii, SoftShadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { LAUNCH_OUTWARD_CODES } from '@/domain/catalog';
+import { COMING_SOON, LAUNCH_OUTWARD_CODES } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
 import { TRUST_ITEMS, type Faq } from '@/content/site';
 import { sendEnquiry } from '@/lib/contact';
@@ -311,7 +311,28 @@ function MapArt() {
   );
 }
 
+/** The trades we're adding next: a quiet line under the four we offer now. */
+export function ComingSoon({ center }: { center?: boolean }) {
+  const c = usePalette();
+  return (
+    <View style={[styles.soon, center && { justifyContent: 'center' }]}>
+      <T variant="subhead" color="inkMuted" style={{ fontWeight: '700' }}>
+        Coming soon
+      </T>
+      {COMING_SOON.map((s) => (
+        <View key={s} style={[styles.soonChip, { borderColor: c.border }]}>
+          <T variant="subhead" color="inkMuted">
+            {s}
+          </T>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  soon: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.two },
+  soonChip: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 999, paddingHorizontal: Spacing.three, paddingVertical: 4 },
   postcodeBox: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, padding: Spacing.two },
   postcodeField: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.three, minHeight: 48 },
   postcodeInput: { flex: 1, height: 48, padding: 0, outlineStyle: 'none' } as object,

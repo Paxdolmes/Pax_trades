@@ -1,7 +1,7 @@
 // Building blocks of the landlord and agent dashboard: totals, requests waiting for
 // an OK, property cards and the request history.
 import { router, type Href } from 'expo-router';
-import { Check, ChevronRight, House, Users, X } from 'lucide-react-native';
+import { Check, ChevronRight, ClipboardPen, House, Users, X } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,7 +14,7 @@ import { findJobType, formatPence } from '@/domain/catalog';
 import { STATUS_LABELS } from '@/lib/jobs';
 import { dayAndTime, shortDate } from '@/lib/live';
 import { priceLine } from '@/lib/pricing';
-import { formatJoinCode, isAwaiting, type ManagedJob, type ManagedProperty } from '@/lib/properties';
+import { formatJoinCode, isAwaiting, type ManagedJob, type ManagedProperty, type ManagedQuoteRequest } from '@/lib/properties';
 
 /** A manager screen: wider than the booking screens, since agents mostly use a laptop. */
 export function ManagerScreen({ children }: { children: ReactNode }) {
@@ -125,6 +125,34 @@ export function PendingCard({
           <Button label="Approve" variant="primary" icon={Check} size="md" loading={busy === 'approve'} onPress={() => run('approve')} style={{ flex: 1.4 }} />
         </View>
       )}
+    </View>
+  );
+}
+
+/** A tenant's "Get quotes" request: how many quotes are in, the lowest, and a button to compare them. */
+export function QuoteRequestCard({ request: r, onOpen }: { request: ManagedQuoteRequest; onOpen: () => void }) {
+  const c = usePalette();
+  const ready = r.quotes > 0;
+  const who = r.requestedByManager ? 'Asked by you' : r.tenantName;
+  return (
+    <View style={[styles.pending, Shadows.card, { backgroundColor: c.surface, borderColor: ready ? c.urgent : c.border }]}>
+      <View style={styles.row}>
+        <IconTile icon={ClipboardPen} tone={ready ? 'urgent' : 'neutral'} size={44} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <T variant="headline">{ready ? 'Quotes to compare' : 'Asking local pros'}</T>
+          <T variant="footnote" color="inkMuted">
+            {`${r.propertyName} · ${who}`}
+          </T>
+        </View>
+      </View>
+      <T variant="callout" style={[styles.quote, { backgroundColor: c.bg }]} numberOfLines={3}>
+        {`“${r.description}”`}
+      </T>
+      <View style={{ gap: 4 }}>
+        <Line label="Quotes" value={ready ? `${r.quotes} in${r.lowestPence !== null ? `, from ${formatPence(r.lowestPence)}` : ''}` : 'None yet. Most arrive within a few hours.'} />
+        <Line label="Asked" value={dayAndTime(r.createdAt)} />
+      </View>
+      <Button label={ready ? 'Compare and accept' : 'See the request'} variant={ready ? 'primary' : 'secondary'} size="md" onPress={onOpen} />
     </View>
   );
 }

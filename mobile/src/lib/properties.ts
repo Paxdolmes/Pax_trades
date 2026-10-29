@@ -5,6 +5,7 @@
 
 import { Platform, Share } from 'react-native';
 
+import { DEMO_QUOTES } from '@/lib/demo';
 import type { JobStatus, Urgency } from '@/lib/jobs';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
@@ -47,6 +48,20 @@ export type ManagedJob = {
   finalPricePence: number | null;
   proName: string | null;
   declineReason: string | null;
+};
+
+/** A "Get quotes" request for one of the manager's properties. The manager accepts a quote. */
+export type ManagedQuoteRequest = {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  tenantName: string;
+  requestedByManager: boolean;
+  description: string;
+  status: 'open' | 'accepted' | 'cancelled' | 'expired';
+  createdAt: string;
+  quotes: number;
+  lowestPence: number | null;
 };
 
 export type Tenant = { id: string; name: string; joinedAt: string };
@@ -175,6 +190,39 @@ export async function loadManagedJobs(propertyId?: string): Promise<ManagedJob[]
     proName: r.pro_name,
     declineReason: r.decline_reason,
   }));
+}
+
+type QuoteRequestRow = {
+  request_id: string;
+  property_id: string;
+  property_name: string;
+  tenant_name: string;
+  requested_by_manager: boolean;
+  description: string;
+  status: ManagedQuoteRequest['status'];
+  created_at: string;
+  quotes: number;
+  lowest_pence: number | null;
+};
+
+/** Open quote requests across the manager's properties (or one), newest first. */
+export async function loadManagedQuoteRequests(propertyId?: string): Promise<ManagedQuoteRequest[]> {
+  const { data, error } = await supabase.rpc('manager_quote_requests', propertyId ? { p_property: propertyId } : {});
+  if (error) throw error;
+  return ((data ?? []) as QuoteRequestRow[])
+    .filter((r) => r.status === 'open')
+    .map((r) => ({
+      id: r.request_id,
+      propertyId: r.property_id,
+      propertyName: r.property_name,
+      tenantName: r.tenant_name,
+      requestedByManager: r.requested_by_manager,
+      description: r.description,
+      status: r.status,
+      createdAt: r.created_at,
+      quotes: Number(r.quotes),
+      lowestPence: r.lowest_pence,
+    }));
 }
 
 export async function loadTenants(propertyId: string): Promise<Tenant[]> {
@@ -447,7 +495,7 @@ export const EXAMPLE_JOBS: ManagedJob[] = [
   ex({
     jobId: 'example-j9',
     propertyId: 'example-2',
-    jobTypeId: 'lock-change',
+    jobTypeId: 'door-repair',
     status: 'completed',
     createdAt: daysAgo(70),
     confirmedAt: daysAgo(69),
@@ -455,6 +503,21 @@ export const EXAMPLE_JOBS: ManagedJob[] = [
     finalPricePence: 14500,
     proName: 'Jake M.',
   }),
+];
+
+export const EXAMPLE_QUOTE_REQUESTS: ManagedQuoteRequest[] = [
+  {
+    id: 'example-q1',
+    propertyId: 'example-2',
+    propertyName: '31 Munster Road',
+    tenantName: 'Olly Tran',
+    requestedByManager: false,
+    description: 'Move the bathroom radiator to the other wall and fit a heated towel rail where it was.',
+    status: 'open',
+    createdAt: daysAgo(1, 18),
+    quotes: DEMO_QUOTES.length,
+    lowestPence: Math.min(...DEMO_QUOTES.map((q) => q.pricePence)),
+  },
 ];
 
 // The example totals add up from the example history.

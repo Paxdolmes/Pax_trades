@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { BadgeCheck, CalendarCheck, CircleCheck, ClipboardPen, Clock, Lock, ShieldCheck, Star, Users } from 'lucide-react-native';
+import { BadgeCheck, Building2, CalendarCheck, CircleCheck, ClipboardPen, Clock, Lock, ShieldCheck, Star, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -8,7 +8,8 @@ import { Radii, Spacing, usePalette } from '@/constants/theme';
 import { formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
 import { CREDENTIAL_SHORT, DEMO_QUOTES } from '@/lib/demo';
 import { ensureSavedCard } from '@/lib/payments';
-import { acceptQuote, type Quote } from '@/lib/quotes';
+import { EXAMPLE_COMPANY, EXAMPLE_QUOTE_REQUESTS, isExample } from '@/lib/properties';
+import { acceptQuote, cancelQuoteRequest, loadQuoteRequestDetails, type Quote, type QuoteRequestDetails } from '@/lib/quotes';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { loadProCards, type ProCard } from '@/lib/trust';
 
@@ -34,16 +35,37 @@ const merge = (all: Quote[], more: Quote[]) => [...all, ...more.filter((q) => !a
 export default function Quotes() {
   const c = usePalette();
   const { id, description, freeze } = useLocalSearchParams<{ id: string; description?: string; freeze?: string }>();
-  const demo = id.startsWith('demo-');
-  const [quotes, setQuotes] = useState<Quote[]>(freeze ? DEMO_QUOTES.slice(0, Number(freeze)) : []);
+  // The example landlord dashboard's request shows the demo quotes, all in.
+  const example = EXAMPLE_QUOTE_REQUESTS.find((r) => r.id === id);
+  const demo = id.startsWith('demo-') || isExample(id);
+  const [quotes, setQuotes] = useState<Quote[]>(example ? DEMO_QUOTES : freeze ? DEMO_QUOTES.slice(0, Number(freeze)) : []);
   const [accepting, setAccepting] = useState<string | null>(null);
   const [booked, setBooked] = useState<Quote | null>(null);
-  // Opened from My jobs there's no description in the link, so it's read with the quotes.
-  const [loadedDescription, setDescription] = useState<string | null>(null);
+  // Whose home it's for and who accepts: on a tenant's request, their landlord does.
+  const [details, setDetails] = useState<QuoteRequestDetails | null>(
+    example
+      ? {
+          description: example.description,
+          status: 'open',
+          jobId: null,
+          propertyId: example.propertyId,
+          propertyName: example.propertyName,
+          managerName: EXAMPLE_COMPANY,
+          requesterName: example.tenantName,
+          yours: false,
+          youAccept: true,
+        }
+      : null,
+  );
+  const youAccept = details?.youAccept ?? true;
+  // A landlord or agent looking at their tenant's request.
+  const forTenant = Boolean(details?.propertyId) && details?.yours === false;
+  const tenantFirst = details?.requesterName.split(' ')[0] ?? 'your tenant';
 
   // Demo: quotes trickle in. Live: load what's there, then listen for new ones.
   useEffect(() => {
     if (demo) {
+      if (example) return;
       if (freeze) return;
       const timers = DEMO_QUOTES.map((q) => setTimeout(() => setQuotes((all) => [...all, q]), q.afterMs));
       return () => timers.forEach(clearTimeout);
@@ -55,14 +77,7 @@ export default function Quotes() {
       .eq('request_id', id)
       .order('created_at')
       .then(({ data }) => data && setQuotes((all) => merge(all, (data as QuoteRow[]).map(fromRow))));
-    if (!description) {
-      supabase
-        .from('quote_requests')
-        .select('description')
-        .eq('id', id)
-        .maybeSingle()
-        .then(({ data }) => data && setDescription((data as { description: string }).description));
-    }
+    loadQuoteRequestDetails(id).then(setDetails, () => {});
     const channel = supabase
       .channel(`quotes-${id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'quotes', filter: `request_id=eq.${id}` }, (payload) =>
@@ -72,7 +87,7 @@ export default function Quotes() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id, demo, freeze, description]);
+  }, [id, demo, example, freeze]);
 
   // Each live quote's pro: real name, rating, jobs done and checked documents.
   const [pros, setPros] = useState<Record<string, ProCard>>({});
@@ -91,7 +106,8 @@ export default function Quotes() {
     setAccepting(q.id);
     try {
       // The job is charged to a saved card once it's done, as with any other booking.
-      if (!(await ensureSavedCard())) return;
+      // On a tenant's request that's the landlord's card.
+      if (!example && !(await ensureSavedCard())) return;
       await acceptQuote(q.id);
       setBooked(q);
     } catch (e) {
@@ -101,6 +117,23 @@ export default function Quotes() {
     }
   }
 
+  function turnDown() {
+    Alert.alert('Not going ahead?', `We'll tell ${tenantFirst}, and the pros who quoted. Nothing is charged.`, [
+      { text: 'Keep it open', style: 'cancel' },
+      {
+        text: 'Not going ahead',
+        style: 'destructive',
+        onPress: () =>
+          void (example ? Promise.resolve() : cancelQuoteRequest(id)).then(
+            () => backToProperties(),
+            (e: unknown) => Alert.alert('Could not cancel', e instanceof Error ? e.message : 'Please try again.'),
+          ),
+      },
+    ]);
+  }
+
+  const backToProperties = () => router.replace(example ? { pathname: '/properties', params: { example: '1' } } : '/properties');
+
   if (booked) {
     return (
       <Screen
@@ -108,20 +141,36 @@ export default function Quotes() {
         contentStyle={{ justifyContent: 'center', gap: Spacing.four }}
         footer={
           <Footer>
-            <Button label="See my jobs" onPress={() => router.replace('/my-jobs')} />
+            {forTenant ? <Button label="Back to your properties" onPress={backToProperties} /> : <Button label="See my jobs" onPress={() => router.replace('/my-jobs')} />}
           </Footer>
         }>
         <View style={[styles.doneIcon, { backgroundColor: c.successTint }]}>
           <CircleCheck size={36} color={c.success} strokeWidth={2.2} />
         </View>
         <T variant="title1" style={{ textAlign: 'center' }}>
-          {`Booked with ${booked.proName.split(' ')[0]}`}
+          {forTenant ? `Booked ${booked.proName.split(' ')[0]} for ${tenantFirst}` : `Booked with ${booked.proName.split(' ')[0]}`}
         </T>
         <T variant="callout" color="inkMuted" style={{ textAlign: 'center' }}>
-          {`${formatPence(booked.pricePence)} agreed, starting ${booked.earliest}. The other pros have been told, and your card is only charged when the job is done.`}
+          {forTenant
+            ? `${formatPence(booked.pricePence)} agreed, starting ${booked.earliest}. ${tenantFirst} and the pro arrange the visit in the app, and your card is only charged when the job is done.`
+            : `${formatPence(booked.pricePence)} agreed, starting ${booked.earliest}. The other pros have been told, and your card is only charged when the job is done.`}
         </T>
       </Screen>
     );
+  }
+
+  function progressLine() {
+    const n = quotes.length;
+    const max = PILOT.maxQuotesPerRequest;
+    if (!youAccept) {
+      return n === 0
+        ? `Your request has gone to vetted pros in Fulham. When quotes arrive, ${details?.managerName} picks one and pays for it.`
+        : `${details?.managerName} is comparing them and will pick one. We'll tell you when they have, and the pro will message you to arrange the day.`;
+    }
+    if (n === 0) return `${forTenant ? `${tenantFirst}'s` : 'Your'} request has gone to vetted pros in Fulham. Most quotes arrive within a few hours.`;
+    return n >= max
+      ? `That's your shortlist: requests close at ${max} quotes. Accept the one that suits you.`
+      : `Up to ${max - n} more may come in. Compare them and accept the one that suits you.`;
   }
 
   const cheapest = quotes.length ? Math.min(...quotes.map((q) => q.pricePence)) : null;
@@ -134,10 +183,14 @@ export default function Quotes() {
         <IconTile icon={ClipboardPen} tone="neutral" size={44} />
         <View style={{ flex: 1 }}>
           <T variant="caption" color="inkSubtle">
-            YOUR REQUEST
+            {forTenant
+              ? `${(details?.requesterName ?? 'Your tenant').toUpperCase()}’S REQUEST · ${details?.propertyName ?? ''}`
+              : details?.propertyName
+                ? `YOUR REQUEST · ${details.propertyName}`
+                : 'YOUR REQUEST'}
           </T>
           <T variant="subhead" numberOfLines={2}>
-            {description ?? loadedDescription ?? 'Your job'}
+            {description ?? details?.description ?? 'Your job'}
           </T>
         </View>
       </View>
@@ -149,11 +202,7 @@ export default function Quotes() {
           {quotes.length === 0 ? 'Asking local pros' : `${quotes.length} ${quotes.length === 1 ? 'quote' : 'quotes'} so far`}
         </T>
         <T variant="callout" color="inkMuted">
-          {quotes.length === 0
-            ? 'Your request has gone to vetted pros in Fulham. Most quotes arrive within a few hours.'
-            : quotes.length >= PILOT.maxQuotesPerRequest
-              ? `That's your shortlist: requests close at ${PILOT.maxQuotesPerRequest} quotes. Accept the one that suits you.`
-              : `Up to ${PILOT.maxQuotesPerRequest - quotes.length} more may come in. Compare them and accept the one that suits you.`}
+          {progressLine()}
         </T>
         {quotes.length === 0 ? <ProgressBar value={0.35} /> : null}
       </View>
@@ -199,20 +248,33 @@ export default function Quotes() {
             ) : null}
             <View style={styles.actions}>
               <Button label="View profile" size="md" variant="secondary" onPress={() => router.push(`/pro/${q.proId ?? 'demo-pro'}`)} style={{ flex: 1 }} />
-              <Button
-                label={`Accept ${formatPence(q.pricePence)}`}
-                size="md"
-                loading={accepting === q.id}
-                disabled={accepting !== null && accepting !== q.id}
-                onPress={() => accept(q)}
-                style={{ flex: 1.4 }}
-              />
+              {youAccept ? (
+                <Button
+                  label={`Accept ${formatPence(q.pricePence)}`}
+                  size="md"
+                  loading={accepting === q.id}
+                  disabled={accepting !== null && accepting !== q.id}
+                  onPress={() => accept(q)}
+                  style={{ flex: 1.4 }}
+                />
+              ) : null}
             </View>
           </Card>
         ))}
       </View>
 
+      {forTenant && details?.status === 'open' ? <Button label="Not going ahead" variant="ghost" onPress={turnDown} /> : null}
+
       <View style={[styles.how, { backgroundColor: c.surfaceMuted }]}>
+        {details?.propertyId ? (
+          <Note icon={Building2}>
+            {forTenant
+              ? `The job is booked for ${tenantFirst} at ${details.propertyName}, and the bill comes to you.`
+              : details.yours && !youAccept
+                ? `${details.managerName} pays for this, so there's nothing for you to pay.`
+                : `Booked for ${details.propertyName}, and it shows in its history and spend.`}
+          </Note>
+        ) : null}
         <Note icon={Users}>Every pro who quotes has had their ID, insurance and trade qualifications checked.</Note>
         <Note icon={Lock}>Quotes include VAT and fees, with no hidden extras. The price you accept is fixed, and any extra work needs your OK in the app first.</Note>
         <Note icon={Clock}>{`Requests close after ${PILOT.maxQuotesPerRequest} quotes or 7 days.`}</Note>
