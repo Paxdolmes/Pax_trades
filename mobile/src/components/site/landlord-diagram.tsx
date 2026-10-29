@@ -61,7 +61,7 @@ export function LandlordDiagram() {
           <T variant="overline" color="urgent">
             TODAY
           </T>
-          <H3>Six hand-offs for one leak</H3>
+          <H3>Six calls and emails for one leak</H3>
         </View>
         <View style={{ gap: Spacing.two }}>
           {TODAY.map((s, i) => (
@@ -86,7 +86,7 @@ export function LandlordDiagram() {
           ))}
         </View>
         <T variant="subhead" color="urgent" style={{ fontWeight: '700' }}>
-          Days of phone tag, and you’re in the middle of every call.
+          Days of back and forth, with you in the middle of every call.
         </T>
       </View>
 

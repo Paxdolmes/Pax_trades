@@ -20,7 +20,7 @@ export default function Landlords() {
       <Container style={{ paddingTop: narrow ? Spacing.ten : 64, paddingBottom: narrow ? Spacing.eight : 48 }}>
         <View style={{ gap: Spacing.five, maxWidth: 820 }}>
           <Eyebrow>For landlords and letting agents</Eyebrow>
-          <H1 style={wide ? { fontSize: 60, lineHeight: 64 } : undefined}>Repairs, without the phone tag.</H1>
+          <H1 style={wide ? { fontSize: 60, lineHeight: 64 } : undefined}>Tenant repairs, sorted with one tap.</H1>
           <Lead big style={{ maxWidth: 680 }}>
             Your tenants report repairs in Relay. You approve with one tap. A vetted local pro sorts it out with the tenant directly, and the bill comes to you.
           </Lead>
@@ -32,7 +32,7 @@ export default function Landlords() {
       </Container>
 
       <Section tight>
-        <SectionHeading eyebrow="The problem we fix" title="From six hand-offs to one tap" sub="A leak today means calls back and forth between your tenant, you and a tradesperson. With Relay you only do one thing: say yes." />
+        <SectionHeading eyebrow="The problem we fix" title="From six calls and emails to one tap" sub="A leak today means calls back and forth between your tenant, you and a tradesperson. With Relay you only do one thing: say yes." />
         <LandlordDiagram />
       </Section>
 

@@ -217,7 +217,7 @@ function ForLandlords() {
         <Eyebrow tone="white">Landlords and letting agents</Eyebrow>
         <H2 style={{ color: '#FFFFFF', maxWidth: 720 }}>Let tenants send repairs straight to you.</H2>
         <Lead style={{ color: '#C9CFDD', maxWidth: 640 }}>
-          No more phone tag between your tenant, you and a tradesperson. Approve with one tap, and see every property’s repairs and spend in one dashboard.
+          No more back and forth between your tenant, you and a tradesperson. Approve with one tap, and see every property’s repairs and spend in one dashboard.
         </Lead>
         <LandlordFlowStrip dark />
         <Pill label="Relay for landlords" variant="secondary" size="lg" icon={ArrowRight} trailing href="/landlords" style={{ alignSelf: 'flex-start' }} />
