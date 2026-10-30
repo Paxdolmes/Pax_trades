@@ -69,14 +69,14 @@ do $$ begin
   end if;
 end $$;
 
--- p1 accepts and has until the end of the 2-hour slot.
+-- p1 accepts and is due at the booked time.
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000005a1';
 select public.accept_offer(offer_id) from public.my_offers() where job_id = '00000000-0000-0000-0000-0000000005e1' \gset ignored_
 reset role;
 do $$ begin
   if (select arrive_by from public.jobs where id = '00000000-0000-0000-0000-0000000005e1')
-     <> date_trunc('day', now()) + interval '1 day 10 hours' then
+     <> date_trunc('day', now()) + interval '1 day 8 hours' then
     raise exception 'FAIL: arrive by %', (select arrive_by from public.jobs where id = '00000000-0000-0000-0000-0000000005e1');
   end if;
 end $$;

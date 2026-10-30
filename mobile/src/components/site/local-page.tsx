@@ -3,6 +3,7 @@
 import { BadgeCheck, Check, MapPin, PoundSterling, ShieldCheck, Siren } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
+import { bookingHref } from '@/components/job-menu';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { T } from '@/components/ui';
 import { SoftShadows, Spacing, usePalette } from '@/constants/theme';
@@ -69,7 +70,7 @@ export function LocalServicePage({ page }: { page: LocalPage }) {
                     {priceLine(job, 'booked')}
                   </T>
                 </View>
-                <Pill label={WAITLIST ? 'Preview' : 'Book'} variant={WAITLIST ? 'secondary' : 'primary'} size="sm" href={{ pathname: '/home', params: { trade: page.trade, job: job.id } }} />
+                <Pill label={WAITLIST ? 'Preview' : 'Book'} variant={WAITLIST ? 'secondary' : 'primary'} size="sm" href={bookingHref({ trade: page.trade, job: job.id })} />
               </View>
             ))}
           </View>

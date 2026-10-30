@@ -37,8 +37,12 @@ describe('no-shows', () => {
     assert.equal(arriveBy(true, t0, null), t0 + HOUR);
   });
 
-  it('gives a booked pro 15 minutes past the slot', () => {
-    assert.equal(arriveBy(false, t0, t0 + 24 * HOUR), t0 + 24 * HOUR + 15 * 60_000);
+  it('expects a booked pro at the booked time', () => {
+    assert.equal(arriveBy(false, t0, t0 + 24 * HOUR), t0 + 24 * HOUR);
+  });
+
+  it('still gives a pro an hour when they accept close to the booked time', () => {
+    assert.equal(arriveBy(false, t0, t0 + 10 * 60_000), t0 + HOUR);
   });
 
   it('reassigns only after the grace period', () => {

@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
   type StyleProp,
   type TextProps,
   type TextStyle,
@@ -328,11 +329,11 @@ export function Grabber() {
 }
 
 /** Bottom sheet that sits over a map. */
-export function Sheet({ children }: { children: ReactNode }) {
+export function Sheet({ children, onLayout }: { children: ReactNode; onLayout?: (e: LayoutChangeEvent) => void }) {
   const c = usePalette();
   const bottom = useBottomPadding();
   return (
-    <View style={[styles.sheet, Shadows.sheet, { backgroundColor: c.surface, paddingBottom: bottom }]}>
+    <View onLayout={onLayout} style={[styles.sheet, Shadows.sheet, { backgroundColor: c.surface, paddingBottom: bottom }]}>
       <Grabber />
       {children}
     </View>

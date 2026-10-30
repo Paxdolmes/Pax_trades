@@ -20,7 +20,7 @@ export type NewJob = {
   urgency: Urgency;
   postcode: string;
   description: string;
-  /** Booked jobs: the start of the 2-hour slot. */
+  /** Booked jobs: the time the pro arrives. */
   scheduledFor: string | null;
   /** A tenant's request to their landlord, or a landlord booking for their property. */
   propertyId?: string | null;

@@ -2,30 +2,33 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   BadgeCheck,
   Building2,
-  ChevronRight,
   CircleCheck,
-  Clock,
   CreditCard,
   FileText,
   Gift,
   Info,
   Lock,
   MessageCircle,
+  ReceiptPoundSterling,
+  RotateCcw,
   ShieldCheck,
   Star,
   TriangleAlert,
-  } from 'lucide-react-native';
+} from 'lucide-react-native';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { bookingHref } from '@/components/job-menu';
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
 import { StarInput } from '@/components/reviews';
+import { Timeline, type TimelineStep } from '@/components/timeline';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, ProgressSteps, Sheet, T } from '@/components/ui';
 import { Layout, Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { ALL_IN_NOTE, findJobType, formatPence, PILOT, TRADES, type Trade } from '@/domain/catalog';
+import { ALL_IN_NOTE, findJobType, formatPence, isOffered, JOB_TYPES, PILOT, TRADES, type Trade } from '@/domain/catalog';
 import { arriveBy } from '@/domain/rules';
+import { arrivalLabel, arrivalPhrase, clockLabel } from '@/domain/slots';
 import { DEMO_CUSTOMER, DEMO_EXTRA_WORK, DEMO_PRO } from '@/lib/demo';
 import { firstName, loadCustomerJobs, useLive, type CustomerJob } from '@/lib/live';
 import { cancelJob, type JobStatus, type Urgency } from '@/lib/jobs';
@@ -33,7 +36,6 @@ import { upfrontPence } from '@/lib/pricing';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { chargeJob } from '@/lib/payments';
 import { confirmJob, saveReview } from '@/lib/trust';
-
 
 type Extra = 'none' | 'asked' | 'approved' | 'declined';
 
@@ -77,8 +79,6 @@ function proFrom(j: CustomerJob): JobPro {
 const ProContext = createContext<JobPro>(DEMO_JOB_PRO);
 const useJobPro = () => useContext(ProContext);
 
-const clockTime = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-
 /** Demo mode walks through the job on a timer so the flow can be tried without a backend. */
 const DEMO_STEPS: Partial<Record<JobStatus, { next: JobStatus; afterMs: number }>> = {
   requested: { next: 'en_route', afterMs: 5000 },
@@ -97,6 +97,7 @@ export default function JobScreen() {
     extra?: Extra;
     freeze?: string;
     reassigned?: string;
+    scheduledFor?: string;
   }>();
   const demo = params.id.startsWith('demo-');
   const live = isSupabaseConfigured && !demo;
@@ -114,8 +115,11 @@ export default function JobScreen() {
   const status: JobStatus = shown ?? (row ? viewStatus({ status: row.status, finished_at: row.finishedAt, arrive_by: row.arriveBy }) : 'requested');
   const [extra, setExtra] = useState<Extra>(params.extra ?? 'none');
   const [reassigned, setReassigned] = useState(params.reassigned === '1');
-  // When the pro must arrive. Demo: counted from when the screen opened.
-  const [localDue, setDue] = useState(() => arriveBy(urgency === 'urgent', startedAt(), null));
+  const scheduledFor = row?.scheduledFor ?? params.scheduledFor ?? null;
+  // When it was booked and when the pro must arrive. Demo: counted from when the screen opened.
+  const [openedAt] = useState(startedAt);
+  const bookedAt = row ? Date.parse(row.createdAt) : openedAt;
+  const [localDue, setDue] = useState(() => arriveBy(urgency === 'urgent', openedAt, scheduledFor ? Date.parse(scheduledFor) : null));
   const due = row?.arriveBy ? Date.parse(row.arriveBy) : localDue;
 
   // What the database said when the screen loaded, for spotting a reassignment.
@@ -186,7 +190,10 @@ export default function JobScreen() {
         basePence={finalPence ?? held}
         extraPence={finalPence === null ? extraPence : 0}
         jobLabel={jobType.label}
+        jobTypeId={jobType.id}
         trade={jobType.trade}
+        postcode={row?.postcode ?? DEMO_CUSTOMER.postcode}
+        doneAt={row?.finishedAt ?? null}
       />
       </ProContext.Provider>
     );
@@ -212,6 +219,7 @@ export default function JobScreen() {
         jobLabel={jobType.label}
         trade={jobType.trade}
         urgency={urgency}
+        scheduledFor={scheduledFor}
         heldPence={held}
         reassigned={reassigned}
         onCancel={() => askToCancel(params.id)}
@@ -224,7 +232,14 @@ export default function JobScreen() {
   }
   return (
     <ProContext.Provider value={pro}>
-      <OnTheWay jobId={params.id} arrived={status === 'on_site'} trade={jobType.trade} due={due} />
+      <OnTheWay
+        jobId={params.id}
+        stage={status === 'on_site' ? 'on_site' : status === 'en_route' ? 'en_route' : 'accepted'}
+        trade={jobType.trade}
+        due={due}
+        bookedAt={bookedAt}
+        scheduledFor={scheduledFor}
+      />
       {extra === 'asked' ? (
         <ExtraWorkSheet basePence={held} onApprove={() => setExtra('approved')} onDecline={() => setExtra('declined')} />
       ) : null}
@@ -293,9 +308,7 @@ function AwaitingApproval({
   onCancel: () => void;
 }) {
   const c = usePalette();
-  const when = scheduledFor
-    ? new Date(scheduledFor).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    : 'As soon as possible';
+  const when = scheduledFor ? arrivalLabel(scheduledFor) : 'As soon as possible';
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={styles.doneBody}>
@@ -336,6 +349,7 @@ function Finding({
   jobLabel,
   trade,
   urgency,
+  scheduledFor,
   heldPence,
   reassigned,
   onCancel,
@@ -345,12 +359,14 @@ function Finding({
   jobLabel: string;
   trade: Trade;
   urgency: Urgency;
+  scheduledFor: string | null;
   heldPence: number;
   reassigned: boolean;
   onCancel: () => void;
 }) {
   const c = usePalette();
   const pro = TRADES.find((t) => t.id === trade)?.pro ?? 'pro';
+  const booked = urgency === 'booked' ? scheduledFor : null;
   const [progress, setProgress] = useState(0.15);
   useEffect(() => {
     const t = setInterval(() => setProgress((p) => (p >= 0.9 ? 0.15 : p + 0.08)), 400);
@@ -393,10 +409,12 @@ function Finding({
       <Sheet>
         <View style={{ gap: Spacing.two }}>
           <T variant="title1" accessibilityRole="header">
-            {`Finding a ${pro} near you`}
+            {booked ? `Booked for ${arrivalPhrase(booked)}` : `Finding a ${pro} near you`}
           </T>
           <T variant="callout" color="inkMuted">
-            {"We're asking the nearest vetted pros within 2 miles. This usually takes under a minute."}
+            {booked
+              ? `We're finding your ${pro}. You'll see who's coming as soon as they accept.`
+              : "We're asking the nearest vetted pros within 2 miles. This usually takes under a minute."}
           </T>
         </View>
         <ProgressBar value={progress} />
@@ -414,7 +432,7 @@ function Finding({
             <View style={{ flex: 1 }}>
               <T variant="headline">{jobLabel}</T>
               <T variant="footnote" color="inkMuted">
-                {`${urgency === 'urgent' ? 'ASAP' : 'Booking'} · ${postcode}`}
+                {`${booked ? arrivalLabel(booked) : urgency === 'urgent' ? 'As soon as possible' : 'Booking'} · ${postcode}`}
               </T>
             </View>
             <T variant="headline">{formatPence(heldPence)}</T>
@@ -435,93 +453,142 @@ function Finding({
   );
 }
 
-const STEPS = ['Accepted', 'On the way', 'Arrived', 'Job done'];
-
-function ProCard({ trade }: { trade: Trade }) {
+/** Who's coming, their rating and checks, and a way to message them in the app. */
+function ProCard({ jobId, trade }: { jobId: string; trade: Trade }) {
   const c = usePalette();
   const pro = useJobPro();
+  const checked = trade === 'heating' ? 'Gas Safe' : 'Vetted';
   return (
-    <View style={{ gap: Spacing.four }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${pro.name}, ${pro.rating ? `rated ${pro.rating} from ${pro.reviews} reviews` : 'new to Relay'}. See profile`}
-        onPress={() => router.push({ pathname: '/pro/[id]', params: { id: pro.id } })}
-        style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
-        <Avatar name={pro.name} size={56} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <T variant="headline">{pro.name}</T>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Star size={14} color={c.ink} fill={c.ink} />
-            <T variant="subhead">{pro.rating ? String(pro.rating) : 'New'}</T>
-            <T variant="footnote" color="inkMuted">{`· ${pro.jobs} jobs · ${pro.reviews} reviews`}</T>
-          </View>
-          {pro.van ? (
-            <T variant="footnote" color="inkMuted">
-              {pro.van}
+    <View style={{ gap: Spacing.two }}>
+      <View style={[styles.proBox, { backgroundColor: c.bg }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${pro.name}, ${pro.rating ? `rated ${pro.rating} from ${pro.reviews} reviews` : 'new to Relay'}. See profile`}
+          onPress={() => router.push({ pathname: '/pro/[id]', params: { id: pro.id } })}
+          style={({ pressed }) => [styles.row, { flex: 1 }, pressed && { opacity: 0.7 }]}>
+          <Avatar name={pro.name} size={48} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <T variant="headline" numberOfLines={1}>
+              {pro.name}
             </T>
-          ) : null}
-        </View>
-        <ChevronRight size={20} color={c.inkSubtle} strokeWidth={2.25} />
-      </Pressable>
-      <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-        {trade === 'heating' ? (
-          <Chip label={pro.gasSafeNumber ? `Gas Safe ${pro.gasSafeNumber}` : 'Gas Safe registered'} tone="success" icon={ShieldCheck} />
-        ) : (
-          <Chip label="ID and qualifications checked" tone="success" icon={ShieldCheck} />
-        )}
-        <Chip label="Insured" tone="brand" icon={BadgeCheck} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Star size={13} color={c.accentStrong} fill={c.accentStrong} />
+              <T variant="subhead">{pro.rating ? String(pro.rating) : 'New'}</T>
+              <BadgeCheck size={13} color={c.success} strokeWidth={2.4} style={{ marginLeft: 4 }} />
+              <T variant="footnote" color="inkMuted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {checked}
+              </T>
+            </View>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Message ${pro.firstName}`}
+          onPress={() => router.push({ pathname: '/chat/[id]', params: { id: jobId, name: pro.name } })}
+          style={({ pressed }) => [styles.message, { backgroundColor: pressed ? c.inkMuted : c.ink }]}>
+          <MessageCircle size={16} color={c.surface} strokeWidth={2.4} />
+          <T variant="subhead" color="surface" style={{ fontWeight: '700' }}>
+            Message
+          </T>
+        </Pressable>
+      </View>
+      <View style={[styles.row, { gap: 6, paddingHorizontal: Spacing.one }]}>
+        <Lock size={13} color={c.inkSubtle} strokeWidth={2.4} />
+        <T variant="caption" color="inkSubtle" style={{ fontWeight: '500' }}>
+          Chat in the app. Phone numbers stay private.
+        </T>
       </View>
     </View>
   );
 }
 
-function OnTheWay({ jobId, arrived, trade, due }: { jobId: string; arrived: boolean; trade: Trade; due: number }) {
+/** From the pro accepting to working on it: the map, where things are up to, and who's coming. */
+function OnTheWay({
+  jobId,
+  stage,
+  trade,
+  due,
+  bookedAt,
+  scheduledFor,
+}: {
+  jobId: string;
+  stage: 'accepted' | 'en_route' | 'on_site';
+  trade: Trade;
+  due: number;
+  bookedAt: number;
+  scheduledFor: string | null;
+}) {
   const c = usePalette();
   const pro = useJobPro();
+  const insets = useSafeAreaInsets();
+  const name = pro.firstName;
+  const dueAt = clockLabel(new Date(due));
+  // Booked ahead: there's nothing on the map until they set off.
+  const waiting = stage === 'accepted' && scheduledFor !== null;
+  const onMap = stage === 'en_route' || (stage === 'accepted' && !waiting);
+  // The map fills the screen. Fit the drive to the home, with the pro's label above
+  // it, into the part above the sheet: or just the home, before they set off.
+  const [box, setBox] = useState({ height: 0, sheet: 0 });
+  const room = Math.max(160, box.height - box.sheet - insets.top);
+  const scale = onMap ? Math.min(0.9, Math.max(0.7, (room - 90) / 216)) : 0.9;
+  const top = onMap ? PLACES.fulhamBroadway.y - 70 / scale : PLACES.letticeSt.y;
+  const bottom = PLACES.letticeSt.y + (onMap ? 26 / scale : 0);
+  const center = { x: onMap ? 472 : PLACES.letticeSt.x, y: (top + bottom) / 2 + (box.height / 2 - insets.top - room / 2) / scale };
+  const title =
+    stage === 'on_site'
+      ? `${name} is working on it`
+      : stage === 'en_route'
+        ? pro.etaMinutes <= 90
+          ? `${name} is ${pro.etaMinutes} min away`
+          : `${name} is on the way`
+        : waiting
+          ? `${name} is booked for ${arrivalPhrase(scheduledFor)}`
+          : `${name} is on the way`;
+  const sub =
+    stage === 'on_site'
+      ? 'Arrived and working'
+      : waiting
+        ? `${name} accepted. You'll see them on the map when they set off.`
+        : scheduledFor
+          ? `Arriving at ${dueAt}, as booked`
+          : `Arriving by ${dueAt}`;
+  const steps: TimelineStep[] = [
+    { label: 'Booked', at: clockLabel(new Date(bookedAt)) },
+    { label: `${name} accepted` },
+    { label: 'On the way', at: stage === 'en_route' ? 'Now' : undefined },
+    { label: 'Arrived', at: stage === 'on_site' ? 'Now' : scheduledFor ? dueAt : `by ${dueAt}` },
+    { label: 'Done' },
+  ];
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <StaticMap
-        height={480}
-        center={{ x: 472, y: 440 }}
-        scale={1.1}
-        route={arrived ? undefined : DEMO_ROUTE}
-        pins={[
-          { ...PLACES.letticeSt, kind: 'home' },
-          ...(arrived ? [] : [{ ...PLACES.fulhamBroadway, kind: 'pro' as const, label: `${pro.etaMinutes} min` }]),
-        ]}
-      />
-      <Sheet>
-        <View style={styles.titleRow}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <T variant="footnote" color="inkMuted">
-              {arrived ? 'Arrived and working' : `Arriving in about ${pro.etaMinutes} minutes`}
-            </T>
-            <T variant="title1" accessibilityRole="header">
-              {arrived ? `${pro.firstName} is working on it` : `${pro.firstName} is on the way`}
-            </T>
-          </View>
-          {arrived ? null : (
-            <View style={{ alignItems: 'flex-end' }}>
-              <T variant="display" color="brand">
-                {String(pro.etaMinutes)}
-              </T>
-              <T variant="caption" color="brand">
-                min
-              </T>
-            </View>
-          )}
-        </View>
-        <ProgressSteps steps={STEPS} current={arrived ? 2 : 1} />
-        {arrived ? null : (
-          <Note icon={Clock}>{`${pro.firstName} must arrive by ${clockTime(due)}. If not, we send the next nearest pro and give you ${formatPence(PILOT.noShowCreditPence)} credit.`}</Note>
-        )}
-        <Divider />
-        <ProCard trade={trade} />
-        <Button
-          label={`Message ${pro.firstName}`}
-          icon={MessageCircle}
-          onPress={() => router.push({ pathname: '/chat/[id]', params: { id: jobId, name: pro.name } })}
+    <View style={{ flex: 1, backgroundColor: c.bg }} onLayout={(e) => setBox((b) => ({ ...b, height: e.nativeEvent.layout.height }))}>
+      {box.height ? (
+        <StaticMap
+          height={box.height}
+          center={center}
+          scale={scale}
+          route={onMap ? DEMO_ROUTE : undefined}
+          pins={[
+            { ...PLACES.letticeSt, kind: 'home' },
+            ...(onMap ? [{ ...PLACES.fulhamBroadway, kind: 'pro' as const, label: `${pro.etaMinutes} min` }] : []),
+          ]}
         />
+      ) : null}
+      <Sheet onLayout={(e) => setBox((b) => ({ ...b, sheet: e.nativeEvent.layout.height }))}>
+        <View style={{ gap: 2 }}>
+          <T variant="title1" accessibilityRole="header">
+            {title}
+          </T>
+          <T variant="footnote" color="inkMuted">
+            {sub}
+          </T>
+        </View>
+        <Timeline steps={steps} current={stage === 'accepted' ? 1 : stage === 'en_route' ? 2 : 3} />
+        {stage === 'on_site' ? null : (
+          <Note icon={ShieldCheck}>
+            {`If ${name} can't make it ${scheduledFor ? 'at' : 'by'} ${dueAt}, we send the next nearest pro and give you ${formatPence(PILOT.noShowCreditPence)} credit.`}
+          </Note>
+        )}
+        <ProCard jobId={jobId} trade={trade} />
       </Sheet>
     </View>
   );
@@ -593,7 +660,7 @@ const TIPS = [0, 300, 500, 1000];
 /**
  * The pro says the job is done. The customer confirms and pays, or reports a problem.
  * If they do neither, the job confirms itself after 48 hours. Once paid, they can
- * leave a verified review.
+ * leave a verified review, keep the receipt and paperwork, and book the job again.
  */
 function JobDone({
   jobId,
@@ -602,7 +669,10 @@ function JobDone({
   basePence,
   extraPence,
   jobLabel,
+  jobTypeId,
   trade,
+  postcode,
+  doneAt,
 }: {
   jobId: string;
   billedTo: string | null;
@@ -610,11 +680,14 @@ function JobDone({
   basePence: number;
   extraPence: number;
   jobLabel: string;
+  jobTypeId: string;
   trade: Trade;
+  postcode: string;
+  doneAt: string | null;
 }) {
   const c = usePalette();
   const pro = useJobPro();
-  const [tip, setTip] = useState(billedTo ? 0 : 500);
+  const [tip, setTip] = useState(0);
   const [paid, setPaid] = useState(confirmed);
   const [paying, setPaying] = useState(false);
   const [rating, setRating] = useState(5);
@@ -626,6 +699,10 @@ function JobDone({
     { label: jobLabel, pence: basePence },
     ...(extraPence ? [{ label: DEMO_EXTRA_WORK.title, pence: extraPence }] : []),
   ];
+  const [openedAt] = useState(startedAt);
+  const day = new Date(doneAt ?? openedAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  // Quoted jobs were one-offs; catalogue jobs can be booked again in one tap.
+  const again = JOB_TYPES.some((j) => j.id === jobTypeId && isOffered(j.trade));
 
   async function confirmAndPay() {
     setPaying(true);
@@ -664,18 +741,17 @@ function JobDone({
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={styles.doneBody} keyboardShouldPersistTaps="handled">
         <View style={styles.row}>
-          <View style={[styles.doneIcon, { backgroundColor: c.successTint }]}>
-            <CircleCheck size={26} color={c.success} strokeWidth={2.2} />
-          </View>
+          <Avatar name={pro.name} size={48} />
           <View style={{ flex: 1 }}>
-            <T variant="title1" accessibilityRole="header">
-              {paid ? (billedTo ? 'All done, thank you' : 'Paid, thank you') : 'Is everything working?'}
-            </T>
+            <T variant="headline">{pro.name}</T>
             <T variant="footnote" color="inkMuted">
-              {paid ? `${jobLabel} with ${pro.firstName}` : `${pro.firstName} says the job is done`}
+              {`${jobLabel} · ${day}`}
             </T>
           </View>
         </View>
+        <T variant="display" accessibilityRole="header">
+          {paid ? (billedTo ? 'All done. Thank you.' : 'Paid. Thank you.') : 'Job done. Everything look good?'}
+        </T>
 
         {paid ? (
           reviewed ? (
@@ -690,10 +766,7 @@ function JobDone({
             </Card>
           ) : (
             <Card style={{ gap: Spacing.four }}>
-              <View style={styles.row}>
-                <Avatar name={pro.name} size={40} />
-                <T variant="headline">{`How was ${pro.firstName}?`}</T>
-              </View>
+              <T variant="headline">{`How was ${pro.firstName}?`}</T>
               <StarInput value={rating} onChange={setRating} />
               <TextInput
                 value={review}
@@ -713,10 +786,45 @@ function JobDone({
           )
         ) : null}
 
-        <Card style={{ gap: Spacing.three }}>
-          <T variant="overline" color="inkSubtle">
-            RECEIPT
+        {paid || billedTo ? null : (
+          <Card style={{ gap: Spacing.three }}>
+            <T variant="headline">{`Add a tip for ${pro.firstName}?`}</T>
+            <View style={{ flexDirection: 'row', gap: Spacing.two }} accessibilityRole="radiogroup" accessibilityLabel="Tip">
+              {TIPS.map((t) => {
+                const on = tip === t;
+                return (
+                  <Pressable
+                    key={t}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                    onPress={() => setTip(t)}
+                    style={[styles.tip, { backgroundColor: on ? c.ink : c.surfaceMuted }]}>
+                    <T variant="subhead" color={on ? 'surface' : 'ink'} style={{ fontWeight: '700' }}>
+                      {t === 0 ? 'No tip' : formatPence(t)}
+                    </T>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <T variant="footnote" color="inkSubtle">
+              {`100% of your tip goes to ${pro.firstName}.`}
+            </T>
+          </Card>
+        )}
+
+        {paid ? (
+          <T variant="title2" accessibilityRole="header" style={{ marginTop: Spacing.two }}>
+            Saved to your home
           </T>
+        ) : null}
+
+        <Card style={{ gap: Spacing.three }}>
+          <View style={styles.row}>
+            <IconTile icon={ReceiptPoundSterling} size={40} />
+            <T variant="headline" style={{ flex: 1 }}>
+              Receipt
+            </T>
+          </View>
           {lines.map((l) => (
             <View key={l.label} style={styles.line}>
               <T variant="callout" style={{ flex: 1 }}>
@@ -743,47 +851,9 @@ function JobDone({
           </T>
         </Card>
 
-        {paid || billedTo ? null : (
-          <Card style={{ gap: Spacing.three }}>
-            <T variant="headline">{`Add a tip for ${pro.firstName}?`}</T>
-            <View style={{ flexDirection: 'row', gap: Spacing.two }} accessibilityRole="radiogroup" accessibilityLabel="Tip">
-              {TIPS.map((t) => {
-                const on = tip === t;
-                return (
-                  <Pressable
-                    key={t}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: on }}
-                    onPress={() => setTip(t)}
-                    style={[styles.tip, { borderColor: on ? c.brand : c.border, backgroundColor: on ? c.brandTint : c.surface }]}>
-                    <T variant="subhead" color={on ? 'brand' : 'ink'}>
-                      {t === 0 ? 'No tip' : formatPence(t)}
-                    </T>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <T variant="footnote" color="inkSubtle">
-              {`100% of your tip goes to ${pro.firstName}.`}
-            </T>
-          </Card>
-        )}
-
-        <View style={[styles.guarantee, Shadows.card, { backgroundColor: c.surface }]}>
-          <IconTile icon={ShieldCheck} tone="success" size={44} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <T variant="subhead">Covered by the Relay Guarantee</T>
-            <T variant="footnote" color="inkMuted">
-              {paid
-                ? `If something isn't right in the next ${PILOT.guaranteeDays} days, report it and we'll send ${pro.firstName} back or refund you.`
-                : `Not right? Report it and ${pro.firstName} isn't paid until it's sorted. If you do nothing, this confirms itself in ${PILOT.autoConfirmHours} hours.`}
-            </T>
-          </View>
-        </View>
-
         {trade === 'heating' ? (
           <Card style={styles.row}>
-            <IconTile icon={FileText} tone="success" size={44} />
+            <IconTile icon={FileText} tone="success" size={40} />
             <View style={{ flex: 1 }}>
               <T variant="subhead">Your gas safety record is saved in the app</T>
               <T variant="footnote" color="inkMuted">
@@ -792,13 +862,28 @@ function JobDone({
             </View>
           </Card>
         ) : null}
+
+        <View style={[styles.guarantee, Shadows.card, { backgroundColor: c.surface }]}>
+          <IconTile icon={ShieldCheck} tone="success" size={40} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <T variant="subhead">{`Relay Guarantee, ${PILOT.guaranteeDays} days`}</T>
+            <T variant="footnote" color="inkMuted">
+              {paid
+                ? `If something isn't right in the next ${PILOT.guaranteeDays} days, report it and we'll send ${pro.firstName} back or refund you.`
+                : `Not right? Report it and ${pro.firstName} isn't paid until it's sorted. If you do nothing, this confirms itself in ${PILOT.autoConfirmHours} hours.`}
+            </T>
+          </View>
+        </View>
       </ScrollView>
       <Footer>
         {paid ? (
-          <View style={{ flexDirection: 'row', gap: Spacing.three }}>
-            <Button label="Report a problem" variant="secondary" icon={TriangleAlert} onPress={report} style={{ flex: 1 }} />
-            <Button label="Done" variant="outline" onPress={() => router.replace('/home')} style={{ flex: 1 }} />
-          </View>
+          <>
+            {again ? <Button label="Book again" icon={RotateCcw} onPress={() => router.push(bookingHref({ trade, job: jobTypeId, postcode }))} /> : null}
+            <View style={{ flexDirection: 'row', gap: Spacing.three }}>
+              <Button label="Report a problem" variant="secondary" size="md" onPress={report} style={{ flex: 1 }} />
+              <Button label="Done" variant="outline" size="md" onPress={() => router.replace('/home')} style={{ flex: 1 }} />
+            </View>
+          </>
         ) : (
           <>
             <Button
@@ -828,5 +913,7 @@ const styles = StyleSheet.create({
   banner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.md, padding: Spacing.three },
   review: { minHeight: 80, borderRadius: Radii.md, padding: Spacing.three, textAlignVertical: 'top' },
   guarantee: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.lg, padding: Spacing.four },
-  tip: { flex: 1, height: 44, borderRadius: Radii.sm, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  tip: { flex: 1, height: 48, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
+  proBox: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.lg, padding: Spacing.three },
+  message: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, borderRadius: Radii.pill, paddingHorizontal: Spacing.four },
 });
