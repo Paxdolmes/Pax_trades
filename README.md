@@ -35,7 +35,7 @@ Without Supabase settings the apps run in **demo mode** with sample jobs. To con
 1. Create a project at [supabase.com](https://supabase.com) (London region).
 2. From the repo root: `npx supabase init`, `npx supabase link --project-ref <ref>`, then `npx supabase db push`.
 
-`nearest_eligible_pros` is not callable by app users. The dispatcher (`dispatch_job`) runs it when a job is requested and every 30 seconds after, via pg_cron. Payments go through the Stripe Edge Functions in `supabase/functions`. To set up the live accounts, see [docs/going-live.md](docs/going-live.md).
+`nearest_eligible_pros` is not callable by app users. The dispatcher (`dispatch_job`) runs it when a job is requested and every 30 seconds after, via pg_cron. When a customer books a past pro again, the job is offered to that pro alone first (up to an hour for a booking, 2 minutes for an emergency), then to the nearest pros. Pros' after-photos and certificates go to the private `job-files` storage bucket, which the migrations create. Payments go through the Stripe Edge Functions in `supabase/functions`. To set up the live accounts, see [docs/going-live.md](docs/going-live.md).
 
 ## Checks
 
@@ -67,5 +67,11 @@ Pilot trust features: confirm or report, Relay Guarantee, in-app chat with numbe
 | Late pro, job reassigned | Traders: arrive-by deadline | Waiting for the customer | Reply to reviews |
 | --- | --- | --- | --- |
 | ![](docs/screenshots/pilot-5-reassigned.png) | ![](docs/screenshots/pilot-6-arrive-by.png) | ![](docs/screenshots/pilot-7-awaiting-confirmation.png) | ![](docs/screenshots/pilot-8-reviews.png) |
+
+After the job: the pro's photos and certificate are saved with it (landlords see them too), and booking the same pro again gives them first refusal.
+
+| Saved to your home | Traders: photos and certificate | Book James again | Traders: asked for you |
+| --- | --- | --- | --- |
+| ![](docs/screenshots/files-1-saved-to-your-home.png) | ![](docs/screenshots/files-2-photos-and-certificate.png) | ![](docs/screenshots/rebook-1-ask-james-first.png) | ![](docs/screenshots/rebook-2-asked-for-you.png) |
 
 The Fulham map is a static OpenStreetMap image (© OpenStreetMap contributors) until live maps are added.

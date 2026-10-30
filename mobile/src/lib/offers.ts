@@ -14,7 +14,9 @@ export type OfferView = DemoOffer & { jobType: JobType; missing: CredentialType[
 export function listOffers(): OfferView[] {
   return DEMO_OFFERS.flatMap((o) => {
     const jobType = findJobType(o.jobTypeId);
-    return jobType ? [{ ...o, jobType, missing: missingCredentials(jobType, DEMO_PRO_CREDENTIALS, today()) }] : [];
+    // A booking asked for by name gives the pro an hour to answer.
+    const expiresAt = o.askedForYou ? new Date(Date.now() + 3_600_000).toISOString() : undefined;
+    return jobType ? [{ ...o, jobType, missing: missingCredentials(jobType, DEMO_PRO_CREDENTIALS, today()), expiresAt }] : [];
   });
 }
 
@@ -67,6 +69,7 @@ function fromLive(o: LiveOffer): OfferView | null {
     when: o.urgency === 'urgent' ? 'Now' : o.scheduledFor ? dayAndTime(o.scheduledFor) : 'Flexible',
     note: o.description || 'No details given',
     missing: [], // the dispatcher only offers jobs the pro is qualified for
+    askedForYou: o.askedForYou,
   };
 }
 

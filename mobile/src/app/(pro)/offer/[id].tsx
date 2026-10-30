@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, MapPin, MessageSquareText, ShieldCheck, X, Zap } from 'lucide-react-native';
+import { Check, Clock3, MapPin, MessageSquareText, RotateCcw, ShieldCheck, X, Zap } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,11 +10,12 @@ import { Layout, Spacing, usePalette } from '@/constants/theme';
 import { FOUNDING_COMMISSION, PILOT, STANDARD_COMMISSION } from '@/domain/catalog';
 import { arriveBy } from '@/domain/rules';
 import { CREDENTIAL_LABELS } from '@/lib/demo';
-import { acceptOffer, isLive } from '@/lib/live';
+import { acceptOffer, declineOffer, isLive } from '@/lib/live';
 import { offerPay, useOffers } from '@/lib/offers';
 import { usePro } from '@/lib/pro';
 
-/** Matches job_offers.expires_at in the database. */
+/** Matches job_offers.expires_at in the database. A past customer's request for this
+ *  pro by name gets twice as long in an emergency, and up to an hour for a booking. */
 const OFFER_SECONDS = 60;
 
 /** The arrive-by time if the pro accepted right now, as HH:MM. */
@@ -47,6 +48,12 @@ export default function JobOffer() {
     if (secondsLeft === 0) router.back();
   }, [secondsLeft]);
 
+  function decline() {
+    // If this doesn't reach us, the offer simply runs out.
+    if (isLive && offer) void declineOffer(offer.id).catch(() => undefined);
+    router.back();
+  }
+
   async function accept() {
     if (!offer) return;
     if (!isLive) {
@@ -69,13 +76,17 @@ export default function JobOffer() {
   const pay = offerPay(offer.jobType);
   const keep = Math.round((1 - (pro.founding ? FOUNDING_COMMISSION : STANDARD_COMMISSION)) * 100);
   const requirement = offer.jobType.requires.find((r) => r !== 'public_liability');
+  const ring = offer.askedForYou ? OFFER_SECONDS * 2 : OFFER_SECONDS;
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.surface }}>
       <View style={styles.top}>
-        <CountdownRing seconds={secondsLeft} />
+        {secondsLeft > ring && expiresAt ? <ReplyBy at={expiresAt} /> : <CountdownRing seconds={secondsLeft} total={ring} />}
         <View style={{ alignItems: 'center', gap: Spacing.two, marginTop: Spacing.five }}>
-          {offer.urgent ? <Chip label="Urgent" icon={Zap} tone="urgent" solid /> : <Chip label={offer.when} tone="brand" />}
+          <View style={styles.chips}>
+            {offer.askedForYou ? <Chip label={`${offer.customer} asked for you`} icon={RotateCcw} tone="success" solid /> : null}
+            {offer.urgent ? <Chip label="Urgent" icon={Zap} tone="urgent" solid /> : <Chip label={offer.when} tone="brand" />}
+          </View>
           <T variant="title1" style={{ textAlign: 'center', fontSize: 28, lineHeight: 34 }} accessibilityRole="header">
             {offer.jobType.label}
           </T>
@@ -134,13 +145,30 @@ export default function JobOffer() {
           loading={accepting}
           onPress={accept}
         />
-        <Button label="Decline" icon={X} variant="ghost" onPress={() => router.back()} />
+        <Button label="Decline" icon={X} variant="ghost" onPress={decline} />
       </View>
     </SafeAreaView>
   );
 }
 
-function CountdownRing({ seconds }: { seconds: number }) {
+/** A booking asked for by name: the pro has until this time to say yes. */
+function ReplyBy({ at }: { at: string }) {
+  const c = usePalette();
+  const time = new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return (
+    <View accessibilityRole="timer" accessibilityLabel={`Reply by ${time}`} style={[styles.replyBy, { backgroundColor: c.successTint }]}>
+      <Clock3 size={28} color={c.success} strokeWidth={2.2} />
+      <T variant="title2" color="successStrong" style={{ fontVariant: ['tabular-nums'] }}>
+        {`Reply by ${time}`}
+      </T>
+      <T variant="caption" color="inkMuted" style={{ fontWeight: '500' }}>
+        After that it goes to other pros
+      </T>
+    </View>
+  );
+}
+
+function CountdownRing({ seconds, total }: { seconds: number; total: number }) {
   const c = usePalette();
   const size = 148;
   const stroke = 12;
@@ -159,7 +187,7 @@ function CountdownRing({ seconds }: { seconds: number }) {
           fill="none"
           strokeLinecap="round"
           strokeDasharray={`${circumference}`}
-          strokeDashoffset={circumference * (1 - seconds / OFFER_SECONDS)}
+          strokeDashoffset={circumference * (1 - Math.min(1, seconds / total))}
         />
       </Svg>
       <T variant="money" style={{ fontVariant: ['tabular-nums'] }}>
@@ -175,6 +203,8 @@ function CountdownRing({ seconds }: { seconds: number }) {
 const styles = StyleSheet.create({
   top: { alignItems: 'center', paddingHorizontal: Layout.gutter, paddingTop: Spacing.four },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two },
+  replyBy: { alignItems: 'center', gap: Spacing.one, borderRadius: 28, paddingHorizontal: Spacing.six, paddingVertical: Spacing.five },
   cards: { paddingHorizontal: Layout.gutter, gap: Spacing.three, marginTop: Spacing.six },
   actions: { position: 'absolute', left: Layout.gutter, right: Layout.gutter, bottom: 0, gap: Spacing.two },
 });

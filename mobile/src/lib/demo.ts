@@ -81,6 +81,8 @@ export type DemoOffer = {
   urgent: boolean;
   when: string;
   note: string;
+  /** A past customer asked for this pro by name. */
+  askedForYou?: boolean;
 };
 
 export const DEMO_OFFERS: DemoOffer[] = [
@@ -131,6 +133,19 @@ export const DEMO_OFFERS: DemoOffer[] = [
     urgent: false,
     when: 'Thu, any time',
     note: 'Landlord needs an EICR for a 2-bed flat',
+  },
+  {
+    id: 'o5',
+    jobTypeId: 'boiler-service',
+    postcode: 'SW6 4',
+    street: 'Lettice Street',
+    customer: 'Sophie T.',
+    distanceKm: 1.4,
+    minutesAway: 7,
+    urgent: false,
+    when: 'Tomorrow, 10:00',
+    note: 'Same boiler you serviced last year. Thanks again!',
+    askedForYou: true,
   },
 ];
 

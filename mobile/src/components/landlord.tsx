@@ -6,15 +6,17 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { JobFileLinks } from '@/components/job-files';
 import { useBreakpoint } from '@/components/site/frame';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { Button, Chip, IconTile, T, type LucideIcon, type Tone } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { findJobType, formatPence } from '@/domain/catalog';
+import { paperworkFor } from '@/domain/paperwork';
 import { STATUS_LABELS } from '@/lib/jobs';
 import { dayAndTime, shortDate } from '@/lib/live';
 import { priceLine } from '@/lib/pricing';
-import { formatJoinCode, isAwaiting, type ManagedJob, type ManagedProperty, type ManagedQuoteRequest } from '@/lib/properties';
+import { formatJoinCode, isAwaiting, isExample, type ManagedJob, type ManagedProperty, type ManagedQuoteRequest } from '@/lib/properties';
 
 /** A manager screen: wider than the booking screens, since agents mostly use a laptop. */
 export function ManagerScreen({ children }: { children: ReactNode }) {
@@ -217,6 +219,7 @@ export function HistoryRow({ job, showProperty }: { job: ManagedJob; showPropert
   const chip = jobChip(job);
   const who = job.bookedByManager ? 'Booked by you' : job.tenantName;
   const meta = [shortDate(job.createdAt), showProperty ? job.propertyName : null, who, job.proName].filter(Boolean).join(' · ');
+  const paperwork = type ? paperworkFor(type) : null;
   return (
     <View style={[styles.history, { borderBottomColor: c.border }]}>
       <IconTile icon={type ? TRADE_ICONS[type.trade] : House} tone="neutral" size={40} />
@@ -232,6 +235,7 @@ export function HistoryRow({ job, showProperty }: { job: ManagedJob; showPropert
             {`You said: ${job.declineReason}`}
           </T>
         ) : null}
+        {job.files.length ? <JobFileLinks files={job.files} paperwork={paperwork} example={isExample(job.jobId)} /> : null}
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
         <Chip label={chip.label} tone={chip.tone} />
