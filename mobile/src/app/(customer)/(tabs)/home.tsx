@@ -1,16 +1,21 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { Bell, ChevronRight, ShieldCheck, Zap } from 'lucide-react-native';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Bell, ChevronRight, CircleCheck, MapPin, ShieldCheck, Zap } from 'lucide-react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand';
+import { ProCard, ReviewCard } from '@/components/examples';
 import { bookingHref, JobMenu } from '@/components/job-menu';
 import { isWeb, linkProps } from '@/components/site/frame';
 import { TRADE_ICONS } from '@/components/trade-icons';
-import { Button, IconButton, Note, Screen, T } from '@/components/ui';
-import { Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
-import { COMING_SOON, findJobType, isOffered, type Trade } from '@/domain/catalog';
+import { Button, Card, IconButton, IconTile, Note, Screen, SectionLabel, T } from '@/components/ui';
+import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
+import { EXAMPLE_PROS, EXAMPLE_REVIEWS, EXAMPLES_NOTE } from '@/content/examples';
+import { COMING_SOON, findJobType, isOffered, LAUNCH_OUTWARD_CODES, type Trade } from '@/domain/catalog';
+import { isInLaunchArea, outwardCode } from '@/domain/rules';
 import { arrivalLabel } from '@/domain/slots';
 import { needsSignIn, useAuth } from '@/lib/auth';
+import { sendEnquiry } from '@/lib/contact';
 import { DEMO_CUSTOMER } from '@/lib/demo';
 import { firstName, isLive, loadCustomerJobs, useLive, type CustomerJob } from '@/lib/live';
 
@@ -33,12 +38,16 @@ export default function CustomerHome() {
   const { data: jobs } = useLive(() => loadCustomerJobs(), []);
   // From the website: a postcode already checked, or "Emergency?".
   const params = useLocalSearchParams<{ postcode?: string; trade?: Trade; job?: string; urgent?: string }>();
-  const postcode = params.postcode?.toUpperCase() ?? jobs[0]?.postcode;
+  // Live: start from the postcode of their last job until they type one.
+  const [typed, setPostcode] = useState<string | null>(params.postcode ? params.postcode.toUpperCase() : null);
+  const postcode = typed ?? (isLive ? (jobs[0]?.postcode ?? '') : DEMO_CUSTOMER.postcode);
+  const district = outwardCode(postcode);
+  const covered = district !== null && isInLaunchArea(postcode, LAUNCH_OUTWARD_CODES);
   const current = jobs.find((j) => j.status !== 'completed' && j.status !== 'cancelled');
   const urgent = Boolean(params.urgent);
 
   // Older links picked a job here first. Go straight to booking it.
-  if (params.trade && isOffered(params.trade)) return <Redirect href={bookingHref({ trade: params.trade, job: params.job, postcode })} />;
+  if (params.trade && isOffered(params.trade)) return <Redirect href={bookingHref({ trade: params.trade, job: params.job, postcode: postcode || undefined })} />;
 
   return (
     <Screen>
@@ -64,15 +73,61 @@ export default function CustomerHome() {
         {urgent ? 'What’s the emergency?' : 'What needs fixing?'}
       </T>
 
-      <Emergencies postcode={postcode} />
-      <JobMenu postcode={postcode} placeholder="Try “boiler”, “tap” or “socket”" />
+      <View style={[styles.postcode, Shadows.card, { backgroundColor: c.surface }]}>
+        <MapPin size={20} color={c.ink} strokeWidth={2.2} />
+        <View style={{ flex: 1 }}>
+          <T variant="caption" color="inkSubtle">
+            Your postcode
+          </T>
+          <TextInput
+            value={postcode}
+            onChangeText={(v) => setPostcode(v.toUpperCase())}
+            placeholder="SW6 1AA"
+            placeholderTextColor={c.inkSubtle}
+            autoCapitalize="characters"
+            autoComplete="postal-code"
+            accessibilityLabel="Your postcode"
+            style={[Type.headline, styles.input, { color: c.ink }]}
+          />
+        </View>
+        {covered ? (
+          <View style={styles.covered}>
+            <CircleCheck size={16} color={c.success} strokeWidth={2.4} />
+            <T variant="caption" color="success">
+              Covered
+            </T>
+          </View>
+        ) : null}
+      </View>
 
-      <View style={{ gap: Spacing.two }}>
-        <T variant="footnote" color="inkMuted" style={{ textAlign: 'center' }}>
-          Prices are all-in: VAT and fees included, no hidden extras.
-        </T>
-        <T variant="footnote" color="inkSubtle" style={{ textAlign: 'center' }}>
-          {`Coming soon: ${COMING_SOON.join(', ').toLowerCase()}.`}
+      {covered || district === null ? (
+        <>
+          <Emergencies postcode={postcode || undefined} />
+          <JobMenu postcode={postcode || undefined} placeholder="Try “boiler”, “tap” or “socket”" tradeTiles />
+
+          <View style={{ gap: Spacing.two }}>
+            <T variant="footnote" color="inkMuted" style={{ textAlign: 'center' }}>
+              Prices are all-in: VAT and fees included, no hidden extras.
+            </T>
+            <T variant="footnote" color="inkSubtle" style={{ textAlign: 'center' }}>
+              {`Coming soon: ${COMING_SOON.join(', ').toLowerCase()}.`}
+            </T>
+          </View>
+        </>
+      ) : (
+        <NotInArea postcode={postcode} district={district} />
+      )}
+
+      <View style={{ gap: Spacing.three }}>
+        <SectionLabel>Top-rated near you</SectionLabel>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.prosScroll} contentContainerStyle={styles.pros}>
+          {EXAMPLE_PROS.map((p) => (
+            <ProCard key={p.name} pro={p} style={styles.pro} />
+          ))}
+        </ScrollView>
+        <ReviewCard review={EXAMPLE_REVIEWS[0]} />
+        <T variant="caption" color="inkSubtle" style={{ textAlign: 'center' }}>
+          {EXAMPLES_NOTE}
         </T>
       </View>
 
@@ -127,6 +182,65 @@ function CurrentJob({ job }: { job: CustomerJob }) {
   );
 }
 
+/** Outside the launch area: join the waitlist for it. */
+function NotInArea({ postcode, district }: { postcode: string; district: string }) {
+  const c = usePalette();
+  const [email, setEmail] = useState('');
+  const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+  return (
+    <Card style={{ gap: Spacing.four, padding: Spacing.five }}>
+      <IconTile icon={MapPin} tone="neutral" />
+      <View style={{ gap: 6 }}>
+        <T variant="title2">{joined ? "You're on the list" : "We're not in your area yet"}</T>
+        <T variant="callout" color="inkMuted">
+          {joined
+            ? `We'll email you the day Relay reaches ${district}.`
+            : `Relay is live across Fulham (SW6). Join the waitlist and we'll let you know the day we reach ${district}.`}
+        </T>
+      </View>
+      {joined ? null : (
+        <>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Email address"
+            placeholderTextColor={c.inkSubtle}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            accessibilityLabel="Email address"
+            style={[Type.callout, styles.email, { backgroundColor: c.surfaceMuted, color: c.ink }]}
+          />
+          {joinError ? (
+            <T variant="footnote" color="danger">
+              {joinError}
+            </T>
+          ) : null}
+          <Button
+            label="Join the waitlist"
+            loading={joining}
+            disabled={!email.includes('@')}
+            onPress={async () => {
+              setJoining(true);
+              setJoinError(null);
+              try {
+                await sendEnquiry({ kind: 'waitlist', email, postcode });
+                setJoined(true);
+              } catch (e) {
+                setJoinError(e instanceof Error ? e.message : 'Please try again.');
+              } finally {
+                setJoining(false);
+              }
+            }}
+          />
+        </>
+      )}
+    </Card>
+  );
+}
+
 function Emergencies({ postcode }: { postcode?: string }) {
   const c = usePalette();
   return (
@@ -163,6 +277,13 @@ function Emergencies({ postcode }: { postcode?: string }) {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  postcode: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, height: 64, paddingHorizontal: Spacing.four, borderRadius: Radii.md },
+  input: { padding: 0, margin: 0 },
+  covered: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  email: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.four },
+  prosScroll: { marginHorizontal: -Spacing.five },
+  pros: { gap: Spacing.three, paddingHorizontal: Spacing.five },
+  pro: { width: 172 },
   current: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.lg, padding: Spacing.four },
   currentIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   urgent: { borderRadius: Radii.xl, padding: Spacing.four, gap: Spacing.four },
