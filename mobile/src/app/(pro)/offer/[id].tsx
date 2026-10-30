@@ -125,7 +125,7 @@ export default function JobOffer() {
         <T variant="footnote" color="inkMuted" style={{ textAlign: 'center' }}>
           {offer.urgent
             ? `Arrive by ${deadlineIfAccepted()} or the job goes to the next pro`
-            : `Arrive within ${PILOT.lateGraceMinutes} minutes of the slot starting or the job goes to the next pro`}
+            : `Be there at the booked time. More than ${PILOT.lateGraceMinutes} minutes late and the job goes to the next pro`}
         </T>
         <Button
           label="Accept job"

@@ -2,7 +2,6 @@
 // trades come from domain/catalog.ts so the pages never disagree with booking.
 import {
   Banknote,
-  BadgePoundSterling,
   CalendarCheck,
   CalendarClock,
   Camera,
@@ -18,7 +17,6 @@ import {
   MapPinned,
   MessageCircleMore,
   MessageSquareText,
-  PhoneOff,
   PoundSterling,
   ReceiptPoundSterling,
   Send,
@@ -42,25 +40,6 @@ import { CALLOUT_RATES, FOUNDING_COMMISSION, formatPence, PILOT, STANDARD_COMMIS
 type Item = { icon: LucideIcon; title: string; text: string };
 
 const firstHour = formatPence(CALLOUT_RATES.standard.firstHourPence);
-
-export const TRUST_ITEMS: { icon: LucideIcon; label: string }[] = [
-  { icon: UserCheck, label: 'ID and qualifications checked' },
-  { icon: Umbrella, label: 'Fully insured' },
-  { icon: BadgePoundSterling, label: 'Fixed, all-in prices' },
-  { icon: ShieldCheck, label: `${PILOT.guaranteeDays}-day Relay Guarantee` },
-];
-
-export const HOME_STEPS: Item[] = [
-  { icon: Camera, title: 'Tell us what’s wrong', text: 'Pick the job and add a photo if you can. You’ll see the price straight away.' },
-  { icon: MapPinned, title: 'We send a vetted pro nearby', text: 'We match you with a checked local pro. Watch them arrive on the map.' },
-  { icon: CreditCard, title: 'Pay when it’s fixed', text: 'Your card is held, not charged. We only take payment when you confirm it’s done.' },
-];
-
-export const BENEFITS: Item[] = [
-  { icon: PhoneOff, title: 'No ringing round', text: 'Forget calling five numbers and waiting for call-backs. Book once and a pro is on the way.' },
-  { icon: ReceiptPoundSterling, title: 'No surprise bills', text: 'You see the price before you book. Any extra work needs your OK in the app first.' },
-  { icon: Handshake, title: 'Someone accountable', text: 'If something goes wrong, you talk to us, not a voicemail. The Relay Guarantee has your back.' },
-];
 
 export const JOURNEY: (Item & { tone: 'teal' | 'peach' })[] = [
   {
@@ -169,7 +148,7 @@ export const FAQ_GROUPS: { id: string; title: string; items: Faq[] }[] = [
     items: [
       {
         q: 'How quickly can someone come?',
-        a: `For urgent jobs we aim to have a pro with you within ${PILOT.urgentEtaMinutes} minutes, day or night. For planned jobs, like a boiler service, you choose a time that suits you.`,
+        a: `For urgent jobs we aim to have a pro with you within ${PILOT.urgentEtaMinutes} minutes, day or night. For planned jobs, like a boiler service, you pick the exact time your pro arrives.`,
       },
       {
         q: 'What can I book?',
@@ -231,8 +210,6 @@ export const FAQ_GROUPS: { id: string; title: string; items: Faq[] }[] = [
     ],
   },
 ];
-
-export const HOME_FAQS = [FAQ_GROUPS[1].items[0], FAQ_GROUPS[0].items[0], FAQ_GROUPS[2].items[0]];
 
 export const HELP_TOPICS = ['Booking', 'Prices & payment', 'A problem with a job', 'Becoming a pro', 'Something else'];
 

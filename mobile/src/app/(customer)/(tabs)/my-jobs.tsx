@@ -7,6 +7,7 @@ import { TRADE_ICONS } from '@/components/trade-icons';
 import { Avatar, Card, Chip, IconTile, Screen, SectionLabel, T, type LucideIcon, type Tone } from '@/components/ui';
 import { Spacing, usePalette } from '@/constants/theme';
 import { findJobType, formatPence } from '@/domain/catalog';
+import { arrivalLabel } from '@/domain/slots';
 import { needsSignIn, useAuth } from '@/lib/auth';
 import { STATUS_LABELS } from '@/lib/jobs';
 import {
@@ -50,7 +51,7 @@ function jobRow(j: CustomerJob): JobRow {
       : j.status === 'cancelled'
         ? { label: 'Cancelled', tone: 'neutral' }
         : { label: STATUS_LABELS[j.status], tone: 'brand' };
-  const when = j.confirmedAt ? shortDate(j.confirmedAt) : j.scheduledFor ? dayAndTime(j.scheduledFor) : dayAndTime(j.createdAt);
+  const when = j.confirmedAt ? shortDate(j.confirmedAt) : j.scheduledFor ? arrivalLabel(j.scheduledFor) : dayAndTime(j.createdAt);
   return {
     key: j.jobId,
     title: type?.label ?? 'Job',

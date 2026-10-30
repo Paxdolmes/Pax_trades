@@ -3,6 +3,7 @@ import { Check, Clock, Moon, Sun, MessagesSquare } from 'lucide-react-native';
 import { useRef } from 'react';
 import { Pressable, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 
+import { bookingHref } from '@/components/job-menu';
 import { Container, H3, headingLevel, isHovered, Lead, PageIntro, Pill, SiteIcon, SitePage, useBreakpoint } from '@/components/site/frame';
 import { ComingSoon, CtaBand } from '@/components/site/widgets';
 import { TRADE_ICONS } from '@/components/trade-icons';
@@ -143,7 +144,7 @@ export default function Services() {
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.four, justifyContent: 'space-between' }}>
                       <T variant="headline">{p.price}</T>
-                      <Pill label={WAITLIST ? 'Preview' : 'Book'} variant={WAITLIST ? 'secondary' : 'primary'} size="sm" href={{ pathname: '/home', params: { trade: t.id, job: job.id } }} />
+                      <Pill label={WAITLIST ? 'Preview' : 'Book'} variant={WAITLIST ? 'secondary' : 'primary'} size="sm" href={bookingHref({ trade: t.id, job: job.id })} />
                     </View>
                   </View>
                 );

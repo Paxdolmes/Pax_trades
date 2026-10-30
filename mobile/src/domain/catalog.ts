@@ -55,6 +55,16 @@ export const isOffered = (trade: Trade) => OFFERED_TRADES.some((t) => t.id === t
 /** Shown as "coming soon" on the website. Roofing comes from Pimlico Plumbers' range. */
 export const COMING_SOON = ['Drains', 'Locksmiths', 'Appliance repairs', 'Roofing'];
 
+/** The jobs on the booking menu, with the short name each tile shows. */
+export const POPULAR_JOBS: { id: string; label: string }[] = [
+  { id: 'boiler-service', label: 'Boiler service' },
+  { id: 'socket-replace', label: 'Replace a socket' },
+  { id: 'cp12', label: 'Gas safety certificate' },
+  { id: 'appliance-plumb-in', label: 'Plumb in a washing machine' },
+  { id: 'tap-repair', label: 'Dripping tap' },
+  { id: 'door-repair', label: 'Door sticking' },
+];
+
 /** Trades where a pro can be with you within the hour. */
 export const URGENT_TRADES: Trade[] = ['heating', 'electrical', 'plumbing'];
 

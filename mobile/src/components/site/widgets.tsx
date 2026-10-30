@@ -1,20 +1,19 @@
 // Bigger building blocks shared by the website's pages: the postcode checker,
-// FAQ accordion, call-to-action band, trust strip and the hero's phone mockup.
+// FAQ accordion, call-to-action band and the trades coming soon.
 import { router } from 'expo-router';
-import { ArrowRight, BadgeCheck, Car, CircleCheck, House, MailPlus, MapPin, MessageCircle, Plus, ShieldCheck, Star, Wallet } from 'lucide-react-native';
+import { ArrowRight, CircleCheck, MailPlus, MapPin, Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { RelayMark } from '@/components/brand';
 import { T } from '@/components/ui';
 import { Radii, SoftShadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { COMING_SOON, LAUNCH_OUTWARD_CODES } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
-import { TRUST_ITEMS, type Faq } from '@/content/site';
+import type { Faq } from '@/content/site';
 import { sendEnquiry } from '@/lib/contact';
 import { WAITLIST } from '@/lib/launch';
 
-import { ArrowLink, Container, Grid, H2, Lead, MAIN_CTA, MarkTile, Pill, SiteIcon, useBreakpoint } from './frame';
+import { ArrowLink, Container, H2, Lead, MAIN_CTA, MarkTile, Pill, useBreakpoint } from './frame';
 
 /** "Check my area": covered postcodes go on to booking (the waiting list until Relay
  *  opens), others can join the waitlist for their area. */
@@ -191,141 +190,6 @@ export function CtaBand({ title = 'Something need fixing?', sub = CTA_SUB }: { t
   );
 }
 
-export function TrustStrip() {
-  const c = usePalette();
-  return (
-    <Container>
-      <View style={[styles.trust, SoftShadows.soft, { backgroundColor: c.surface }]}>
-        <Grid columns={{ narrow: 2, medium: 2, wide: 4 }} gap={Spacing.five}>
-          {TRUST_ITEMS.map(({ icon, label }) => (
-            <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
-              <SiteIcon icon={icon} size={40} />
-              <T variant="bodyStrong" style={{ flex: 1, fontSize: 15, lineHeight: 21 }}>
-                {label}
-              </T>
-            </View>
-          ))}
-        </Grid>
-      </View>
-    </Container>
-  );
-}
-
-/** A Relay booking on a phone: a map, the pro on their way and the price. */
-export function BookingMockup() {
-  const c = usePalette();
-  const { width } = useBreakpoint();
-  const chips = width >= 400;
-  return (
-    <View accessible accessibilityRole="image" accessibilityLabel="Example Relay booking on a phone" style={styles.mockWrap}>
-      <View style={[styles.mockBackdrop, { backgroundColor: c.accentTint }]} />
-      <View style={[styles.phone, SoftShadows.lift, { backgroundColor: c.ink }]}>
-        <View style={[styles.screen, { backgroundColor: c.bg }]}>
-          <View style={styles.phoneTop}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <RelayMark size={24} />
-              <T variant="headline" style={{ fontWeight: '800' }}>
-                relay
-              </T>
-            </View>
-            <View style={[styles.tag, { backgroundColor: c.accentTint }]}>
-              <T variant="caption" color="accentStrong">
-                On the way
-              </T>
-            </View>
-          </View>
-          <MapArt />
-          <View style={[styles.sheet, { backgroundColor: c.surface }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
-              <View style={[styles.avatar, { backgroundColor: c.urgentTint }]}>
-                <T variant="title2" color="urgent">
-                  S
-                </T>
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <T variant="headline">Sam</T>
-                  <BadgeCheck size={16} color={c.accentStrong} />
-                </View>
-                <T variant="footnote" color="inkMuted">
-                  Gas Safe engineer
-                </T>
-              </View>
-              <View style={[styles.rating, { backgroundColor: c.surfaceMuted }]}>
-                <Star size={13} color={c.urgent} fill={c.urgent} />
-                <T variant="subhead" style={{ fontWeight: '600' }}>
-                  4.9
-                </T>
-              </View>
-            </View>
-            <View style={[styles.eta, { backgroundColor: c.accentTint }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <T variant="subhead">Arriving in</T>
-                <T variant="title2">18 min</T>
-              </View>
-              <View style={[styles.track, { backgroundColor: c.surface }]}>
-                <View style={[styles.trackFill, { backgroundColor: c.accentStrong }]} />
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={[styles.priceChip, { backgroundColor: c.ink }]}>
-                <T variant="caption" color="onBrand">
-                  £95 including the first hour
-                </T>
-              </View>
-              <View style={[styles.chatDot, { backgroundColor: c.surfaceMuted }]}>
-                <MessageCircle size={16} color={c.ink} />
-              </View>
-            </View>
-          </View>
-        </View>
-      </View>
-      {chips ? (
-        <>
-          <FloatChip icon={ShieldCheck} label="ID & Gas Safe checked" style={{ top: 72, left: 0 }} />
-          <FloatChip icon={Wallet} label="Pay when it's fixed" style={{ bottom: 64, right: 0 }} />
-        </>
-      ) : null}
-    </View>
-  );
-}
-
-function FloatChip({ icon: Icon, label, style }: { icon: typeof ShieldCheck; label: string; style: object }) {
-  const c = usePalette();
-  return (
-    <View style={[styles.floatChip, SoftShadows.lift, { backgroundColor: c.surface }, style]}>
-      <View style={[styles.floatIcon, { backgroundColor: c.accentTint }]}>
-        <Icon size={15} color={c.accentStrong} />
-      </View>
-      <T variant="subhead" style={{ fontWeight: '600' }}>
-        {label}
-      </T>
-    </View>
-  );
-}
-
-function MapArt() {
-  const c = usePalette();
-  const road = { position: 'absolute' as const, backgroundColor: 'rgba(255,255,255,0.8)' };
-  return (
-    <View style={[styles.map, { backgroundColor: c.accentTint }]}>
-      <View style={[road, { top: 40, left: 0, right: 0, height: 20 }]} />
-      <View style={[road, { top: 128, left: 0, right: 0, height: 16 }]} />
-      <View style={[road, { top: 0, bottom: 0, left: 64, width: 16 }]} />
-      <View style={[road, { top: 0, bottom: 0, left: 192, width: 20 }]} />
-      <View style={{ position: 'absolute', top: 80, left: 96, width: 64, height: 32, borderRadius: 12, backgroundColor: c.urgentTint }} />
-      <View style={{ position: 'absolute', top: 160, left: 224, width: 56, height: 40, borderRadius: 12, backgroundColor: c.urgentTint }} />
-      <View style={[styles.route, { borderColor: c.accentStrong }]} />
-      <View style={[styles.pin, { top: 20, left: 44, backgroundColor: c.accentStrong, borderColor: c.surface }]}>
-        <Car size={16} color="#FFFFFF" />
-      </View>
-      <View style={[styles.pin, { top: 118, left: 186, width: 44, height: 44, borderRadius: 22, backgroundColor: c.ink, borderColor: c.surface }]}>
-        <House size={16} color="#FFFFFF" />
-      </View>
-    </View>
-  );
-}
-
 /** The trades we're adding next: a quiet line under the four we offer now. */
 export function ComingSoon({ center }: { center?: boolean }) {
   const c = usePalette();
@@ -357,24 +221,4 @@ const styles = StyleSheet.create({
   faqButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four, paddingHorizontal: Spacing.six, paddingVertical: Spacing.five },
   faqIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   cta: { alignItems: 'center', gap: Spacing.six, borderRadius: 28, paddingHorizontal: Spacing.six },
-  trust: { borderRadius: 24, padding: Spacing.six },
-  mockWrap: { width: '100%', alignItems: 'center', paddingVertical: Spacing.six },
-  mockBackdrop: { position: 'absolute', left: 32, right: 32, top: 48, bottom: 0, borderRadius: 28 },
-  phone: { width: 310, borderRadius: 44, padding: 10 },
-  screen: { borderRadius: 36, overflow: 'hidden' },
-  phoneTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.five, paddingTop: Spacing.five, paddingBottom: Spacing.three },
-  tag: { borderRadius: Radii.pill, paddingHorizontal: 10, paddingVertical: 4 },
-  map: { height: 208, overflow: 'hidden' },
-  route: { position: 'absolute', top: 48, left: 68, width: 128, height: 88, borderLeftWidth: 4, borderBottomWidth: 4, borderStyle: 'dashed', borderBottomLeftRadius: 24 },
-  pin: { position: 'absolute', width: 40, height: 40, borderRadius: 20, borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
-  sheet: { marginTop: -24, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: Spacing.five, paddingTop: Spacing.five, paddingBottom: Spacing.six, gap: Spacing.four },
-  avatar: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  rating: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: Radii.pill, paddingHorizontal: 8, paddingVertical: 4 },
-  eta: { borderRadius: 16, padding: Spacing.three, gap: Spacing.two },
-  track: { height: 8, borderRadius: 4 },
-  trackFill: { height: 8, width: '66%', borderRadius: 4 },
-  priceChip: { borderRadius: Radii.pill, paddingHorizontal: Spacing.three, paddingVertical: 6 },
-  chatDot: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  floatChip: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: Spacing.two, borderRadius: 16, paddingVertical: 10, paddingLeft: 10, paddingRight: Spacing.four },
-  floatIcon: { width: 28, height: 28, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 });

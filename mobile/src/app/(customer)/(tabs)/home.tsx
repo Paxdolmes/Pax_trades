@@ -1,264 +1,78 @@
-import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { Bell, ChevronRight, CircleCheck, ClipboardPen, MapPin, ShieldCheck, Zap } from 'lucide-react-native';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { Bell, ChevronRight, ShieldCheck, Zap } from 'lucide-react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Wordmark } from '@/components/brand';
-import { ProCard, ReviewCard } from '@/components/examples';
+import { bookingHref, JobMenu } from '@/components/job-menu';
+import { isWeb, linkProps } from '@/components/site/frame';
 import { TRADE_ICONS } from '@/components/trade-icons';
-import { Button, Card, IconButton, IconTile, Note, Screen, SectionLabel, T } from '@/components/ui';
-import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { EXAMPLE_PROS, EXAMPLE_REVIEWS, EXAMPLES_NOTE } from '@/content/examples';
-import { isWeb } from '@/components/site/frame';
-import { COMING_SOON, formatPence, fromPricePence, JOB_TYPES, LAUNCH_OUTWARD_CODES, OFFERED_TRADES, TRADES, URGENT_TRADES, type Trade } from '@/domain/catalog';
-import { isInLaunchArea, outwardCode } from '@/domain/rules';
+import { Button, IconButton, Note, Screen, T } from '@/components/ui';
+import { Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
+import { COMING_SOON, findJobType, isOffered, type Trade } from '@/domain/catalog';
+import { arrivalLabel } from '@/domain/slots';
 import { needsSignIn, useAuth } from '@/lib/auth';
-import { sendEnquiry } from '@/lib/contact';
 import { DEMO_CUSTOMER } from '@/lib/demo';
-import { firstName, isLive, loadCustomerJobs, useLive } from '@/lib/live';
-
+import { firstName, isLive, loadCustomerJobs, useLive, type CustomerJob } from '@/lib/live';
 
 function greeting(hour = new Date().getHours()) {
   return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 }
 
+/** The emergencies a pro can be sent to within the hour. */
+const EMERGENCIES: { label: string; trade: Trade; job: string }[] = [
+  { label: 'Leak', trade: 'plumbing', job: 'leak' },
+  { label: 'No power', trade: 'electrical', job: 'power-fault' },
+  { label: 'No heating', trade: 'heating', job: 'no-heating' },
+];
+
 export default function CustomerHome() {
   const c = usePalette();
   const { profile, status } = useAuth();
   const name = isLive ? firstName(profile?.fullName) : DEMO_CUSTOMER.firstName;
-  // Live: start from the postcode of their last job until they type one.
+  // Live: their jobs, for the one under way and the postcode they last booked at.
   const { data: jobs } = useLive(() => loadCustomerJobs(), []);
-  // From the website: a postcode already checked, a job picked on Services, or "Emergency?".
+  // From the website: a postcode already checked, or "Emergency?".
   const params = useLocalSearchParams<{ postcode?: string; trade?: Trade; job?: string; urgent?: string }>();
-  const picked = JOB_TYPES.find((j) => j.id === params.job && j.trade === params.trade);
-  const [typed, setPostcode] = useState<string | null>(params.postcode ? params.postcode.toUpperCase() : null);
-  const postcode = typed ?? (isLive ? (jobs[0]?.postcode ?? '') : DEMO_CUSTOMER.postcode);
-  const [email, setEmail] = useState('');
-  const [joined, setJoined] = useState(false);
-  const [joining, setJoining] = useState(false);
-  const [joinError, setJoinError] = useState<string | null>(null);
+  const postcode = params.postcode?.toUpperCase() ?? jobs[0]?.postcode;
+  const current = jobs.find((j) => j.status !== 'completed' && j.status !== 'cancelled');
+  const urgent = Boolean(params.urgent);
 
-  const district = outwardCode(postcode);
-  const covered = district !== null && isInLaunchArea(postcode, LAUNCH_OUTWARD_CODES);
-  // Tapping a job before typing a postcode: say why nothing happened.
-  const [askPostcode, setAskPostcode] = useState(false);
-  const open = (href: Href) => (covered ? router.push(href) : setAskPostcode(true));
+  // Older links picked a job here first. Go straight to booking it.
+  if (params.trade && isOffered(params.trade)) return <Redirect href={bookingHref({ trade: params.trade, job: params.job, postcode })} />;
 
   return (
     <Screen>
       {isWeb ? null : (
-      <View style={styles.header}>
-        <View style={{ gap: 2 }}>
-          <Wordmark size={26} />
-          <T variant="footnote" color="inkMuted" style={{ marginTop: Spacing.two }}>
-            {name ? `${greeting()}, ${name}` : greeting()}
-          </T>
+        <View style={styles.header}>
+          <View style={{ gap: 2 }}>
+            <Wordmark size={26} />
+            <T variant="footnote" color="inkMuted" style={{ marginTop: Spacing.two }}>
+              {name ? `${greeting()}, ${name}` : greeting()}
+            </T>
+          </View>
+          {needsSignIn(status) ? (
+            <Button label="Sign in" variant="outline" size="md" onPress={() => router.push('/sign-in')} style={{ height: 44, paddingHorizontal: Spacing.four }} />
+          ) : (
+            <IconButton icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
+          )}
         </View>
-        {needsSignIn(status) ? (
-          <Button label="Sign in" variant="outline" size="md" onPress={() => router.push('/sign-in')} style={{ height: 44, paddingHorizontal: Spacing.four }} />
-        ) : (
-          <IconButton icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
-        )}
-      </View>
       )}
+
+      {current ? <CurrentJob job={current} /> : null}
 
       <T variant="display" accessibilityRole="header" style={{ fontSize: 34, lineHeight: 38 }}>
-        {params.urgent ? 'What’s the emergency?' : 'What needs fixing?'}
+        {urgent ? 'What’s the emergency?' : 'What needs fixing?'}
       </T>
 
-      <View style={[styles.postcode, Shadows.card, { backgroundColor: c.surface }]}>
-        <MapPin size={20} color={c.ink} strokeWidth={2.2} />
-        <View style={{ flex: 1 }}>
-          <T variant="caption" color="inkSubtle">
-            Your postcode
-          </T>
-          <TextInput
-            value={postcode}
-            onChangeText={(v) => setPostcode(v.toUpperCase())}
-            placeholder="SW6 1AA"
-            placeholderTextColor={c.inkSubtle}
-            autoCapitalize="characters"
-            autoComplete="postal-code"
-            accessibilityLabel="Your postcode"
-            style={[Type.headline, styles.input, { color: c.ink }]}
-          />
-        </View>
-        {covered ? (
-          <View style={styles.covered}>
-            <CircleCheck size={16} color={c.success} strokeWidth={2.4} />
-            <T variant="caption" color="success">
-              Covered
-            </T>
-          </View>
-        ) : null}
-      </View>
-      {askPostcode && district === null ? (
-        <T variant="footnote" color="danger" style={{ marginTop: -Spacing.three }}>
-          Enter your postcode first, so we can check we cover you.
+      <Emergencies postcode={postcode} />
+      <JobMenu postcode={postcode} placeholder="Try “boiler”, “tap” or “socket”" />
+
+      <View style={{ gap: Spacing.two }}>
+        <T variant="footnote" color="inkMuted" style={{ textAlign: 'center' }}>
+          Prices are all-in: VAT and fees included, no hidden extras.
         </T>
-      ) : null}
-
-      {picked && (covered || district === null) ? (
-        <Card style={{ gap: Spacing.three }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
-            <IconTile icon={TRADE_ICONS[picked.trade]} size={44} />
-            <View style={{ flex: 1 }}>
-              <T variant="caption" color="inkSubtle">
-                You picked
-              </T>
-              <T variant="headline">{picked.label}</T>
-            </View>
-          </View>
-          <Button
-            label="Continue"
-            trailingIcon={ChevronRight}
-            onPress={() => open({ pathname: '/request', params: { trade: picked.trade, job: picked.id, postcode } })}
-          />
-        </Card>
-      ) : null}
-
-      {covered || district === null ? (
-        <>
-          <View style={[styles.urgent, { backgroundColor: c.urgent }]}>
-            <View style={[styles.urgentTag, { backgroundColor: c.onUrgent }]}>
-              <Zap size={13} color={c.urgent} strokeWidth={2.8} fill={c.urgent} />
-              <T variant="overline" style={{ color: c.urgent }}>
-                URGENT
-              </T>
-            </View>
-            <View style={{ gap: 4 }}>
-              <T variant="title1" color="onUrgent" accessibilityRole="header">
-                Leak, no power or no heat?
-              </T>
-              <T variant="callout" color="onUrgent" style={{ fontWeight: '500' }}>
-                A vetted pro at your door, usually within the hour.
-              </T>
-            </View>
-            <View style={styles.urgentRow}>
-              {TRADES.filter((t) => URGENT_TRADES.includes(t.id)).map((t) => (
-                <Pressable
-                  key={t.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Urgent ${t.service.toLowerCase()}`}
-                  onPress={() => open({ pathname: '/request', params: { trade: t.id, postcode } })}
-                  style={({ pressed }) => [styles.urgentButton, { backgroundColor: c.onUrgent, opacity: pressed ? 0.85 : 1 }]}>
-                  <T variant="subhead" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                    {t.short}
-                  </T>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <View style={{ gap: Spacing.three }}>
-            <SectionLabel>Book a job</SectionLabel>
-            <View style={styles.tiles}>
-              {OFFERED_TRADES.map((t) => {
-                const Icon = TRADE_ICONS[t.id];
-                return (
-                  <Pressable
-                    key={t.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${t.label}. ${t.detail}. From ${formatPence(fromPricePence(t.id))}, including VAT and fees`}
-                    onPress={() => open({ pathname: '/request', params: { trade: t.id, postcode } })}
-                    style={({ pressed }) => [styles.tile, Shadows.card, { backgroundColor: c.surface, opacity: pressed ? 0.85 : 1 }]}>
-                    <View style={[styles.tileIcon, { backgroundColor: c.ink }]}>
-                      <Icon size={22} color={c.accent} strokeWidth={2.2} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <T variant="bodyStrong" numberOfLines={1} style={{ fontSize: 15, fontWeight: '700' }}>
-                        {t.short}
-                      </T>
-                      <T variant="footnote" color="inkMuted">
-                        {`From ${formatPence(fromPricePence(t.id))}`}
-                      </T>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Card
-              accessibilityLabel="Something else? Describe any job and get quotes from local pros"
-              onPress={() => open({ pathname: '/quote', params: { postcode } })}
-              style={styles.trade}>
-              <IconTile icon={ClipboardPen} tone="neutral" size={44} />
-              <View style={{ flex: 1 }}>
-                <T variant="headline">Something else?</T>
-                <T variant="footnote" color="inkMuted">
-                  Describe any job, local pros send you quotes
-                </T>
-              </View>
-              <ChevronRight size={20} color={c.inkSubtle} />
-            </Card>
-            <T variant="footnote" color="inkMuted" style={{ textAlign: 'center' }}>
-              Prices are all-in: VAT and fees included, no hidden extras.
-            </T>
-            <T variant="footnote" color="inkSubtle" style={{ textAlign: 'center' }}>
-              {`Coming soon: ${COMING_SOON.join(', ').toLowerCase()}.`}
-            </T>
-          </View>
-        </>
-      ) : (
-        <Card style={{ gap: Spacing.four, padding: Spacing.five }}>
-          <IconTile icon={MapPin} tone="neutral" />
-          <View style={{ gap: 6 }}>
-            <T variant="title2">{joined ? "You're on the list" : "We're not in your area yet"}</T>
-            <T variant="callout" color="inkMuted">
-              {joined
-                ? `We'll email you the day Relay reaches ${district}.`
-                : `Relay is live across Fulham (SW6). Join the waitlist and we'll let you know the day we reach ${district}.`}
-            </T>
-          </View>
-          {joined ? null : (
-            <>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email address"
-                placeholderTextColor={c.inkSubtle}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                accessibilityLabel="Email address"
-                style={[Type.callout, styles.email, { backgroundColor: c.surfaceMuted, color: c.ink }]}
-              />
-              {joinError ? (
-                <T variant="footnote" color="danger">
-                  {joinError}
-                </T>
-              ) : null}
-              <Button
-                label="Join the waitlist"
-                loading={joining}
-                disabled={!email.includes('@')}
-                onPress={async () => {
-                  setJoining(true);
-                  setJoinError(null);
-                  try {
-                    await sendEnquiry({ kind: 'waitlist', email, postcode });
-                    setJoined(true);
-                  } catch (e) {
-                    setJoinError(e instanceof Error ? e.message : 'Please try again.');
-                  } finally {
-                    setJoining(false);
-                  }
-                }}
-              />
-            </>
-          )}
-        </Card>
-      )}
-
-      <View style={{ gap: Spacing.three }}>
-        <SectionLabel>Top-rated near you</SectionLabel>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.prosScroll} contentContainerStyle={styles.pros}>
-          {EXAMPLE_PROS.map((p) => (
-            <ProCard key={p.name} pro={p} style={styles.pro} />
-          ))}
-        </ScrollView>
-        <ReviewCard review={EXAMPLE_REVIEWS[0]} />
-        <T variant="caption" color="inkSubtle" style={{ textAlign: 'center' }}>
-          {EXAMPLES_NOTE}
+        <T variant="footnote" color="inkSubtle" style={{ textAlign: 'center' }}>
+          {`Coming soon: ${COMING_SOON.join(', ').toLowerCase()}.`}
         </T>
       </View>
 
@@ -273,22 +87,88 @@ export default function CustomerHome() {
   );
 }
 
+/** What's happening with a job under way, one tap from following it live. */
+function CurrentJob({ job }: { job: CustomerJob }) {
+  const c = usePalette();
+  const type = findJobType(job.jobTypeId);
+  const Icon = type ? TRADE_ICONS[type.trade] : Zap;
+  const pro = firstName(job.pro?.name) || 'Your pro';
+  const line =
+    job.finishedAt && !job.confirmedAt
+      ? `${pro} says it’s done. Check and confirm`
+      : job.property?.approval === 'pending' && job.status === 'requested'
+        ? `Waiting for ${job.property.approverName} to approve`
+        : job.status === 'en_route'
+          ? `${pro} is on the way`
+          : job.status === 'on_site'
+            ? `${pro} is working on it`
+            : job.scheduledFor
+              ? `${job.status === 'accepted' ? `${pro} is booked` : 'Booked'} for ${arrivalLabel(job.scheduledFor)}`
+              : job.status === 'accepted'
+                ? `${pro} accepted and is on the way soon`
+                : 'Finding a pro near you';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${type?.label ?? 'Your job'}. ${line}. Follow it live`}
+      onPress={() => router.push({ pathname: '/job/[id]', params: { id: job.jobId } })}
+      style={({ pressed }) => [styles.current, Shadows.card, { backgroundColor: c.accentTint, opacity: pressed ? 0.85 : 1 }]}>
+      <View style={[styles.currentIcon, { backgroundColor: c.accent }]}>
+        <Icon size={20} color={c.onAccent} strokeWidth={2.2} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <T variant="caption" color="accentStrong">
+          {(type?.label ?? 'Your job').toUpperCase()}
+        </T>
+        <T variant="bodyStrong">{line}</T>
+      </View>
+      <ChevronRight size={20} color={c.ink} strokeWidth={2.4} />
+    </Pressable>
+  );
+}
+
+function Emergencies({ postcode }: { postcode?: string }) {
+  const c = usePalette();
+  return (
+    <View style={[styles.urgent, { backgroundColor: c.urgent }]}>
+      <View style={styles.urgentTop}>
+        <View style={[styles.urgentIcon, { backgroundColor: c.onUrgent }]}>
+          <Zap size={18} color={c.urgent} fill={c.urgent} strokeWidth={2.4} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <T variant="title2" color="onUrgent" accessibilityRole="header">
+            Leak, no power or no heat?
+          </T>
+          <T variant="footnote" color="onUrgent" style={{ fontWeight: '500' }}>
+            A vetted pro at your door, usually within the hour.
+          </T>
+        </View>
+      </View>
+      <View style={styles.urgentRow}>
+        {EMERGENCIES.map((e) => (
+          <Pressable
+            key={e.job}
+            {...linkProps(bookingHref({ trade: e.trade, job: e.job, postcode, urgent: true }))}
+            accessibilityLabel={`${e.label}: get someone now`}
+            style={({ pressed }) => [styles.urgentButton, { backgroundColor: c.onUrgent, opacity: pressed ? 0.85 : 1 }]}>
+            <T variant="subhead" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+              {e.label}
+            </T>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  postcode: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, height: 64, paddingHorizontal: Spacing.four, borderRadius: Radii.md },
-  input: { padding: 0, margin: 0 },
-  covered: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  trade: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  urgent: { borderRadius: Radii.xl, padding: Spacing.five, gap: Spacing.four },
-  urgentTag: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, height: 26, paddingHorizontal: 10, borderRadius: Radii.pill },
-  urgentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  urgentButton: { flexGrow: 1, flexBasis: '30%', height: 48, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.two },
-  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
-  tile: { flexGrow: 1, flexBasis: '46%', borderRadius: Radii.lg, padding: Spacing.three, gap: Spacing.three, flexDirection: 'row', alignItems: 'center' },
-  tileIcon: { width: 44, height: 44, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
-  email: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.four },
-  prosScroll: { marginHorizontal: -Spacing.five },
-  pros: { gap: Spacing.three, paddingHorizontal: Spacing.five },
-  pro: { width: 172 },
+  current: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.lg, padding: Spacing.four },
+  currentIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  urgent: { borderRadius: Radii.xl, padding: Spacing.four, gap: Spacing.four },
+  urgentTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  urgentIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  urgentRow: { flexDirection: 'row', gap: Spacing.two },
+  urgentButton: { flex: 1, height: 48, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.two },
   trust: { borderRadius: Radii.md, paddingHorizontal: Spacing.four, paddingVertical: Spacing.three },
 });

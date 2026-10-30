@@ -3,6 +3,7 @@
 import { ArrowUpRight, Check, TriangleAlert } from 'lucide-react-native';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
+import { bookingHref } from '@/components/job-menu';
 import { T } from '@/components/ui';
 import { Radii, Spacing, usePalette } from '@/constants/theme';
 import { GUIDES, type Guide, type GuideSection } from '@/content/guides';
@@ -45,7 +46,7 @@ export function GuidePage({ guide }: { guide: Guide }) {
             </T>
             <View style={styles.ctas}>
               <Pill label={MAIN_CTA.label} variant={WAITLIST ? 'teal' : 'primary'} href={WAITLIST ? { pathname: '/waitlist', params: { trade: guide.trade } } : MAIN_CTA.href} />
-              <Pill label={WAITLIST ? 'See how booking will work' : 'See prices'} variant="secondary" href={WAITLIST ? { pathname: '/home', params: { trade: guide.trade, job: guide.job } } : '/prices'} />
+              <Pill label={WAITLIST ? 'See how booking will work' : 'See prices'} variant="secondary" href={WAITLIST ? bookingHref({ trade: guide.trade, job: guide.job }) : '/prices'} />
             </View>
             <ArrowLink label={trade.name} href={trade.path} />
           </SoftCard>

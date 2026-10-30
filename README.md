@@ -50,9 +50,9 @@ CI runs both on every pull request.
 
 The look comes from the v0 brand refresh board (the "Conduit R" mark, navy, teal and Ember, Bricolage Grotesque and Figtree). Relay Traders always uses the dark palette. In demo mode (no Supabase keys) each flow plays through on a timer, so you can tap from request to payment on a phone.
 
-| Relay: home | Choose the job | Pro on the way | Job done and pay |
+| Relay: home | Pick an exact time | Pro on the way | Job done and pay |
 | --- | --- | --- | --- |
-| ![](docs/screenshots/customer-1-home.png) | ![](docs/screenshots/customer-2-choose-job.png) | ![](docs/screenshots/customer-3-on-the-way.png) | ![](docs/screenshots/customer-4-job-done.png) |
+| ![](docs/screenshots/customer-1-home.png) | ![](docs/screenshots/customer-2-pick-a-time.png) | ![](docs/screenshots/customer-3-on-the-way.png) | ![](docs/screenshots/customer-4-job-done.png) |
 
 | Relay Traders: go online | 60-second job offer | On the job | Earnings |
 | --- | --- | --- | --- |

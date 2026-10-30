@@ -115,9 +115,13 @@ export function maskContactDetails(body: string): string {
     .trimEnd();
 }
 
-/** When the pro must arrive: an hour after accepting an urgent job, or the booked slot plus grace. */
+/**
+ * When the pro must arrive: within the hour for an urgent job, or at the booked time,
+ * but never sooner than an hour after accepting. Mirrors accept_offer() in the database.
+ */
 export function arriveBy(urgent: boolean, acceptedAt: number, scheduledFor: number | null): number {
-  return urgent ? acceptedAt + PILOT.urgentEtaMinutes * MINUTE : (scheduledFor ?? acceptedAt) + PILOT.lateGraceMinutes * MINUTE;
+  const withinTheHour = acceptedAt + PILOT.urgentEtaMinutes * MINUTE;
+  return urgent ? withinTheHour : Math.max(scheduledFor ?? acceptedAt, withinTheHour);
 }
 
 /** True once the pro has missed the arrive-by time and the grace period, so the job goes to the next pro. */
