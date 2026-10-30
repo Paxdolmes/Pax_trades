@@ -26,7 +26,7 @@ npm run start:pro  # tradesperson app (Relay Traders)
 
 Scan the QR code with Expo Go. When switching between the two apps, add `-- --clear` so the bundler does not reuse the other app's config.
 
-The web version of both apps (`npm run build:web`, published by the **Web version** workflow) is at https://app.relay-trade.co.uk, with Relay Traders at `/traders`. In a browser, Relay opens on the website (home, services, how it works, prices, safety, for tradespeople and help pages) before booking. See [docs/going-live.md](docs/going-live.md) section 6.
+The web version of both apps (`npm run build:web`, published by the **Web version** workflow) is at https://relay-trade.co.uk, with Relay Traders at `/traders`. In a browser, Relay opens on the website (home, services, how it works, prices, safety, for tradespeople and help pages) before booking. See [docs/going-live.md](docs/going-live.md) section 6.
 
 Without Supabase settings the apps run in **demo mode** with sample jobs. To connect a backend, copy `mobile/.env.example` to `mobile/.env.local` and fill in your Supabase URL and anon key.
 

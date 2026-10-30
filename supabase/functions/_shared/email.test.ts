@@ -13,5 +13,5 @@ test('text from the contact form is escaped everywhere it appears', () => {
 });
 
 test('the logo comes from the website', () => {
-  assert.match(brandedEmail({ preheader: '', heading: 'Hi', body: '' }), /src="https:\/\/app\.relay-trade\.co\.uk\/email-logo\.png"/);
+  assert.match(brandedEmail({ preheader: '', heading: 'Hi', body: '' }), /src="https:\/\/relay-trade\.co\.uk\/email-logo\.png"/);
 });

@@ -1,7 +1,7 @@
 name: Web version
 
 # Builds the web version of both apps and publishes it on GitHub Pages:
-# Relay at https://app.relay-trade.co.uk and Relay Traders at /traders.
+# Relay at https://relay-trade.co.uk and Relay Traders at /traders.
 # Runs on every merge to main, or by hand from the Actions tab.
 # One-off setup (see docs/going-live.md, section 6): Settings > Pages > Source: GitHub Actions.
 
@@ -44,7 +44,7 @@ jobs:
       # A headless browser copies each page's text into its HTML for search engines (scripts/build-web.mjs).
       - run: npm install --no-save playwright@1.63.0 && npx playwright install --with-deps chromium
       - run: npm run build:web
-      - run: echo app.relay-trade.co.uk > dist-web/CNAME
+      - run: echo relay-trade.co.uk > dist-web/CNAME
       - uses: actions/upload-pages-artifact@v3
         with:
           path: mobile/dist-web
