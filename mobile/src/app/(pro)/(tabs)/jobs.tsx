@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CalendarClock, ChevronRight, CircleCheck, ClipboardPen, Lock, MapPin, Plus, Zap } from 'lucide-react-native';
+import { CalendarClock, ChevronRight, CircleCheck, ClipboardPen, Lock, MapPin, Plus, RotateCcw, Zap } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
@@ -63,7 +63,7 @@ export default function ProJobs() {
       {!online ? <Button label="Go online" variant="success" onPress={goLive} /> : null}
 
       <View style={{ gap: Spacing.three }}>
-        {offers.map((o) => (o.missing.length ? <LockedOffer key={o.id} offer={o} /> : <OfferCard key={o.id} offer={o} canOpen={online} />))}
+        {offers.map((o) => (o.missing.length ? <LockedOffer key={o.id} offer={o} /> : <OfferCard key={o.id} offer={o} canOpen={online || Boolean(o.askedForYou)} />))}
         {offers.length === 0 ? (
           <T variant="callout" color="inkMuted">
             {isLive ? 'No offers right now. Stay online and new jobs open here.' : 'No jobs of this type nearby right now.'}
@@ -142,7 +142,12 @@ function OfferCard({ offer, canOpen }: { offer: OfferView; canOpen: boolean }) {
       <View style={styles.cardTop}>
         <IconTile icon={offer.urgent ? Zap : TRADE_ICONS[offer.jobType.trade]} tone={offer.urgent ? 'urgent' : 'brand'} solid={offer.urgent} size={44} />
         <View style={{ flex: 1, gap: 4 }}>
-          {offer.urgent ? <Chip label="Urgent" tone="urgent" /> : null}
+          {offer.urgent || offer.askedForYou ? (
+            <View style={styles.inline}>
+              {offer.askedForYou ? <Chip label="Asked for you" icon={RotateCcw} tone="success" /> : null}
+              {offer.urgent ? <Chip label="Urgent" tone="urgent" /> : null}
+            </View>
+          ) : null}
           <T variant="headline" numberOfLines={1}>
             {offer.jobType.label}
           </T>
@@ -166,7 +171,7 @@ function OfferCard({ offer, canOpen }: { offer: OfferView; canOpen: boolean }) {
         <View style={styles.inline}>
           <CalendarClock size={16} color={offer.urgent ? c.urgent : c.inkMuted} strokeWidth={2.25} />
           <T variant="subhead" color={offer.urgent ? 'urgent' : 'ink'} style={{ fontWeight: '600' }}>
-            {offer.urgent ? 'Now · 60 seconds to accept' : offer.when}
+            {offer.urgent ? `Now · ${offer.askedForYou ? '2 minutes' : '60 seconds'} to accept` : offer.when}
           </T>
         </View>
         {canOpen ? (

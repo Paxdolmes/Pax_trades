@@ -6,6 +6,7 @@
 import { Platform, Share } from 'react-native';
 
 import { DEMO_QUOTES } from '@/lib/demo';
+import type { JobFileRef } from '@/lib/job-files';
 import type { JobStatus, Urgency } from '@/lib/jobs';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
@@ -48,6 +49,8 @@ export type ManagedJob = {
   finalPricePence: number | null;
   proName: string | null;
   declineReason: string | null;
+  /** The pro's photos and certificates, certificates first. */
+  files: JobFileRef[];
 };
 
 /** A "Get quotes" request for one of the manager's properties. The manager accepts a quote. */
@@ -165,6 +168,7 @@ type ManagedJobRow = {
   final_price_pence: number | null;
   pro_name: string | null;
   decline_reason: string | null;
+  files: JobFileRef[] | null;
 };
 
 export async function loadManagedJobs(propertyId?: string): Promise<ManagedJob[]> {
@@ -189,6 +193,7 @@ export async function loadManagedJobs(propertyId?: string): Promise<ManagedJob[]
     finalPricePence: r.final_price_pence,
     proName: r.pro_name,
     declineReason: r.decline_reason,
+    files: r.files ?? [],
   }));
 }
 
@@ -400,9 +405,12 @@ const ex = (j: Partial<ManagedJob> & Pick<ManagedJob, 'jobId' | 'propertyId' | '
     finalPricePence: null,
     proName: null,
     declineReason: null,
+    files: [],
     ...j,
   };
 };
+
+const exampleFile = (kind: JobFileRef['kind'], n: number): JobFileRef => ({ path: `example-${kind}-${n}`, kind, type: kind === 'photo' ? 'image/jpeg' : 'application/pdf' });
 
 export const EXAMPLE_JOBS: ManagedJob[] = [
   ex({
@@ -446,6 +454,7 @@ export const EXAMPLE_JOBS: ManagedJob[] = [
     finalPricePence: 14900,
     proName: 'Karim B.',
     bookedByManager: true,
+    files: [exampleFile('certificate', 1), exampleFile('photo', 1)],
   }),
   ex({
     jobId: 'example-j5',
@@ -482,6 +491,7 @@ export const EXAMPLE_JOBS: ManagedJob[] = [
     finalPricePence: 9500,
     proName: 'Karim B.',
     bookedByManager: true,
+    files: [exampleFile('certificate', 1)],
   }),
   ex({
     jobId: 'example-j8',

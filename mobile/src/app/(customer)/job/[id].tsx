@@ -21,6 +21,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { JobFilesView } from '@/components/job-files';
 import { bookingHref } from '@/components/job-menu';
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
 import { StarInput } from '@/components/reviews';
@@ -29,9 +30,11 @@ import { TRADE_ICONS } from '@/components/trade-icons';
 import { Avatar, Button, Card, Chip, Divider, Footer, IconTile, Note, ProgressBar, ProgressSteps, Sheet, T } from '@/components/ui';
 import { Layout, Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { ALL_IN_NOTE, findJobType, formatPence, isOffered, JOB_TYPES, PILOT, TRADES, type Trade } from '@/domain/catalog';
+import { paperworkFor } from '@/domain/paperwork';
 import { arriveBy } from '@/domain/rules';
 import { arrivalLabel, arrivalPhrase, clockLabel } from '@/domain/slots';
 import { DEMO_CUSTOMER, DEMO_EXTRA_WORK, DEMO_PRO } from '@/lib/demo';
+import { loadJobFiles, type JobFile } from '@/lib/job-files';
 import { firstName, loadCustomerJobs, useLive, type CustomerJob } from '@/lib/live';
 import { cancelJob, type JobStatus, type Urgency } from '@/lib/jobs';
 import { upfrontPence } from '@/lib/pricing';
@@ -100,6 +103,8 @@ export default function JobScreen() {
     freeze?: string;
     reassigned?: string;
     scheduledFor?: string;
+    /** "Book Sam again": the pro asked for first. */
+    askedFor?: string;
   }>();
   const demo = params.id.startsWith('demo-');
   const live = isSupabaseConfigured && !demo;
@@ -196,6 +201,7 @@ export default function JobScreen() {
         trade={jobType.trade}
         postcode={row?.postcode ?? DEMO_CUSTOMER.postcode}
         doneAt={row?.finishedAt ?? null}
+        example={demo}
       />
       </ProContext.Provider>
     );
@@ -224,6 +230,7 @@ export default function JobScreen() {
         scheduledFor={scheduledFor}
         heldPence={held}
         reassigned={reassigned}
+        askedFor={row?.preferredProName ? firstName(row.preferredProName) : (params.askedFor ?? null)}
         onCancel={() => askToCancel(params.id)}
       />
     );
@@ -354,6 +361,7 @@ function Finding({
   scheduledFor,
   heldPence,
   reassigned,
+  askedFor,
   onCancel,
 }: {
   billedTo: string | null;
@@ -364,6 +372,8 @@ function Finding({
   scheduledFor: string | null;
   heldPence: number;
   reassigned: boolean;
+  /** The pro from a past job the customer asked for, offered it first. */
+  askedFor: string | null;
   onCancel: () => void;
 }) {
   const c = usePalette();
@@ -414,9 +424,11 @@ function Finding({
             {booked ? `Booked for ${arrivalPhrase(booked)}` : `Finding a ${pro} near you`}
           </T>
           <T variant="callout" color="inkMuted">
-            {booked
-              ? `We're finding your ${pro}. You'll see who's coming as soon as they accept.`
-              : "We're asking the nearest vetted pros within 2 miles. This usually takes under a minute."}
+            {askedFor && !reassigned
+              ? `We've asked ${askedFor} first. If ${askedFor} can't make it, we'll ask other vetted pros nearby.`
+              : booked
+                ? `We're finding your ${pro}. You'll see who's coming as soon as they accept.`
+                : "We're asking the nearest vetted pros within 2 miles. This usually takes under a minute."}
           </T>
         </View>
         <ProgressBar value={progress} />
@@ -699,6 +711,7 @@ function JobDone({
   trade,
   postcode,
   doneAt,
+  example,
 }: {
   jobId: string;
   billedTo: string | null;
@@ -710,9 +723,15 @@ function JobDone({
   trade: Trade;
   postcode: string;
   doneAt: string | null;
+  /** A demo job: show what the pro's photos and certificate look like. */
+  example: boolean;
 }) {
   const c = usePalette();
   const pro = useJobPro();
+  const { data: files } = useLive(() => loadJobFiles(jobId), [] as JobFile[], jobId);
+  const paperwork = paperworkFor({ id: jobTypeId, trade });
+  const gasSafeNote = trade === 'heating' ? (pro.gasSafeNumber ? `Gas Safe ${pro.gasSafeNumber}` : 'Gas Safe registered engineer') : undefined;
+  const hasCertificate = example ? Boolean(paperwork) : files.some((f) => f.kind === 'certificate');
   const [tip, setTip] = useState(0);
   const [paid, setPaid] = useState(confirmed);
   const [paying, setPaying] = useState(false);
@@ -880,13 +899,15 @@ function JobDone({
           </T>
         </Card>
 
-        {trade === 'heating' ? (
+        <JobFilesView files={files} paperwork={paperwork} proName={pro.firstName} certificateNote={gasSafeNote} example={example} />
+
+        {trade === 'heating' && !hasCertificate ? (
           <Card style={styles.row}>
             <IconTile icon={FileText} tone="success" size={40} />
             <View style={{ flex: 1 }}>
               <T variant="subhead">Your gas safety record is saved in the app</T>
               <T variant="footnote" color="inkMuted">
-                {pro.gasSafeNumber ? `Gas Safe ${pro.gasSafeNumber}` : 'Gas Safe registered engineer'}
+                {gasSafeNote}
               </T>
             </View>
           </Card>
@@ -907,7 +928,13 @@ function JobDone({
       <Footer>
         {paid ? (
           <>
-            {again ? <Button label="Book again" icon={RotateCcw} onPress={() => router.push(bookingHref({ trade, job: jobTypeId, postcode }))} /> : null}
+            {again ? (
+              <Button
+                label={pro.id ? `Book ${pro.firstName} again` : 'Book again'}
+                icon={RotateCcw}
+                onPress={() => router.push(bookingHref({ trade, job: jobTypeId, postcode, ...(pro.id ? { pro: { id: pro.id, name: pro.firstName } } : {}) }))}
+              />
+            ) : null}
             <View style={{ flexDirection: 'row', gap: Spacing.three }}>
               <Button label="Report a problem" variant="secondary" size="md" onPress={report} style={{ flex: 1 }} />
               <Button label="Done" variant="outline" size="md" onPress={() => router.replace('/home')} style={{ flex: 1 }} />

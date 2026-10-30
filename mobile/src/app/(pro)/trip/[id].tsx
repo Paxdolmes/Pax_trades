@@ -1,10 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import {
-  Camera,
   ChevronDown,
   CircleCheck,
   Clock3,
-  FileBadge,
   Hourglass,
   KeyRound,
   MapPinCheck,
@@ -14,18 +12,20 @@ import {
   Play,
   Plus,
   TimerReset,
-  Upload,
   Wrench,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { JobFilesEditor } from '@/components/job-files';
 import { DEMO_ROUTE, PLACES, StaticMap } from '@/components/map';
 import { Avatar, Button, Card, Chip, Divider, Footer, IconButton, IconTile, Note, Screen, SectionLabel, Sheet, T } from '@/components/ui';
 import { Colors, Radii, Shadows, Spacing, usePalette } from '@/constants/theme';
 import { CALLOUT_RATES, findJobType, formatPence, PILOT } from '@/domain/catalog';
+import { paperworkFor } from '@/domain/paperwork';
 import { calloutChargePence } from '@/domain/rules';
+import { loadJobFiles, type JobFile } from '@/lib/job-files';
 import { isLive, loadProJobs, useLive, type ProJob } from '@/lib/live';
 import { findOffer, type OfferView } from '@/lib/offers';
 import { proArrived, proFinished } from '@/lib/trust';
@@ -169,10 +169,14 @@ function OnJob({ offer, jobId }: { offer: OfferView; jobId: string }) {
   const [elapsed, setElapsed] = useState(0);
   const [paused, setPaused] = useState(false);
   const [items, setItems] = useState<LineItem[]>([]);
-  const [certificate, setCertificate] = useState(false);
+  // Photos and certificates already uploaded, plus any added since the screen opened.
+  const { data: saved } = useLive(() => loadJobFiles(jobId), [] as JobFile[], jobId);
+  const [added, setAdded] = useState<JobFile[]>([]);
+  const files = [...saved.filter((f) => !added.some((a) => a.id === f.id)), ...added];
   const [done, setDone] = useState(false);
   const [finishing, setFinishing] = useState(false);
-  const needsCertificate = offer.jobType.trade === 'heating';
+  const paperwork = paperworkFor(offer.jobType);
+  const needsCertificate = Boolean(paperwork?.required) && !files.some((f) => f.kind === 'certificate');
   const callout = offer.jobType.pricing.kind === 'callout';
 
   useEffect(() => {
@@ -192,7 +196,7 @@ function OnJob({ offer, jobId }: { offer: OfferView; jobId: string }) {
     offer.jobType.pricing.kind === 'fixed' ? offer.jobType.pricing.pence : calloutChargePence(Math.floor(elapsed / 60), CALLOUT_RATES.standard);
   const extras = items.filter((i) => i.status === 'approved').reduce((s, i) => s + i.pence, 0);
   const pending = items.filter((i) => i.status === 'waiting').length;
-  const blockers = [pending ? `${pending} approval pending` : null, needsCertificate && !certificate ? 'certificate needed' : null].filter(Boolean);
+  const blockers = [pending ? `${pending} approval pending` : null, needsCertificate ? 'certificate needed' : null].filter(Boolean);
 
   async function finish() {
     setFinishing(true);
@@ -340,40 +344,7 @@ function OnJob({ offer, jobId }: { offer: OfferView; jobId: string }) {
         </View>
       )}
 
-      <View style={{ gap: Spacing.three }}>
-        <SectionLabel>Photos and certificate</SectionLabel>
-        <View style={styles.inline}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Add photo" style={[styles.photo, { borderColor: c.border, backgroundColor: c.surface }]}>
-            <Camera size={22} color={c.inkMuted} strokeWidth={2.25} />
-            <T variant="caption" color="inkMuted" style={{ fontSize: 11 }}>
-              Add photo
-            </T>
-          </Pressable>
-          {needsCertificate ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={certificate ? 'Gas safety record uploaded' : 'Upload gas safety record'}
-              onPress={() => setCertificate(true)}
-              style={[
-                styles.certificate,
-                certificate
-                  ? { borderColor: c.success, backgroundColor: c.successTint, borderStyle: 'solid' }
-                  : { borderColor: c.brand, backgroundColor: c.brandTint },
-              ]}>
-              <FileBadge size={24} color={certificate ? c.success : c.brand} strokeWidth={2.25} />
-              <View style={{ flex: 1 }}>
-                <T variant="subhead" color={certificate ? 'successStrong' : 'brand'} style={{ fontWeight: '600' }}>
-                  Gas safety record
-                </T>
-                <T variant="caption" color={certificate ? 'successStrong' : 'brand'} style={{ fontSize: 12, fontWeight: '500' }}>
-                  {certificate ? 'Uploaded' : 'Required to complete'}
-                </T>
-              </View>
-              {certificate ? <CircleCheck size={18} color={c.success} /> : <Upload size={18} color={c.brand} strokeWidth={2.5} />}
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
+      <JobFilesEditor jobId={jobId} paperwork={paperwork} files={files} onAdded={(f) => setAdded((all) => [...all, f])} />
     </Screen>
   );
 }
@@ -390,8 +361,6 @@ const styles = StyleSheet.create({
   timer: { borderRadius: Radii.lg, padding: Spacing.four, gap: Spacing.three },
   timerFoot: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderTopWidth: 1, paddingTop: Spacing.three },
   addRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two, height: 56 },
-  photo: { width: 72, height: 72, borderRadius: Radii.md, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 2 },
-  certificate: { flex: 1, height: 72, borderRadius: Radii.md, borderWidth: 1.5, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingHorizontal: Spacing.three },
   pause: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   doneIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
 });

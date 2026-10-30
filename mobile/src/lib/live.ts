@@ -108,6 +108,8 @@ export type LiveOffer = {
   distanceM: number | null;
   scheduledFor: string | null;
   expiresAt: string;
+  /** A past customer asked for this pro by name. */
+  askedForYou: boolean;
 };
 
 type OfferRow = {
@@ -121,6 +123,7 @@ type OfferRow = {
   distance_m: number | null;
   scheduled_for: string | null;
   expires_at: string;
+  asked_for_you: boolean | null;
 };
 
 export async function loadMyOffers(): Promise<LiveOffer[]> {
@@ -137,6 +140,7 @@ export async function loadMyOffers(): Promise<LiveOffer[]> {
     distanceM: r.distance_m,
     scheduledFor: r.scheduled_for,
     expiresAt: r.expires_at,
+    askedForYou: Boolean(r.asked_for_you),
   }));
 }
 
@@ -156,6 +160,12 @@ export async function acceptOffer(offerId: string): Promise<{ jobId: string }> {
   const { data, error } = await supabase.rpc('accept_offer', { p_offer: offerId });
   if (error) throw error;
   return { jobId: (data as { id: string }).id };
+}
+
+/** Says no, so the job goes to the next pro straight away. */
+export async function declineOffer(offerId: string): Promise<void> {
+  const { error } = await supabase.rpc('decline_offer', { p_offer: offerId });
+  if (error) throw error;
 }
 
 export async function setAvailability(online: boolean, point: { lng: number; lat: number } | null): Promise<void> {
@@ -263,6 +273,8 @@ export type CustomerJob = {
   tipPence: number;
   /** A tenant's request to their landlord or agent, who approves it and pays. */
   property: null | { id: string; name: string; approval: Approval | null; approverName: string; declineReason: string | null };
+  /** The pro the customer asked for by name, who's offered the job first. */
+  preferredProName: string | null;
   pro: null | {
     id: string;
     name: string;
@@ -298,6 +310,7 @@ type CustomerJobRow = {
   approval: Approval | null;
   approver_name: string | null;
   decline_reason: string | null;
+  preferred_pro_name: string | null;
 };
 
 export async function loadCustomerJobs(jobId?: string): Promise<CustomerJob[]> {
@@ -326,6 +339,7 @@ export async function loadCustomerJobs(jobId?: string): Promise<CustomerJob[]> {
           declineReason: r.decline_reason,
         }
       : null,
+    preferredProName: r.preferred_pro_name,
     pro: r.pro_id
       ? {
           id: r.pro_id,

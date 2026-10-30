@@ -8,7 +8,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react
 import { menuPrice } from '@/components/job-menu';
 import { MediaPicker } from '@/components/media-picker';
 import { TRADE_ICONS } from '@/components/trade-icons';
-import { Button, Card, Chip, Divider, Footer, IconButton, IconTile, Note, Radio, Screen, T } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Divider, Footer, IconButton, IconTile, Note, Radio, Screen, T } from '@/components/ui';
 import { Radii, Shadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { ALL_IN_NOTE, formatPence, isOffered, jobTypesForTrade, LAUNCH_OUTWARD_CODES, TRADES, type JobType, type Trade } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
@@ -37,7 +37,17 @@ const STEPS = 3;
 
 export default function RequestJob() {
   const c = usePalette();
-  const params = useLocalSearchParams<{ trade: Trade; postcode?: string; job?: string; urgent?: string; property?: string; propertyName?: string }>();
+  const params = useLocalSearchParams<{
+    trade: Trade;
+    postcode?: string;
+    job?: string;
+    urgent?: string;
+    property?: string;
+    propertyName?: string;
+    /** "Book Sam again": the pro from a past job, and their name. */
+    pro?: string;
+    proName?: string;
+  }>();
   const { trade } = params;
   const tradeInfo = TRADES.find((t) => t.id === trade);
   const jobTypes = jobTypesForTrade(trade);
@@ -53,6 +63,9 @@ export default function RequestJob() {
   const [dayKey, setDayKey] = useState(days[0]?.key);
   const [slot, setSlot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // The pro from a past job gets first refusal, unless the customer turns it off.
+  const [askPro, setAskPro] = useState(true);
+  const asked = askPro && params.pro && params.proName ? { id: params.pro, name: params.proName } : null;
   const signedIn = useAccountGate();
   // A tenant who has joined their landlord's property can send the request to them
   // to approve and pay. A manager booking for one of their properties arrives with it.
@@ -104,12 +117,16 @@ export default function RequestJob() {
         postcode,
         description,
         scheduledFor: asap ? null : slot,
+        preferredProId: asked?.id ?? null,
       });
       // The request is in either way; don't let a failed photo upload send it twice.
       await uploadMedia({ jobId: id }, media).catch(() =>
         Alert.alert('Your request is sent', "Your photos didn't upload. You can show them to your pro in the chat."),
       );
-      router.replace({ pathname: '/job/[id]', params: { id, jobType: jobType.id, urgency: effectiveUrgency, ...(slot && !asap ? { scheduledFor: slot } : {}) } });
+      router.replace({
+        pathname: '/job/[id]',
+        params: { id, jobType: jobType.id, urgency: effectiveUrgency, ...(slot && !asap ? { scheduledFor: slot } : {}), ...(asked ? { askedFor: asked.name } : {}) },
+      });
     } catch (e) {
       Alert.alert('Could not send your request', e instanceof Error ? e.message : 'Please try again.');
     } finally {
@@ -223,6 +240,21 @@ export default function RequestJob() {
             </View>
           )}
 
+          {params.pro && params.proName ? (
+            <Card selected={askPro} onPress={() => setAskPro(!askPro)} style={styles.option} accessibilityLabel={`Ask ${params.proName} first`}>
+              <Avatar name={params.proName} size={44} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <T variant="headline">{`Ask ${params.proName} first`}</T>
+                <T variant="footnote" color="inkMuted">
+                  {askPro
+                    ? `${params.proName} gets first refusal. If ${params.proName} can't make it, we'll send another vetted pro nearby.`
+                    : "Off: we'll send the nearest available pro."}
+                </T>
+              </View>
+              <Radio on={askPro} />
+            </Card>
+          ) : null}
+
           <View style={{ gap: Spacing.three }}>
             <T variant="title2" accessibilityRole="header">
               Where
@@ -332,7 +364,9 @@ export default function RequestJob() {
               <View style={{ flex: 1, gap: 2 }}>
                 <T variant="headline">As soon as possible</T>
                 <T variant="footnote" color="inkMuted">
-                  {`The nearest ${tradeInfo.pro}, usually with you within the hour`}
+                  {asked
+                    ? `${asked.name} if nearby, otherwise the nearest ${tradeInfo.pro}. Usually with you within the hour`
+                    : `The nearest ${tradeInfo.pro}, usually with you within the hour`}
                 </T>
               </View>
               <Radio on={asap} tone="urgent" />
@@ -389,6 +423,7 @@ export default function RequestJob() {
           <Row label="Job" value={jobType.label} />
           <Row label="When" value={when} />
           <Row label="Where" value={fixedPlace ? `${fixedPlace.name} · ${fixedPlace.postcode}` : postcode} />
+          {asked ? <Row label="Pro" value={`${asked.name} first`} /> : null}
           {media.length ? <Row label="Photos" value={`${media.length} added`} /> : null}
           <Divider />
           <View style={styles.total}>

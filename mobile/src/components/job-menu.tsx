@@ -30,10 +30,16 @@ export function menuPrice(job: JobType): { price: string; note: string } {
 }
 
 /** Booking a job, or choosing one of a trade's jobs. */
-export function bookingHref(p: { trade: Trade; job?: string; postcode?: string; urgent?: boolean }): Href {
+export function bookingHref(p: { trade: Trade; job?: string; postcode?: string; urgent?: boolean; pro?: { id: string; name: string } }): Href {
   return {
     pathname: '/request',
-    params: { trade: p.trade, ...(p.job ? { job: p.job } : {}), ...(p.postcode ? { postcode: p.postcode } : {}), ...(p.urgent ? { urgent: '1' } : {}) },
+    params: {
+      trade: p.trade,
+      ...(p.job ? { job: p.job } : {}),
+      ...(p.postcode ? { postcode: p.postcode } : {}),
+      ...(p.urgent ? { urgent: '1' } : {}),
+      ...(p.pro ? { pro: p.pro.id, proName: p.pro.name } : {}),
+    },
   };
 }
 

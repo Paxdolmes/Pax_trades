@@ -56,11 +56,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ['@stripe/stripe-react-native', { merchantIdentifier: 'merchant.uk.relaytrades', enableGooglePay: true }],
     [
       'expo-image-picker',
-      {
-        photosPermission: 'Relay uses your photos so you can show the pro what needs fixing.',
-        cameraPermission: 'Relay uses your camera so you can show the pro what needs fixing.',
-        microphonePermission: 'Relay uses your microphone when you record a short video of the problem.',
-      },
+      variant === 'pro'
+        ? {
+            photosPermission: 'Relay Traders uses your photos so you can add your documents, and photos and certificates to your jobs.',
+            cameraPermission: 'Relay Traders uses your camera so you can photograph your documents, your finished work and paper certificates.',
+            // Relay Traders only takes photos, never video.
+            microphonePermission: false,
+          }
+        : {
+            photosPermission: 'Relay uses your photos so you can show the pro what needs fixing.',
+            cameraPermission: 'Relay uses your camera so you can show the pro what needs fixing.',
+            microphonePermission: 'Relay uses your microphone when you record a short video of the problem.',
+          },
     ],
     [
       'expo-location',

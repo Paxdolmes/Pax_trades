@@ -24,6 +24,8 @@ export type NewJob = {
   scheduledFor: string | null;
   /** A tenant's request to their landlord, or a landlord booking for their property. */
   propertyId?: string | null;
+  /** "Book Sam again": the pro who did a past job, offered this one first. */
+  preferredProId?: string | null;
 };
 
 /** Creates a job request. Without Supabase configured, returns a local demo id. */
@@ -42,6 +44,8 @@ export async function createJob(job: NewJob): Promise<{ id: string }> {
       description: job.description,
       scheduled_for: job.scheduledFor,
       property_id: job.propertyId ?? null,
+      // Demo pros have made-up ids; only a real pro can be asked for.
+      preferred_pro_id: job.preferredProId && /^[0-9a-f-]{36}$/.test(job.preferredProId) ? job.preferredProId : null,
       location,
     })
     .select('id')
