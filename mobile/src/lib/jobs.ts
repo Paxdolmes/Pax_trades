@@ -44,8 +44,8 @@ export async function createJob(job: NewJob): Promise<{ id: string }> {
       description: job.description,
       scheduled_for: job.scheduledFor,
       property_id: job.propertyId ?? null,
-      // Demo pros have made-up ids; only a real pro can be asked for.
-      preferred_pro_id: job.preferredProId && /^[0-9a-f-]{36}$/.test(job.preferredProId) ? job.preferredProId : null,
+      // Sent only when a pro is asked for. Demo pros have made-up ids, so only a real pro can be.
+      ...(job.preferredProId && /^[0-9a-f-]{36}$/.test(job.preferredProId) ? { preferred_pro_id: job.preferredProId } : {}),
       location,
     })
     .select('id')
