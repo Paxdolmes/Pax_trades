@@ -2,6 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   BadgeCheck,
   Building2,
+  Car,
+  ChevronRight,
   CircleCheck,
   CreditCard,
   FileText,
@@ -457,40 +459,60 @@ function Finding({
 function ProCard({ jobId, trade }: { jobId: string; trade: Trade }) {
   const c = usePalette();
   const pro = useJobPro();
-  const checked = trade === 'heating' ? 'Gas Safe' : 'Vetted';
   return (
     <View style={{ gap: Spacing.two }}>
       <View style={[styles.proBox, { backgroundColor: c.bg }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${pro.name}, ${pro.rating ? `rated ${pro.rating} from ${pro.reviews} reviews` : 'new to Relay'}. See profile`}
-          onPress={() => router.push({ pathname: '/pro/[id]', params: { id: pro.id } })}
-          style={({ pressed }) => [styles.row, { flex: 1 }, pressed && { opacity: 0.7 }]}>
-          <Avatar name={pro.name} size={48} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <T variant="headline" numberOfLines={1}>
-              {pro.name}
-            </T>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Star size={13} color={c.accentStrong} fill={c.accentStrong} />
-              <T variant="subhead">{pro.rating ? String(pro.rating) : 'New'}</T>
-              <BadgeCheck size={13} color={c.success} strokeWidth={2.4} style={{ marginLeft: 4 }} />
-              <T variant="footnote" color="inkMuted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {checked}
-              </T>
+        <View style={styles.row}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${pro.name}, ${pro.rating ? `rated ${pro.rating} from ${pro.reviews} reviews` : 'new to Relay'}. See profile`}
+            onPress={() => router.push({ pathname: '/pro/[id]', params: { id: pro.id } })}
+            style={({ pressed }) => [styles.row, { flex: 1 }, pressed && { opacity: 0.7 }]}>
+            <Avatar name={pro.name} size={48} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <View style={[styles.row, { gap: 4 }]}>
+                <T variant="headline" numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {pro.name}
+                </T>
+                <ChevronRight size={16} color={c.inkSubtle} strokeWidth={2.4} />
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Star size={13} color={c.accentStrong} fill={c.accentStrong} />
+                <T variant="subhead">{pro.rating ? String(pro.rating) : 'New'}</T>
+                <T variant="footnote" color="inkMuted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {`· ${pro.jobs} jobs`}
+                </T>
+              </View>
             </View>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Message ${pro.firstName}`}
+            onPress={() => router.push({ pathname: '/chat/[id]', params: { id: jobId, name: pro.name } })}
+            style={({ pressed }) => [styles.message, { backgroundColor: pressed ? c.inkMuted : c.ink }]}>
+            <MessageCircle size={16} color={c.surface} strokeWidth={2.4} />
+            <T variant="subhead" color="surface" style={{ fontWeight: '700' }}>
+              Message
+            </T>
+          </Pressable>
+        </View>
+        {pro.van ? (
+          <View style={[styles.row, { gap: 6 }]}>
+            <Car size={15} color={c.inkMuted} strokeWidth={2.2} />
+            <T variant="footnote" color="inkMuted" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {pro.van}
+            </T>
           </View>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Message ${pro.firstName}`}
-          onPress={() => router.push({ pathname: '/chat/[id]', params: { id: jobId, name: pro.name } })}
-          style={({ pressed }) => [styles.message, { backgroundColor: pressed ? c.inkMuted : c.ink }]}>
-          <MessageCircle size={16} color={c.surface} strokeWidth={2.4} />
-          <T variant="subhead" color="surface" style={{ fontWeight: '700' }}>
-            Message
-          </T>
-        </Pressable>
+        ) : null}
+        <View style={styles.chips}>
+          {trade === 'heating' ? (
+            <Chip label={pro.gasSafeNumber ? `Gas Safe ${pro.gasSafeNumber}` : 'Gas Safe registered'} tone="success" icon={ShieldCheck} />
+          ) : (
+            <Chip label="ID and qualifications checked" tone="success" icon={ShieldCheck} />
+          )}
+          <Chip label="Insured" tone="brand" icon={BadgeCheck} />
+          {pro.reviews ? <Chip label={`${pro.reviews} reviews`} icon={Star} /> : null}
+        </View>
       </View>
       <View style={[styles.row, { gap: 6, paddingHorizontal: Spacing.one }]}>
         <Lock size={13} color={c.inkSubtle} strokeWidth={2.4} />
@@ -502,7 +524,6 @@ function ProCard({ jobId, trade }: { jobId: string; trade: Trade }) {
   );
 }
 
-/** From the pro accepting to working on it: the map, where things are up to, and who's coming. */
 function OnTheWay({
   jobId,
   stage,
@@ -574,21 +595,26 @@ function OnTheWay({
         />
       ) : null}
       <Sheet onLayout={(e) => setBox((b) => ({ ...b, sheet: e.nativeEvent.layout.height }))}>
-        <View style={{ gap: 2 }}>
-          <T variant="title1" accessibilityRole="header">
-            {title}
-          </T>
-          <T variant="footnote" color="inkMuted">
-            {sub}
-          </T>
-        </View>
-        <Timeline steps={steps} current={stage === 'accepted' ? 1 : stage === 'en_route' ? 2 : 3} />
-        {stage === 'on_site' ? null : (
-          <Note icon={ShieldCheck}>
-            {`If ${name} can't make it ${scheduledFor ? 'at' : 'by'} ${dueAt}, we send the next nearest pro and give you ${formatPence(PILOT.noShowCreditPence)} credit.`}
-          </Note>
-        )}
-        <ProCard jobId={jobId} trade={trade} />
+        <ScrollView
+          style={box.height ? { maxHeight: Math.max(280, box.height * 0.62 - 60) } : undefined}
+          contentContainerStyle={{ gap: Spacing.five }}
+          showsVerticalScrollIndicator={false}>
+          <View style={{ gap: 2 }}>
+            <T variant="title1" accessibilityRole="header">
+              {title}
+            </T>
+            <T variant="footnote" color="inkMuted">
+              {sub}
+            </T>
+          </View>
+          <Timeline steps={steps} current={stage === 'accepted' ? 1 : stage === 'en_route' ? 2 : 3} />
+          {stage === 'on_site' ? null : (
+            <Note icon={ShieldCheck}>
+              {`If ${name} can't make it ${scheduledFor ? 'at' : 'by'} ${dueAt}, we send the next nearest pro and give you ${formatPence(PILOT.noShowCreditPence)} credit.`}
+            </Note>
+          )}
+          <ProCard jobId={jobId} trade={trade} />
+        </ScrollView>
       </Sheet>
     </View>
   );
@@ -747,6 +773,9 @@ function JobDone({
             <T variant="footnote" color="inkMuted">
               {`${jobLabel} · ${day}`}
             </T>
+          </View>
+          <View accessibilityLabel="Job done" style={[styles.doneIcon, { backgroundColor: c.successTint }]}>
+            <CircleCheck size={26} color={c.success} strokeWidth={2.2} />
           </View>
         </View>
         <T variant="display" accessibilityRole="header">
@@ -914,6 +943,7 @@ const styles = StyleSheet.create({
   review: { minHeight: 80, borderRadius: Radii.md, padding: Spacing.three, textAlignVertical: 'top' },
   guarantee: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.lg, padding: Spacing.four },
   tip: { flex: 1, height: 48, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
-  proBox: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.lg, padding: Spacing.three },
+  proBox: { gap: Spacing.three, borderRadius: Radii.lg, padding: Spacing.three },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   message: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, borderRadius: Radii.pill, paddingHorizontal: Spacing.four },
 });

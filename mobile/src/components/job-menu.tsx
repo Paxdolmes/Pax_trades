@@ -10,7 +10,7 @@ import { Grid, isHovered, linkProps } from '@/components/site/frame';
 import { TRADE_ICONS } from '@/components/trade-icons';
 import { T, type LucideIcon } from '@/components/ui';
 import { Radii, SoftShadows, Spacing, Type, usePalette } from '@/constants/theme';
-import { CALLOUT_RATES, findJobType, formatPence, OFFERED_TRADES, POPULAR_JOBS, type JobType, type Trade } from '@/domain/catalog';
+import { CALLOUT_RATES, findJobType, formatPence, fromPricePence, OFFERED_TRADES, POPULAR_JOBS, type JobType, type Trade } from '@/domain/catalog';
 import { searchJobs } from '@/domain/search';
 
 const JOB_ICONS: Record<string, LucideIcon> = {
@@ -37,8 +37,19 @@ export function bookingHref(p: { trade: Trade; job?: string; postcode?: string; 
   };
 }
 
-/** `onCard`: the menu sits on a white card (the website), so tiles are cream. */
-export function JobMenu({ postcode, onCard, placeholder = 'What needs fixing?' }: { postcode?: string; onCard?: boolean; placeholder?: string }) {
+/** `onCard`: the menu sits on a white card (the website), so tiles are cream.
+ *  `tradeTiles`: show each trade as a tile with its starting price (the app). */
+export function JobMenu({
+  postcode,
+  onCard,
+  tradeTiles,
+  placeholder = 'What needs fixing?',
+}: {
+  postcode?: string;
+  onCard?: boolean;
+  tradeTiles?: boolean;
+  placeholder?: string;
+}) {
   const c = usePalette();
   const [query, setQuery] = useState('');
   const results = searchJobs(query).slice(0, 6);
@@ -93,23 +104,49 @@ export function JobMenu({ postcode, onCard, placeholder = 'What needs fixing?' }
             <T variant="subhead" color="inkMuted" style={{ fontWeight: '600' }}>
               Every job, by trade
             </T>
-            <View style={styles.trades}>
-              {OFFERED_TRADES.map((t) => {
-                const Icon = TRADE_ICONS[t.id];
-                return (
-                  <Pressable
-                    key={t.id}
-                    {...linkProps(bookingHref({ trade: t.id, postcode }))}
-                    accessibilityLabel={`${t.service}: ${t.detail}`}
-                    style={(state) => [styles.trade, { borderColor: c.border, backgroundColor: isHovered(state) || state.pressed ? c.surfaceMuted : c.surface }]}>
-                    <Icon size={16} color={c.accentStrong} strokeWidth={2.2} />
-                    <T variant="subhead" style={{ fontWeight: '600' }}>
-                      {t.service}
-                    </T>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {tradeTiles ? (
+              <View style={styles.tradeTiles}>
+                {OFFERED_TRADES.map((t) => {
+                  const Icon = TRADE_ICONS[t.id];
+                  const from = formatPence(fromPricePence(t.id));
+                  return (
+                    <Pressable
+                      key={t.id}
+                      {...linkProps(bookingHref({ trade: t.id, postcode }))}
+                      accessibilityLabel={`${t.label}. ${t.detail}. From ${from}, including VAT and fees`}
+                      style={(state) => [styles.tradeTile, SoftShadows.soft, { backgroundColor: isHovered(state) || state.pressed ? c.surfaceMuted : c.surface }]}>
+                      <View style={[styles.tradeTileIcon, { backgroundColor: c.ink }]}>
+                        <Icon size={22} color={c.accent} strokeWidth={2.2} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <T variant="bodyStrong" numberOfLines={1} style={{ fontSize: 15, fontWeight: '700' }}>
+                          {t.short}
+                        </T>
+                        <T variant="footnote" color="inkMuted">{`From ${from}`}</T>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <View style={styles.trades}>
+                {OFFERED_TRADES.map((t) => {
+                  const Icon = TRADE_ICONS[t.id];
+                  return (
+                    <Pressable
+                      key={t.id}
+                      {...linkProps(bookingHref({ trade: t.id, postcode }))}
+                      accessibilityLabel={`${t.service}: ${t.detail}`}
+                      style={(state) => [styles.trade, { borderColor: c.border, backgroundColor: isHovered(state) || state.pressed ? c.surfaceMuted : c.surface }]}>
+                      <Icon size={16} color={c.accentStrong} strokeWidth={2.2} />
+                      <T variant="subhead" style={{ fontWeight: '600' }}>
+                        {t.service}
+                      </T>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </View>
         </>
       )}
@@ -193,6 +230,9 @@ const styles = StyleSheet.create({
   tileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   trades: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   trade: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: Spacing.four, borderRadius: Radii.pill, borderWidth: 1 },
+  tradeTiles: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
+  tradeTile: { flexGrow: 1, flexBasis: '46%', borderRadius: Radii.lg, padding: Spacing.three, gap: Spacing.three, flexDirection: 'row', alignItems: 'center' },
+  tradeTileIcon: { width: 44, height: 44, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   quotes: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.md, padding: Spacing.four },
   quotesIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   result: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, borderRadius: Radii.md, paddingHorizontal: Spacing.four, paddingVertical: Spacing.three },

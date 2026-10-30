@@ -131,6 +131,29 @@ export function LandlordDiagram() {
   );
 }
 
+/** The same story in one line, for the front page. `dark`: on navy. `onAccent`: on teal. */
+export function LandlordFlowStrip({ dark, onAccent }: { dark?: boolean; onAccent?: boolean }) {
+  const c = usePalette();
+  const { narrow } = useBreakpoint();
+  const steps = ['Tenant reports it', 'You tap Approve', 'A vetted pro fixes it', 'The bill comes to you'];
+  // The step that's yours stands out: teal on navy or white, navy on teal.
+  const mine = onAccent ? { bg: c.ink, fg: c.accent } : { bg: c.accent, fg: c.onAccent };
+  return (
+    <View style={[styles.strip, narrow && { flexDirection: 'column', alignItems: 'stretch' }]}>
+      {steps.map((s, i) => (
+        <View key={s} style={[styles.stripStep, narrow && { flexDirection: 'row' }]}>
+          <View style={[styles.stripChip, { backgroundColor: i === 1 ? mine.bg : dark ? '#15275A' : c.surface, flex: narrow ? 1 : undefined }]}>
+            <T variant="subhead" style={{ fontWeight: '700', color: i === 1 ? mine.fg : dark ? '#FFFFFF' : c.ink }}>
+              {s}
+            </T>
+          </View>
+          {i < steps.length - 1 && !narrow ? <ArrowRight size={18} color={dark ? '#C9CFDD' : onAccent ? c.onAccent : c.inkSubtle} /> : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   panels: { flexDirection: 'row', gap: Spacing.five, alignItems: 'stretch' },
   panel: { borderRadius: 28, padding: Spacing.six, gap: Spacing.five },
@@ -142,4 +165,7 @@ const styles = StyleSheet.create({
   relayRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four, borderRadius: 20, padding: Spacing.four, borderWidth: 2 },
   relayIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   arrow: { alignItems: 'center', paddingVertical: 6 },
+  strip: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: Spacing.three },
+  stripStep: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  stripChip: { borderRadius: 999, paddingHorizontal: Spacing.four, paddingVertical: Spacing.two },
 });

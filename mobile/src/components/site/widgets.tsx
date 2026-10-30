@@ -1,5 +1,5 @@
 // Bigger building blocks shared by the website's pages: the postcode checker,
-// FAQ accordion, call-to-action band and the trades coming soon.
+// FAQ accordion, call-to-action band, trust strip and the trades coming soon.
 import { router } from 'expo-router';
 import { ArrowRight, CircleCheck, MailPlus, MapPin, Plus } from 'lucide-react-native';
 import { useState } from 'react';
@@ -9,11 +9,11 @@ import { T } from '@/components/ui';
 import { Radii, SoftShadows, Spacing, Type, usePalette } from '@/constants/theme';
 import { COMING_SOON, LAUNCH_OUTWARD_CODES } from '@/domain/catalog';
 import { isInLaunchArea, outwardCode } from '@/domain/rules';
-import type { Faq } from '@/content/site';
+import { TRUST_ITEMS, type Faq } from '@/content/site';
 import { sendEnquiry } from '@/lib/contact';
 import { WAITLIST } from '@/lib/launch';
 
-import { ArrowLink, Container, H2, Lead, MAIN_CTA, MarkTile, Pill, useBreakpoint } from './frame';
+import { ArrowLink, Container, Grid, H2, Lead, MAIN_CTA, MarkTile, Pill, SiteIcon, useBreakpoint } from './frame';
 
 /** "Check my area": covered postcodes go on to booking (the waiting list until Relay
  *  opens), others can join the waitlist for their area. */
@@ -191,6 +191,26 @@ export function CtaBand({ title = 'Something need fixing?', sub = CTA_SUB }: { t
 }
 
 /** The trades we're adding next: a quiet line under the four we offer now. */
+export function TrustStrip() {
+  const c = usePalette();
+  return (
+    <Container>
+      <View style={[styles.trust, SoftShadows.soft, { backgroundColor: c.surface }]}>
+        <Grid columns={{ narrow: 2, medium: 2, wide: 4 }} gap={Spacing.five}>
+          {TRUST_ITEMS.map(({ icon, label }) => (
+            <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
+              <SiteIcon icon={icon} size={40} />
+              <T variant="bodyStrong" style={{ flex: 1, fontSize: 15, lineHeight: 21 }}>
+                {label}
+              </T>
+            </View>
+          ))}
+        </Grid>
+      </View>
+    </Container>
+  );
+}
+
 export function ComingSoon({ center }: { center?: boolean }) {
   const c = usePalette();
   return (
@@ -221,4 +241,5 @@ const styles = StyleSheet.create({
   faqButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four, paddingHorizontal: Spacing.six, paddingVertical: Spacing.five },
   faqIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   cta: { alignItems: 'center', gap: Spacing.six, borderRadius: 28, paddingHorizontal: Spacing.six },
+  trust: { borderRadius: 24, padding: Spacing.six },
 });
