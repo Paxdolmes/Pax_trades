@@ -1,0 +1,87 @@
+name: App Store
+
+# Run by hand from the Actions tab. "build" makes the iPhone store builds of Relay
+# and Relay Traders on Expo's servers; "submit" sends the latest ones to App Store
+# Connect, where they appear in TestFlight and can be submitted for review.
+# Needs these repository secrets: EXPO_TOKEN, plus the App Store Connect API key
+# (ASC_API_KEY_P8, the .p8 file's contents; ASC_KEY_ID; ASC_ISSUER_ID) and
+# APPLE_TEAM_ID and APPLE_TEAM_TYPE (INDIVIDUAL or COMPANY_OR_ORGANIZATION). With
+# the key, EAS makes the signing certificate and profiles itself.
+
+on:
+  workflow_dispatch:
+    inputs:
+      step:
+        description: What to do
+        type: choice
+        options: [build, submit]
+        default: build
+      apps:
+        description: Which apps
+        type: choice
+        options: [both, relay, relay-traders]
+        default: both
+
+jobs:
+  ios:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_ASC_API_KEY_PATH: ${{ github.workspace }}/mobile/asc-api-key.p8
+      EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      EXPO_APPLE_TEAM_TYPE: ${{ secrets.APPLE_TEAM_TYPE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Check the secrets are set
+        env:
+          P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          for v in P8 EXPO_ASC_KEY_ID EXPO_ASC_ISSUER_ID EXPO_APPLE_TEAM_ID EXPO_APPLE_TEAM_TYPE; do
+            if [ -z "${!v}" ]; then echo "::error::A secret is missing ($v). See the top of .github/workflows/app-store.yml."; exit 1; fi
+          done
+          printf '%s\n' "$P8" > asc-api-key.p8
+      - name: Use the key for submitting
+        if: inputs.step == 'submit'
+        run: |
+          jq --arg path ./asc-api-key.p8 --arg id "$EXPO_ASC_KEY_ID" --arg issuer "$EXPO_ASC_ISSUER_ID" \
+            '.submit[].ios += {ascApiKeyPath: $path, ascApiKeyId: $id, ascApiKeyIssuerId: $issuer}' eas.json > eas.tmp && mv eas.tmp eas.json
+          check() { if jq -e --arg p "$1" '.submit[$p].ios.ascAppId | startswith("REPLACE")' eas.json > /dev/null; then
+            echo "::error::Add the app's Apple ID to submit.$1 in mobile/eas.json first (App Store Connect, App Information, Apple ID)."; exit 1; fi; }
+          if [ "${{ inputs.apps }}" != relay-traders ]; then check production; fi
+          if [ "${{ inputs.apps }}" != relay ]; then check production-traders; fi
+
+      - name: Relay
+        if: inputs.apps != 'relay-traders'
+        run: |
+          if [ "${{ inputs.step }}" = build ]; then
+            eas build --platform ios --profile production --non-interactive --no-wait
+          else
+            eas submit --platform ios --profile production --latest --non-interactive
+          fi
+      - name: Relay Traders
+        if: inputs.apps != 'relay'
+        env:
+          APP_VARIANT: pro
+        run: |
+          if [ "${{ inputs.step }}" = build ]; then
+            eas build --platform ios --profile production-traders --non-interactive --no-wait
+          else
+            eas submit --platform ios --profile production-traders --latest --non-interactive
+          fi
+      - name: Remove the key
+        if: always()
+        run: rm -f asc-api-key.p8

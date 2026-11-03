@@ -15,7 +15,9 @@ export async function presentSaveCardSheet(s: { customerId: string; ephemeralKey
     customerEphemeralKeySecret: s.ephemeralKey,
     setupIntentClientSecret: s.setupIntent,
     returnURL: 'relay://stripe-redirect',
-    applePay: { merchantCountryCode: 'GB' },
+    // Apple Pay only works once its merchant ID is set up with Apple and Stripe. Until
+    // then the button would fail, so it's off and cards work as normal.
+    applePay: process.env.EXPO_PUBLIC_APPLE_PAY === 'on' ? { merchantCountryCode: 'GB' } : undefined,
     googlePay: { merchantCountryCode: 'GB', testEnv: publishableKey.startsWith('pk_test_') },
   });
   if (init.error) throw new Error(init.error.message);
