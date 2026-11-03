@@ -45,5 +45,17 @@
         "APP_VARIANT": "pro"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "REPLACE_WITH_RELAY_APPLE_ID"
+      }
+    },
+    "production-traders": {
+      "ios": {
+        "ascAppId": "REPLACE_WITH_RELAY_TRADERS_APPLE_ID"
+      }
+    }
   }
 }
