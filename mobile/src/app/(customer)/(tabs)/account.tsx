@@ -1,5 +1,5 @@
 import { router, type Href } from 'expo-router';
-import { Building2, ChevronRight, CreditCard, FileText, HelpCircle, House, MapPin, Scale, ShieldCheck } from 'lucide-react-native';
+import { Building2, ChevronRight, CreditCard, FileText, HelpCircle, House, Lock, MapPin, Scale, ShieldCheck } from 'lucide-react-native';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { SignInPrompt } from '@/components/sign-in-prompt';
@@ -9,6 +9,7 @@ import { Spacing, usePalette } from '@/constants/theme';
 import { needsSignIn, useAuth } from '@/lib/auth';
 import { DEMO_CUSTOMER } from '@/lib/demo';
 import { saveCard } from '@/lib/payments';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 async function changeCard() {
   try {
@@ -21,7 +22,8 @@ async function changeCard() {
 type Row = { icon: LucideIcon; label: string; detail: string; public?: boolean; href?: Href; onPress?: () => void };
 
 const ROWS: Row[] = [
-  { icon: MapPin, label: 'Saved addresses', detail: DEMO_CUSTOMER.postcode },
+  // The demo customer's postcode is only for demo mode; a real account keeps the address on each job.
+  { icon: MapPin, label: 'Saved addresses', detail: isSupabaseConfigured ? 'Kept with each job you book' : DEMO_CUSTOMER.postcode },
   { icon: CreditCard, label: 'Payment methods', detail: 'Add or change your card', onPress: changeCard },
   { icon: House, label: 'Your landlord or agent', detail: 'Renting? Send repairs to them to approve and pay', href: '/my-home' },
   { icon: Building2, label: 'Properties you manage', detail: 'Landlords and agents: approve repairs, see spend', public: true, href: '/properties' },
@@ -29,6 +31,7 @@ const ROWS: Row[] = [
   { icon: ShieldCheck, label: 'How we vet pros', detail: 'ID, insurance, Gas Safe, NICEIC or NAPIT', public: true, href: '/safety' },
   { icon: HelpCircle, label: 'Help', detail: 'Common questions, or message the Relay team', public: true, href: '/help' },
   { icon: Scale, label: 'Terms and privacy', detail: 'How booking works and what we keep', public: true, href: '/terms' },
+  { icon: Lock, label: 'Privacy policy', detail: 'What we collect, and deleting your account', public: true, href: '/privacy' },
 ];
 
 export default function Account() {
