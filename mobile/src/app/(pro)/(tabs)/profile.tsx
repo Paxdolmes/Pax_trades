@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Award, ChevronRight, ClipboardCheck, HelpCircle, Landmark, MapPin, ShieldCheck, Star } from 'lucide-react-native';
+import { Award, ChevronRight, ClipboardCheck, HelpCircle, Landmark, Lock, MapPin, Scale, ShieldCheck, Star } from 'lucide-react-native';
 import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { SignOutButton } from '@/components/sign-out';
@@ -41,7 +41,9 @@ export default function Profile() {
     { icon: MapPin, label: 'Work area', detail: 'Fulham, SW6 · up to 5 km' },
     { icon: Landmark, label: 'Bank details', detail: 'Payouts within 48 hours, through Stripe', onPress: openBankSetup },
     { icon: ClipboardCheck, label: 'Application', detail: 'See the sign-up steps', onPress: () => router.push('/apply') },
-    { icon: HelpCircle, label: 'Help', detail: 'Chat with the Relay team' },
+    { icon: HelpCircle, label: 'Help', detail: 'Chat with the Relay team', onPress: () => router.push('/help') },
+    { icon: Scale, label: 'Terms', detail: 'How working with Relay works', onPress: () => router.push('/terms') },
+    { icon: Lock, label: 'Privacy policy', detail: 'What we collect, and deleting your account', onPress: () => router.push('/privacy') },
     ...(isAdmin ? [{ icon: ShieldCheck, label: 'Admin', detail: 'Approve pros and handle problem reports', onPress: () => router.push('/admin') }] : []),
   ];
   return (
@@ -62,7 +64,7 @@ export default function Profile() {
         {rows.map((r, i) => (
           <View key={r.label}>
             {i > 0 ? <Divider inset={72} /> : null}
-            <Pressable accessibilityRole="button" onPress={r.onPress} style={styles.row}>
+            <Pressable accessibilityRole={r.onPress ? 'button' : undefined} disabled={!r.onPress} onPress={r.onPress} style={styles.row}>
               <IconTile icon={r.icon} tone="neutral" size={40} />
               <View style={{ flex: 1 }}>
                 <T variant="subhead" style={{ fontWeight: '600' }}>
@@ -72,7 +74,7 @@ export default function Profile() {
                   {r.detail}
                 </T>
               </View>
-              <ChevronRight size={18} color={c.inkSubtle} />
+              {r.onPress ? <ChevronRight size={18} color={c.inkSubtle} /> : null}
             </Pressable>
           </View>
         ))}

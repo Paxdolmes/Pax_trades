@@ -125,12 +125,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /** Emails a one-time code, creating the account the first time. */
+// Apple's reviewers can't read our sign-in emails, so App Review gets these accounts
+// instead (one per app, set up in Supabase with a password of 10 digits). For them
+// the "code" is that password, and no email is sent. Everyone else is unaffected.
+const REVIEW_ACCOUNTS = new Set(['appreview@relay-trade.co.uk', 'appreview-traders@relay-trade.co.uk']);
+const isReviewAccount = (email: string) => REVIEW_ACCOUNTS.has(email.trim().toLowerCase());
+
 export async function sendCode(email: string): Promise<void> {
+  if (isReviewAccount(email)) return;
   const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { shouldCreateUser: true } });
   if (error) throw error;
 }
 
 export async function verifyCode(email: string, code: string): Promise<void> {
+  if (isReviewAccount(email)) {
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: code });
+    if (error) throw error;
+    return;
+  }
   const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code, type: 'email' });
   if (error) throw error;
 }
@@ -154,4 +166,19 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
 
-export const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
+/**
+ * Deletes the signed-in account: their details, documents and login. Finished jobs
+ * and payments stay on record without their name. Throws with a message to show,
+ * e.g. while a job is still under way.
+ */
+export async function deleteAccount(): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
+  if (error) {
+    const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    throw new Error(detail?.error ?? 'Could not delete your account. Check your connection and try again.');
+  }
+  await supabase.auth.signOut({ scope: 'local' });
+}
+
+export const isEmail =(s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
